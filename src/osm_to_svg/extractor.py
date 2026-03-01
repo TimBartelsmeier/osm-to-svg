@@ -69,8 +69,5 @@ def extract_from_pbf(
         ) from e
     except FileNotFoundError:
         raise RuntimeError(
-            "osmium-tool not found. Please install it:\n"
-            "  - With pixi: already included in dependencies\n"
-            "  - With conda: conda install -c conda-forge osmium-tool\n"
-            "  - On Ubuntu: apt-get install osmium-tool"
+            "osmium-tool not found (in a conda or pixi project, you can install it directly from conda-forge)"
         )

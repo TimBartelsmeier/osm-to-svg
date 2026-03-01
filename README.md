@@ -25,6 +25,8 @@ To play around with the styling options and see the results immediately, it is b
 
 The recommended approach is to download a pre-built PBF file (for example, from [Geofabrik](https://download.geofabrik.de/)) and extract the region of interest using `extract_from_pbf`. This is more reliable than Overpass and supports any bounding box size.
 
+Extraction requires [`osmium-tool`](https://osmcode.org/osmium-tool/) to be available (via the PATH environement variable). If you manage your project with `conda` or `pixi`, the easiest way is to install it from conda-forge (i.e. `pixi add osmium-tool`).
+
 ```python
 from osm_to_svg import download_from_url, extract_from_pbf
 
