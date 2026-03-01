@@ -8,17 +8,20 @@ I have tested the functionality and, at least for my application, everything wor
 
 ## Installation
 
-The library is not published to PyPI. To use it, install [pixi](https://prefix.dev/), clone the repository, and run:
+The library is currently not published to PyPI. You can install it directly from this repo with your favorite package manager that supports installing from git. I recommend and use [`pixi`](https://pixi.prefix.dev/latest/), for which you'd do something like this:
 
-```bash
-git clone <repo-url>
-cd city-map-svg
-pixi install
-```
+1. [Install pixi on you system](https://pixi.prefix.dev/latest/installation)
+2. Create a new directory for your project.
+3. Open a terminal in the directory and run `pixi init`
+4. Run `pixi add python`
+5. Run `pixi add --pypi "osm-to-svg @ git+https://github.com/TimBartelsmeier/osm-to-svg"` to install this repository.
+6. Done! You can now use this package in python by importing `osm_to_svg`. Note that with pixi, you need to run `pixi run python <file/arguments>` instead of `python <file/arguments>`.
+
+To play around with the styling options and see the results immediately, it is best to work in a Jupyter notebook.
 
 ## Data acquisition
 
-### Recommended: Geofabrik + extraction
+### Recommended: Download large file from hoster and extract region-of-interest
 
 The recommended approach is to download a pre-built PBF file (for example, from [Geofabrik](https://download.geofabrik.de/)) and extract the region of interest using `extract_from_pbf`. This is more reliable than Overpass and supports any bounding box size.
 
