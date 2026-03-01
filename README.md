@@ -2,6 +2,10 @@
 
 A Python library for generating SVG maps from OpenStreetMap data. It reads PBF files, projects geographic coordinates, and renders styled layers for roads, waterways, railways, buildings, green spaces, and POI markers.
 
+> [!NOTE]
+> This project was programmed entirely with AI tools (Github Copilot with Claude Sonnet 4.5 & 4.6 and GPT-5.3.-Codex). This was partly because I needed such a tool for a private project but didn't have the time to implement it myself, and partly because I wanted to try out for myself how well “vibecoding” works.
+I have tested the functionality and, at least for my application, everything works as expected and without unintended side-effects. However, I have only given a cursory inspection to the generated code itself and I accept no liability for it.
+
 ## Installation
 
 The library is not published to PyPI. To use it, install [pixi](https://prefix.dev/), clone the repository, and run:
