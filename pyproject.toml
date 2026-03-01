@@ -1,0 +1,65 @@
+[project]
+name = "osm-to-svg"
+version = "0.1.0"
+description = "A Python library for creating SVG files from OpenStreetMap data"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Tim Bartelsmeier" }]
+dependencies = [
+    "osmium>=4.3.0,<5",
+    "svgwrite>=1.4.3,<2",
+    "pyproj>=3.7.2,<4",
+    "pydantic>=2.12.5,<3",
+    "httpx>=0.28.1,<0.29",
+    "tqdm>=4.67.3,<5",
+]
+
+[tool.pixi.dependencies]
+osmium-tool = ">=1.19.0,<2"
+
+[tool.pixi.feature.dev.dependencies]
+ruff = ">=0.15.1,<0.16"
+pytest = ">=9.0.2,<10"
+pytest-cov = ">=7.0.0,<8"
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["win-64", "linux-64", "osx-64"]
+
+[tool.pixi.pypi-dependencies]
+osm-to-svg = { path = ".", editable = true }
+
+[tool.pixi.feature.dev.tasks]
+test = "python -m pytest"
+test-cov = "python -m pytest --cov=osm_to_svg --cov-report=term-missing"
+lint = "ruff check src examples"
+format = "ruff format src examples"
+format-check = "ruff format --check src examples"
+
+
+[tool.pixi.tasks]
+example-1 = "python examples/example_1_geocode_bbox.py"
+example-2 = "python examples/example_2_download_extract_pbf.py"
+example-3 = "python examples/example_3_basic_usage.py"
+example-4 = "python examples/example_4_multiple_layers.py"
+example-5 = "python examples/example_5_all_buildings_roads.py"
+example-overpass = "python examples/example_overpass.py"
+
+[tool.pixi.environments]
+default = { features = [], solve-group = "default" }
+dev = { features = ["dev"], solve-group = "default" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+markers = ["integration: marks tests that use filesystem integration scenarios"]
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["osm_to_svg*"]

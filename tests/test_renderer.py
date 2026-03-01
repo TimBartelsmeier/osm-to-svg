@@ -1,0 +1,220 @@
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+import pytest
+
+from osm_to_svg.models import Feature, Style
+from osm_to_svg.renderer import SVGRenderer
+
+SVG_NS = "http://www.w3.org/2000/svg"
+
+
+def test_render_features_returns_in_memory_element(dummy_transformer) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+    features = [
+        Feature(geometry=[(8.0, 52.0), (8.1, 52.1)], tags={}),
+        Feature(
+            geometry=[(8.0, 52.0), (8.1, 52.0), (8.1, 52.1), (8.0, 52.0)],
+            tags={},
+            is_closed=True,
+        ),
+    ]
+
+    element = renderer.render_features(
+        features,
+        Style(stroke="#000", fill="none"),
+        output_path=None,
+        layer_id="roads",
+    )
+
+    assert element is not None
+    assert element.tag.endswith("svg")
+    groups = element.findall(f"{{{SVG_NS}}}g")
+    assert any(group.attrib.get("id") == "roads" for group in groups)
+
+
+def test_render_features_skips_invalid_geometry(dummy_transformer) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+
+    element = renderer.render_features(
+        [Feature(geometry=[(8.0, 52.0)], tags={})],
+        Style(stroke="#000", fill="none"),
+        output_path=None,
+        layer_id="roads",
+    )
+
+    assert element is not None
+    roads_group = element.find(f"{{{SVG_NS}}}g[@id='roads']")
+    assert roads_group is not None
+    assert len(list(roads_group)) == 0
+
+
+def test_place_poi_markers_requires_exactly_one_sizing_method(
+    dummy_transformer,
+    marker_svg_path: Path,
+) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+
+    with pytest.raises(ValueError, match="Must specify"):
+        renderer.place_poi_markers(
+            str(marker_svg_path),
+            coords=[(52.0, 8.0)],
+            output_path=None,
+        )
+
+    with pytest.raises(ValueError, match="Cannot specify multiple"):
+        renderer.place_poi_markers(
+            str(marker_svg_path),
+            coords=[(52.0, 8.0)],
+            scale=1.0,
+            width_meters=20.0,
+            output_path=None,
+        )
+
+
+def test_place_poi_markers_returns_in_memory_element(
+    dummy_transformer,
+    marker_svg_path: Path,
+) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+
+    element = renderer.place_poi_markers(
+        str(marker_svg_path),
+        coords=[(52.0, 8.0)],
+        width_meters=25.0,
+        output_path=None,
+    )
+
+    assert element is not None
+    assert element.tag.endswith("svg")
+    pois_group = element.find(f"{{{SVG_NS}}}g[@id='pois']")
+    assert pois_group is not None
+
+
+def test_place_poi_markers_supports_height_meters(
+    dummy_transformer,
+    marker_svg_path: Path,
+) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+
+    element = renderer.place_poi_markers(
+        str(marker_svg_path),
+        coords=[(52.0, 8.0)],
+        height_meters=10.0,
+        output_path=None,
+    )
+
+    assert element is not None
+
+
+@pytest.mark.integration
+def test_place_poi_markers_writes_file_with_background(
+    tmp_path: Path,
+    dummy_transformer,
+    marker_svg_path: Path,
+) -> None:
+    renderer = SVGRenderer(dummy_transformer, background_color="#101010")
+    output_file = tmp_path / "pois.svg"
+
+    renderer.place_poi_markers(
+        str(marker_svg_path),
+        coords=[(52.0, 8.0)],
+        scale=1.0,
+        output_path=str(output_file),
+        anchor="top-left",
+    )
+
+    assert output_file.exists()
+    root = ET.parse(output_file).getroot()
+    assert root.tag.endswith("svg")
+
+
+@pytest.mark.parametrize(
+    ("anchor", "expected"),
+    [
+        ("center", (95.0, 40.0)),
+        ("top", (95.0, 50.0)),
+        ("top-right", (90.0, 50.0)),
+        ("right", (90.0, 40.0)),
+        ("bottom-right", (90.0, 30.0)),
+        ("bottom", (95.0, 30.0)),
+        ("bottom-left", (100.0, 30.0)),
+        ("left", (100.0, 40.0)),
+        ("top-left", (100.0, 50.0)),
+    ],
+)
+def test_calculate_anchor_offset_variants(dummy_transformer, anchor, expected) -> None:  # noqa: ANN001
+    renderer = SVGRenderer(dummy_transformer)
+    assert (
+        renderer._calculate_anchor_offset(100.0, 50.0, 10.0, 20.0, 1.0, anchor)
+        == expected
+    )
+
+
+def test_calculate_anchor_offset_falls_back_to_center_for_unknown_anchor(
+    dummy_transformer,
+) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+    assert renderer._calculate_anchor_offset(
+        100.0, 50.0, 10.0, 20.0, 1.0, "unknown"
+    ) == (
+        95.0,
+        40.0,
+    )
+
+
+def test_parse_dimension_handles_number_and_invalid_string(dummy_transformer) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+    assert renderer._parse_dimension(12) == 12.0
+    assert renderer._parse_dimension("15pt") == 15.0
+    assert renderer._parse_dimension("invalid") == 24.0
+
+
+def test_copy_element_handles_supported_svg_nodes(
+    dummy_transformer,
+    tmp_path: Path,
+) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+    path = tmp_path / "marker-mixed.svg"
+    path.write_text(
+        """
+<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20">
+  <g id="root-group">
+    <circle cx="2" cy="2" r="1" />
+    <rect x="0" y="0" width="5" height="5" />
+    <path d="M 0 0 L 5 5" />
+    <line x1="0" y1="0" x2="1" y2="1" />
+  </g>
+</svg>
+""".strip(),
+        encoding="utf-8",
+    )
+
+    root = ET.parse(path).getroot()
+    # Use svgwrite drawing/group as expected by _copy_element
+    import svgwrite
+
+    dwg = svgwrite.Drawing(":memory:")
+    group = dwg.g(id="target")
+    for child in root:
+        renderer._copy_element(child, group, dwg)
+
+    # Unknown <line> should be ignored; known elements should be copied
+    assert len(group.elements) >= 1
+
+
+@pytest.mark.integration
+def test_render_features_writes_file(tmp_path: Path, dummy_transformer) -> None:
+    renderer = SVGRenderer(dummy_transformer, background_color="#000000")
+    output_file = tmp_path / "roads.svg"
+
+    renderer.render_features(
+        [Feature(geometry=[(8.0, 52.0), (8.1, 52.1)], tags={})],
+        Style(stroke="#ffffff", fill="none"),
+        output_path=str(output_file),
+        layer_id="roads",
+    )
+
+    assert output_file.exists()
+    root = ET.parse(output_file).getroot()
+    assert root.tag.endswith("svg")

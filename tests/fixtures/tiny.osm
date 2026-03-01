@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="test-fixture">
+  <node id="1" lat="52.0000" lon="8.0000" />
+  <node id="2" lat="52.0000" lon="8.0100" />
+  <node id="3" lat="52.0100" lon="8.0100" />
+  <node id="4" lat="52.0100" lon="8.0000" />
+  <node id="5" lat="52.0050" lon="8.0150" />
+  <node id="6" lat="52.0150" lon="8.0200" />
+
+  <way id="101">
+    <nd ref="1" />
+    <nd ref="2" />
+    <nd ref="3" />
+    <nd ref="4" />
+    <nd ref="1" />
+    <tag k="building" v="yes" />
+  </way>
+
+  <way id="102">
+    <nd ref="1" />
+    <nd ref="5" />
+    <nd ref="6" />
+    <tag k="highway" v="primary" />
+  </way>
+
+  <way id="103">
+    <nd ref="2" />
+    <nd ref="5" />
+    <nd ref="6" />
+    <tag k="waterway" v="river" />
+  </way>
+</osm>
