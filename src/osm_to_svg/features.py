@@ -18,7 +18,7 @@ class FeatureSpec:
 
     Example:
         >>> from osm_to_svg import features
-        >>> spec = features.ROADS.MAJOR | features.WATERWAYS.BODIES
+        >>> spec = features.ROADS.MAJOR | features.WATER.BODIES
         >>> mapper.render_features(spec, style)
     """
 
@@ -81,68 +81,81 @@ class ROADS:
 
     # ---- individual types ----
     MOTORWAY = _r("motorway")
+    """highway=motorway: High-capacity divided motorway; access via entry/exit ramps only."""
     MOTORWAY_LINK = _r("motorway_link")
+    """highway=motorway_link: Ramp connecting to or from a motorway."""
     TRUNK = _r("trunk")
+    """highway=trunk: High-importance road that does not meet full motorway standard."""
     TRUNK_LINK = _r("trunk_link")
+    """highway=trunk_link: Ramp connecting to or from a trunk road."""
     PRIMARY = _r("primary")
+    """highway=primary: Major road linking large towns."""
     PRIMARY_LINK = _r("primary_link")
+    """highway=primary_link: Slip road connecting to a primary road."""
     SECONDARY = _r("secondary")
+    """highway=secondary: Road linking towns and larger villages."""
     SECONDARY_LINK = _r("secondary_link")
+    """highway=secondary_link: Slip road connecting to a secondary road."""
     TERTIARY = _r("tertiary")
+    """highway=tertiary: Road linking smaller settlements."""
     TERTIARY_LINK = _r("tertiary_link")
+    """highway=tertiary_link: Slip road connecting to a tertiary road."""
     RESIDENTIAL = _r("residential")
+    """highway=residential: Road within a residential area."""
     UNCLASSIFIED = _r("unclassified")
+    """highway=unclassified: Minor road connecting settlements; lowest public road class."""
     SERVICE = _r("service")
+    """highway=service: Access road for parking lots, driveways, and service areas."""
     LIVING_STREET = _r("living_street")
+    """highway=living_street: Pedestrian-priority street with very low speed limit."""
     CYCLEWAY = _r("cycleway")
+    """highway=cycleway: Dedicated cycling path."""
     FOOTWAY = _r("footway")
+    """highway=footway: Designated footpath for pedestrians."""
     PATH = _r("path")
+    """highway=path: Unpaved trail shared by pedestrians, cyclists, or horses."""
     PEDESTRIAN_TYPE = _r("pedestrian")  # single highway=pedestrian value
+    """highway=pedestrian: Pedestrianised street or plaza (single tag value; see PEDESTRIAN for the group shorthand)."""
     STEPS = _r("steps")
+    """highway=steps: Stairway connection between levels."""
     TRACK = _r("track")
+    """highway=track: Unpaved track for agricultural or forestry access."""
     ROAD = _r("road")
+    """highway=road: Road of unknown or unspecified classification."""
 
     # ---- shorthands ----
-    # Major arterial roads (motorway through tertiary with all connecting links)
-    # Use for: City/regional scale maps, main traffic network visualization
-    MAJOR = FeatureSpec(
-        {
-            "highway": [
-                "motorway",
-                "motorway_link",
-                "trunk",
-                "trunk_link",
-                "primary",
-                "primary_link",
-                "secondary",
-                "secondary_link",
-                "tertiary",
-                "tertiary_link",
-            ]
-        }
+    MAJOR = (
+        MOTORWAY
+        | MOTORWAY_LINK
+        | TRUNK
+        | TRUNK_LINK
+        | PRIMARY
+        | PRIMARY_LINK
+        | SECONDARY
+        | SECONDARY_LINK
+        | TERTIARY
+        | TERTIARY_LINK
     )
-    # Highest hierarchy roads – main traffic arteries
-    # Use for: Navigation-focused maps, highway system visualization
-    ARTERIAL = FeatureSpec(
-        {
-            "highway": [
-                "motorway",
-                "motorway_link",
-                "trunk",
-                "trunk_link",
-                "primary",
-                "primary_link",
-            ]
-        }
-    )
-    # Local street network
-    # Use for: Neighborhood maps, street-level detail
-    LOCAL = FeatureSpec(
-        {"highway": ["residential", "unclassified", "service", "living_street"]}
-    )
-    # Pedestrian-only paths and walkways (wins over PEDESTRIAN_TYPE)
-    # Use for: Walkability maps, pedestrian navigation
-    PEDESTRIAN = FeatureSpec({"highway": ["footway", "path", "pedestrian", "steps"]})
+    """All arterial road classes from motorway through tertiary including connecting links.
+
+    Use for city/regional-scale maps and main traffic network visualisation.
+    """
+    ARTERIAL = MOTORWAY | MOTORWAY_LINK | TRUNK | TRUNK_LINK | PRIMARY | PRIMARY_LINK
+    """Highest-hierarchy roads: motorways, trunk, and primary with their connecting links.
+
+    Use for navigation-focused maps and highway system visualisation.
+    """
+    LOCAL = RESIDENTIAL | UNCLASSIFIED | SERVICE | LIVING_STREET
+    """Local street network: residential, unclassified, service, and living streets.
+
+    Use for neighbourhood maps and street-level detail.
+    """
+    PEDESTRIAN = FOOTWAY | PATH | PEDESTRIAN_TYPE | STEPS
+    """Pedestrian-only paths and walkways: footway, path, pedestrian, and steps.
+
+    Use for walkability maps and pedestrian navigation. See also PEDESTRIAN_TYPE for the
+    single highway=pedestrian tag value.
+    """
 
 
 class RAILWAYS:
@@ -156,47 +169,49 @@ class RAILWAYS:
 
     # ---- individual types ----
     RAIL = _rw("rail")
+    """railway=rail: Standard-gauge heavy rail lines."""
     LIGHT_RAIL = _rw("light_rail")
+    """railway=light_rail: Light rail and commuter rail lines."""
     SUBWAY = _rw("subway")
+    """railway=subway: Underground metro/subway lines."""
     TRAM = _rw("tram")
+    """railway=tram: Street-running tram lines."""
     MONORAIL = _rw("monorail")
+    """railway=monorail: Single-rail guided transit lines."""
     FUNICULAR = _rw("funicular")
+    """railway=funicular: Cable-driven steep hillside railway."""
     NARROW_GAUGE = _rw("narrow_gauge")
+    """railway=narrow_gauge: Railway with narrower-than-standard track gauge."""
     ABANDONED = _rw("abandoned")
+    """railway=abandoned: Line that has been abandoned; track may still be physically present."""
     DISUSED = _rw("disused")
+    """railway=disused: Line no longer in service but infrastructure is still intact."""
     PRESERVED = _rw("preserved")
+    """railway=preserved: Heritage or museum railway kept for historical purposes."""
 
     # ---- shorthands ----
-    # Currently operating railway infrastructure
-    # Use for: Transit maps, active transportation network
-    ACTIVE = FeatureSpec(
-        {
-            "railway": [
-                "rail",
-                "light_rail",
-                "subway",
-                "tram",
-                "monorail",
-                "funicular",
-                "narrow_gauge",
-            ]
-        }
-    )
-    # Urban public transportation systems
-    # Use for: City transit maps, public transport visualization
-    URBAN_TRANSIT = FeatureSpec(
-        {"railway": ["light_rail", "subway", "tram", "monorail"]}
-    )
-    # Defunct or historical railways
-    # Use for: Heritage maps, historical infrastructure visualization
-    INACTIVE = FeatureSpec({"railway": ["abandoned", "disused", "preserved"]})
+    ACTIVE = RAIL | LIGHT_RAIL | SUBWAY | TRAM | MONORAIL | FUNICULAR | NARROW_GAUGE
+    """All currently operating railway infrastructure.
+
+    Use for transit maps and active transportation network visualisation.
+    """
+    URBAN_TRANSIT = LIGHT_RAIL | SUBWAY | TRAM | MONORAIL
+    """Urban public transportation systems: light rail, subway, tram, and monorail.
+
+    Use for city transit maps and public transport visualisation.
+    """
+    INACTIVE = ABANDONED | DISUSED | PRESERVED
+    """Defunct or historical railways: abandoned, disused, and preserved lines.
+
+    Use for heritage maps and historical infrastructure visualisation.
+    """
 
 
 class WATER:
     """Waterway and water body features.
 
     Linear waterways (RIVER, STREAM, …) use way geometry (needs_areas=False).
-    Water bodies (WATER, LAKE, …) use area/polygon geometry (needs_areas=True).
+    Water bodies (WATER_AREA, LAKE, …) use area/polygon geometry (needs_areas=True).
 
     Note: LAKE, RESERVOIR, and POND all map to natural=water because OSM encodes
     the sub-type via a secondary ``water=`` tag that cannot be AND-filtered here.
@@ -205,49 +220,56 @@ class WATER:
     Usage::
 
         from osm_to_svg import features
-        mapper.render_features(features.WATERWAYS.LINEAR | features.WATERWAYS.BODIES, style)
+        mapper.render_features(features.WATER.LINEAR | features.WATER.BODIES, style)
     """
 
     # ---- individual types ----
     RIVER = _w("river")
+    """waterway=river: Major natural watercourse."""
     STREAM = _w("stream")
+    """waterway=stream: Minor natural watercourse, smaller than a river."""
     CANAL = _w("canal")
+    """waterway=canal: Artificial navigable waterway."""
     DRAIN = _w("drain")
+    """waterway=drain: Artificial drainage channel, typically not navigable."""
     DITCH = _w("ditch")
-    WATER = _wb("water")
+    """waterway=ditch: Small artificial drainage ditch."""
+    WATER_AREA = _wb(
+        "water"
+    )  # OSM: natural=water + water=lake (subtag not filterable here)
+    """natural=water: Generic standing water area. The water= sub-type (lake, pond, reservoir) is not filterable here."""
     LAKE = _wb("water")  # OSM: natural=water + water=lake (subtag not filterable here)
+    """natural=water (+ water=lake): Lake; the water= sub-type is not filterable here — equivalent to WATER_AREA."""
     RESERVOIR = _wb("water")  # OSM: natural=water + water=reservoir
+    """natural=water (+ water=reservoir): Artificial water reservoir; the water= sub-type is not filterable here — equivalent to WATER_AREA."""
     POND = _wb("water")  # OSM: natural=water + water=pond
+    """natural=water (+ water=pond): Small pond; the water= sub-type is not filterable here — equivalent to WATER_AREA."""
     COASTLINE = _wb("coastline")
+    """natural=coastline: Ocean/sea coastline boundary rendered as an area."""
 
     # ---- shorthands ----
-    # Flowing water features rendered as lines
-    # Use for: Hydrography maps, drainage visualization
-    LINEAR = FeatureSpec(
-        {"waterway": ["river", "stream", "canal", "drain", "ditch"]},
-        needs_areas=False,
-    )
-    # Standing water features rendered as polygons
-    # Use for: Water body mapping, recreation area visualization
-    BODIES = FeatureSpec({"natural": ["water"]}, needs_areas=True)
-    # Natural watercourses and water bodies
-    # Use for: Environmental maps, natural resource visualization
-    NATURAL = FeatureSpec(
-        {"waterway": ["river", "stream"], "natural": ["water"]},
-        needs_areas=True,
-    )
-    # Human-constructed water infrastructure
-    # Use for: Infrastructure maps, water management visualization
-    ARTIFICIAL = FeatureSpec(
-        {"waterway": ["canal", "drain", "ditch"], "natural": ["water"]},
-        needs_areas=True,
-    )
-    # Major rivers and canals (navigable waterways)
-    # Use for: Navigation maps, major hydrography features
-    MAJOR = FeatureSpec(
-        {"waterway": ["river", "canal"]},
-        needs_areas=False,
-    )
+    LINEAR = RIVER | STREAM | CANAL | DRAIN | DITCH
+    """All flowing water features rendered as lines: river, stream, canal, drain, ditch.
+
+    Use for hydrography maps and drainage network visualisation.
+    """
+    BODIES = WATER_AREA
+    """Standing water areas (natural=water polygons).
+
+    Use for water body mapping and recreation area visualisation.
+    """
+    NATURAL = RIVER | STREAM | WATER_AREA
+    """Natural watercourses (river, stream) and water bodies (natural=water areas).
+
+    Use for environmental maps and natural resource visualisation.
+    """
+    ARTIFICIAL = CANAL | DRAIN | DITCH | WATER_AREA
+    """Human-constructed water infrastructure (canal, drain, ditch) plus water areas.
+
+    Use for infrastructure maps and water management visualisation.
+    """
+    MAJOR = RIVER | CANAL
+    """Major navigable waterways: rivers and canals rendered as lines."""
 
 
 class BUILDINGS:
@@ -269,102 +291,118 @@ class BUILDINGS:
 
     # ---- individual types ----
     YES = _b("yes")
+    """building=yes: Unspecified building (generic building outline with no further classification)."""
     BUILDING = _b("building")
+    """building=building: Explicitly tagged as building=building (rare OSM usage)."""
     HOUSE = _b("house")
+    """building=house: Single-family detached house."""
     DETACHED = _b("detached")
+    """building=detached: Fully detached residential building, standing alone on its plot."""
     SEMIDETACHED_HOUSE = _b("semidetached_house")
+    """building=semidetached_house: Two residential units sharing one party wall."""
     APARTMENTS = _b("apartments")
+    """building=apartments: Multi-unit apartment building."""
     TERRACE = _b("terrace")
+    """building=terrace: Row of terraced houses sharing party walls."""
     BUNGALOW = _b("bungalow")
+    """building=bungalow: Single-storey house."""
     RESIDENTIAL_TYPE = _b("residential")  # single building=residential tag
+    """building=residential: Generic residential building (single tag value; see RESIDENTIAL for the group shorthand)."""
     RETAIL = _b("retail")
+    """building=retail: Building used for retail trade."""
     OFFICE = _b("office")
+    """building=office: Office building."""
     SUPERMARKET = _b("supermarket")
+    """building=supermarket: Supermarket building."""
     HOTEL = _b("hotel")
+    """building=hotel: Hotel building."""
     COMMERCIAL_TYPE = _b("commercial")  # single building=commercial tag
+    """building=commercial: Generic commercial building (single tag value; see COMMERCIAL for the group shorthand)."""
     WAREHOUSE = _b("warehouse")
+    """building=warehouse: Large storage building."""
     MANUFACTURE = _b("manufacture")
+    """building=manufacture: Manufacturing or factory building."""
     INDUSTRIAL_TYPE = _b("industrial")  # single building=industrial tag
+    """building=industrial: Generic industrial building (single tag value; see INDUSTRIAL for the group shorthand)."""
     HOSPITAL = _b("hospital")
+    """building=hospital: Hospital or medical facility building."""
     SCHOOL = _b("school")
+    """building=school: School building."""
     UNIVERSITY = _b("university")
+    """building=university: University building."""
     CHURCH = _b("church")
+    """building=church: Christian church building."""
     CATHEDRAL = _b("cathedral")
+    """building=cathedral: Cathedral building."""
     MOSQUE = _b("mosque")
+    """building=mosque: Mosque building."""
     TEMPLE = _b("temple")
+    """building=temple: Temple building."""
     SYNAGOGUE = _b("synagogue")
+    """building=synagogue: Synagogue building."""
     GOVERNMENT = _b("government")
+    """building=government: Government or public administration building."""
     CIVIC = _b("civic")
+    """building=civic: Civic building for public services."""
     PUBLIC = _b("public")
+    """building=public: Generic public-use building."""
     GARAGE = _b("garage")
+    """building=garage: Single private garage."""
     GARAGES = _b("garages")
+    """building=garages: Block of multiple private garages."""
     PARKING = _b("parking")
+    """building=parking: Multi-storey or enclosed parking structure."""
     SHED = _b("shed")
+    """building=shed: Small outbuilding or storage shed."""
     ROOF = _b("roof")
+    """building=roof: Roof structure with no fully enclosed walls."""
     CONSTRUCTION = _b("construction")
+    """building=construction: Building currently under construction."""
 
     # ---- shorthands ----
-    # All residential building types (housing stock)
-    # Use for: Housing maps, residential density analysis
-    RESIDENTIAL = FeatureSpec(
-        {
-            "building": [
-                "residential",
-                "house",
-                "detached",
-                "semidetached_house",
-                "apartments",
-                "terrace",
-                "bungalow",
-            ]
-        },
-        needs_areas=True,
+    RESIDENTIAL = (
+        RESIDENTIAL_TYPE
+        | HOUSE
+        | DETACHED
+        | SEMIDETACHED_HOUSE
+        | APARTMENTS
+        | TERRACE
+        | BUNGALOW
     )
-    # Commercial and business buildings
-    # Use for: Business district maps, commercial activity visualization
-    COMMERCIAL = FeatureSpec(
-        {"building": ["commercial", "retail", "office", "supermarket", "hotel"]},
-        needs_areas=True,
-    )
-    # Industrial facilities and warehouses
-    # Use for: Industrial zone maps, logistics infrastructure
-    INDUSTRIAL = FeatureSpec(
-        {"building": ["industrial", "warehouse", "manufacture"]},
-        needs_areas=True,
-    )
-    # Places of worship (all religions)
-    # Use for: Cultural heritage maps, religious diversity visualization
-    RELIGIOUS = FeatureSpec(
-        {"building": ["church", "cathedral", "mosque", "temple", "synagogue"]},
-        needs_areas=True,
-    )
-    # Public services and institutional buildings
-    # Use for: Civic infrastructure maps, public services visualization
-    INSTITUTIONAL = FeatureSpec(
-        {
-            "building": [
-                "hospital",
-                "school",
-                "university",
-                "government",
-                "civic",
-                "public",
-            ]
-        },
-        needs_areas=True,
-    )
-    # Single-family residential structures
-    # Use for: Low-density residential analysis
-    SINGLE_FAMILY = FeatureSpec(
-        {"building": ["house", "detached", "semidetached_house", "bungalow"]},
-        needs_areas=True,
-    )
-    # Multi-family residential structures
-    # Use for: Medium/high-density residential analysis
-    MULTI_FAMILY = FeatureSpec(
-        {"building": ["apartments", "terrace"]},
-        needs_areas=True,
-    )
+    """All residential building types: residential, house, detached, semidetached_house, apartments, terrace, bungalow.
+
+    Use for housing maps and residential density analysis. See also RESIDENTIAL_TYPE for the single tag value.
+    """
+    COMMERCIAL = COMMERCIAL_TYPE | RETAIL | OFFICE | SUPERMARKET | HOTEL
+    """Commercial and business buildings: commercial, retail, office, supermarket, hotel.
+
+    Use for business district maps and commercial activity visualisation. See also COMMERCIAL_TYPE for the single tag value.
+    """
+    INDUSTRIAL = INDUSTRIAL_TYPE | WAREHOUSE | MANUFACTURE
+    """Industrial facilities and warehouses: industrial, warehouse, manufacture.
+
+    Use for industrial zone maps and logistics infrastructure. See also INDUSTRIAL_TYPE for the single tag value.
+    """
+    RELIGIOUS = CHURCH | CATHEDRAL | MOSQUE | TEMPLE | SYNAGOGUE
+    """Places of worship across all religions: church, cathedral, mosque, temple, synagogue.
+
+    Use for cultural heritage maps and religious diversity visualisation.
+    """
+    INSTITUTIONAL = HOSPITAL | SCHOOL | UNIVERSITY | GOVERNMENT | CIVIC | PUBLIC
+    """Public services and institutional buildings: hospital, school, university, government, civic, public.
+
+    Use for civic infrastructure maps and public services visualisation.
+    """
+    SINGLE_FAMILY = HOUSE | DETACHED | SEMIDETACHED_HOUSE | BUNGALOW
+    """Single-family residential structures: house, detached, semidetached_house, bungalow.
+
+    Use for low-density residential analysis.
+    """
+    MULTI_FAMILY = APARTMENTS | TERRACE
+    """Multi-family residential structures: apartments and terrace.
+
+    Use for medium/high-density residential analysis.
+    """
 
 
 class GREEN_SPACES:
@@ -383,79 +421,91 @@ class GREEN_SPACES:
     # ---- individual types ----
     # leisure=
     PARK = _gs("leisure", "park")
+    """leisure=park: Public park."""
     GARDEN = _gs("leisure", "garden")
+    """leisure=garden: Public or private garden."""
     NATURE_RESERVE = _gs("leisure", "nature_reserve")
+    """leisure=nature_reserve: Protected nature reserve."""
     RECREATION_GROUND = _gs("leisure", "recreation_ground")
+    """leisure=recreation_ground: Open area set aside for outdoor recreation."""
     COMMON = _gs("leisure", "common")
+    """leisure=common: Public common land available for general use."""
     GOLF_COURSE = _gs("leisure", "golf_course")
+    """leisure=golf_course: Golf course."""
     # natural=
     WOOD = _gs("natural", "wood")
+    """natural=wood: Naturally occurring woodland or forest."""
     SCRUB = _gs("natural", "scrub")
+    """natural=scrub: Shrubland and scrubby vegetation."""
     GRASSLAND = _gs("natural", "grassland")
+    """natural=grassland: Natural grassy area."""
     HEATH = _gs("natural", "heath")
+    """natural=heath: Heath or moorland."""
     WETLAND = _gs("natural", "wetland")
+    """natural=wetland: Wetland or marsh area."""
     # landuse=
     FOREST = _gs("landuse", "forest")
+    """landuse=forest: Managed forest or woodland (may overlap with natural=wood)."""
     MEADOW = _gs("landuse", "meadow")
+    """landuse=meadow: Meadow used for mowing or grazing."""
     GRASS = _gs("landuse", "grass")
+    """landuse=grass: Managed grassed area such as a park lawn or road verge."""
     ORCHARD = _gs("landuse", "orchard")
+    """landuse=orchard: Fruit or nut tree plantation."""
     VINEYARD = _gs("landuse", "vineyard")
+    """landuse=vineyard: Wine-grape vineyard."""
     CEMETERY = _gs("landuse", "cemetery")
+    """landuse=cemetery: Cemetery or burial ground."""
     ALLOTMENTS = _gs("landuse", "allotments")
+    """landuse=allotments: Community allotment garden plots."""
 
     # ---- shorthands ----
-    # Public parks and gardens
-    # Use for: Recreation maps, public amenity visualization
-    PARKS = FeatureSpec(
-        {"leisure": ["park", "garden", "recreation_ground", "common"]},
-        needs_areas=True,
+    PARKS = PARK | GARDEN | RECREATION_GROUND | COMMON
+    """Public parks and gardens: park, garden, recreation_ground, common.
+
+    Use for recreation maps and public amenity visualisation.
+    """
+    FORESTS = WOOD | FOREST
+    """Forested and wooded areas: natural=wood and landuse=forest.
+
+    Use for forest cover maps and vegetation analysis.
+    """
+    NATURAL = WOOD | SCRUB | GRASSLAND | HEATH | WETLAND
+    """Natural vegetation areas: wood, scrub, grassland, heath, wetland.
+
+    Use for natural habitat maps and biodiversity visualisation.
+    """
+    PROTECTED = NATURE_RESERVE | WETLAND
+    """Protected natural areas: nature_reserve and wetland.
+
+    Use for conservation maps and protected area visualisation.
+    """
+    AGRICULTURAL = MEADOW | GRASS | ORCHARD | VINEYARD | ALLOTMENTS
+    """Agricultural and managed green spaces: meadow, grass, orchard, vineyard, allotments.
+
+    Use for agricultural land use maps.
+    """
+    ALL = (
+        PARK
+        | GARDEN
+        | NATURE_RESERVE
+        | RECREATION_GROUND
+        | COMMON
+        | GOLF_COURSE
+        | WOOD
+        | SCRUB
+        | GRASSLAND
+        | HEATH
+        | WETLAND
+        | FOREST
+        | MEADOW
+        | GRASS
+        | ORCHARD
+        | VINEYARD
+        | CEMETERY
+        | ALLOTMENTS
     )
-    # Forested and wooded areas
-    # Use for: Forest cover maps, vegetation analysis
-    FORESTS = FeatureSpec(
-        {"natural": ["wood"], "landuse": ["forest"]},
-        needs_areas=True,
-    )
-    # Natural vegetation areas
-    # Use for: Natural habitat maps, biodiversity visualization
-    NATURAL = FeatureSpec(
-        {"natural": ["wood", "scrub", "grassland", "heath", "wetland"]},
-        needs_areas=True,
-    )
-    # Protected natural areas
-    # Use for: Conservation maps, protected area visualization
-    PROTECTED = FeatureSpec(
-        {"leisure": ["nature_reserve"], "natural": ["wetland"]},
-        needs_areas=True,
-    )
-    # Agricultural green spaces
-    # Use for: Agricultural land use maps
-    AGRICULTURAL = FeatureSpec(
-        {"landuse": ["meadow", "grass", "orchard", "vineyard", "allotments"]},
-        needs_areas=True,
-    )
-    # All green and natural spaces
-    # Use for: Comprehensive green space analysis
-    ALL = FeatureSpec(
-        {
-            "leisure": [
-                "park",
-                "garden",
-                "nature_reserve",
-                "recreation_ground",
-                "common",
-                "golf_course",
-            ],
-            "natural": ["wood", "scrub", "grassland", "heath", "wetland"],
-            "landuse": [
-                "forest",
-                "meadow",
-                "grass",
-                "orchard",
-                "vineyard",
-                "cemetery",
-                "allotments",
-            ],
-        },
-        needs_areas=True,
-    )
+    """All green and natural spaces across leisure=, natural=, and landuse= tag keys.
+
+    Use for comprehensive green space analysis.
+    """
