@@ -47,6 +47,19 @@ def test_render_features_skips_invalid_geometry(dummy_transformer) -> None:
     assert len(list(roads_group)) == 0
 
 
+def test_render_features_sanitizes_invalid_layer_id(dummy_transformer) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+
+    element = renderer.render_features(
+        [Feature(geometry=[(8.0, 52.0), (8.1, 52.1)], tags={})],
+        Style(stroke="#000", fill="none"),
+        layer_id="0 highway",
+    )
+
+    sanitized_group = element.find(f"{{{SVG_NS}}}g[@id='layer-0-highway']")
+    assert sanitized_group is not None
+
+
 def test_place_poi_markers_requires_exactly_one_sizing_method(
     dummy_transformer,
     marker_svg_path: Path,
@@ -97,6 +110,31 @@ def test_place_poi_markers_supports_height_meters(
     )
 
     assert element is not None
+
+
+def test_place_poi_markers_sanitizes_invalid_layer_id(
+    dummy_transformer,
+    marker_svg_path: Path,
+) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+
+    element = renderer.place_poi_markers(
+        coords=[(52.0, 8.0)],
+        poi_style=PoiStyle(marker_svg_path=str(marker_svg_path), scale=1.0),
+        layer_id="0 pois",
+    )
+
+    sanitized_group = element.find(f"{{{SVG_NS}}}g[@id='layer-0-pois']")
+    assert sanitized_group is not None
+
+
+def test_sanitize_svg_id_uses_prefix_for_empty_or_invalid_values(
+    dummy_transformer,
+) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+
+    assert renderer._sanitize_svg_id("   ", prefix="clip") == "clip"
+    assert renderer._sanitize_svg_id("---", prefix="clip") == "clip"
 
 
 @pytest.mark.parametrize(

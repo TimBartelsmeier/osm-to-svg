@@ -1,5 +1,6 @@
 """SVG rendering for OSM features and POI markers."""
 
+import re
 import xml.etree.ElementTree as ET
 from typing import Any
 
@@ -39,7 +40,8 @@ class SVGRenderer:
         vb_parts = viewbox.split()
         vb_x, vb_y, vb_width, vb_height = map(float, vb_parts)
 
-        clip_id = f"clip-{layer_id}"
+        safe_layer_id = self._sanitize_svg_id(layer_id, prefix="layer")
+        clip_id = f"clip-{safe_layer_id}"
         clip_path = dwg.defs.add(dwg.clipPath(id=clip_id))
         clip_path.add(
             dwg.rect(
@@ -48,7 +50,7 @@ class SVGRenderer:
             )
         )
 
-        group = dwg.g(id=layer_id, clip_path=f"url(#{clip_id})")
+        group = dwg.g(id=safe_layer_id, clip_path=f"url(#{clip_id})")
         style_attrs = style.to_svg_attrs()
 
         for feature in features:
@@ -105,7 +107,8 @@ class SVGRenderer:
         vb_parts = viewbox.split()
         vb_x, vb_y, vb_width, vb_height = map(float, vb_parts)
 
-        clip_id = f"clip-{layer_id}"
+        safe_layer_id = self._sanitize_svg_id(layer_id, prefix="layer")
+        clip_id = f"clip-{safe_layer_id}"
         clip_path = dwg.defs.add(dwg.clipPath(id=clip_id))
         clip_path.add(
             dwg.rect(
@@ -114,7 +117,7 @@ class SVGRenderer:
             )
         )
 
-        pois_group = dwg.g(id=layer_id, clip_path=f"url(#{clip_id})")
+        pois_group = dwg.g(id=safe_layer_id, clip_path=f"url(#{clip_id})")
 
         for idx, (lat, lon) in enumerate(coords):
             svg_x, svg_y = self.transformer.latlon_to_svg(lat, lon)
@@ -193,6 +196,14 @@ class SVGRenderer:
 
     def _parse_svg_dimension(self, value: str | int | float) -> float:
         return parse_svg_dimension(value)
+
+    def _sanitize_svg_id(self, value: str, prefix: str = "id") -> str:
+        normalized = re.sub(r"[^A-Za-z0-9_.-]+", "-", value.strip()).strip("-")
+        if not normalized:
+            return prefix
+        if normalized[0].isdigit() or normalized[0] in {"-", "."}:
+            return f"{prefix}-{normalized}"
+        return normalized
 
     def _parse_dimension(self, value: str | int | float) -> float:
         return self._parse_svg_dimension(value)
