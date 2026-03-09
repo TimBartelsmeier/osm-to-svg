@@ -1,10 +1,10 @@
 """Main SvgMapper class for the library."""
 
 import xml.etree.ElementTree as ET
-from enum import Enum
 from pathlib import Path
 
 from osm_to_svg.combiner import combine_elements, combine_svgs
+from osm_to_svg.features import FeatureSpec
 from osm_to_svg.models import Style
 from osm_to_svg.parser import PBFParser
 from osm_to_svg.projection import CoordinateTransformer
@@ -19,9 +19,10 @@ class SvgMapper:
     where the scale is accurate at the center latitude of the map.
 
     Example:
+        >>> from osm_to_svg import features
         >>> with SvgMapper("city.osm.pbf", scale=50000, dpi=96, background_color="#FFFFFF") as mapper:
         ...     mapper.render_features(
-        ...         RoadType, [RoadType.MOTORWAY],
+        ...         features.ROADS.MAJOR,
         ...         Style(stroke="#FF0000", stroke_width=2.0),
         ...         "roads.svg"
         ...     )
@@ -103,37 +104,36 @@ class SvgMapper:
 
     def render_features(
         self,
-        feature_type: type[Enum],
-        subtypes: list[Enum] | None,
+        features: FeatureSpec,
         style: Style,
         output_path: str | None = None,
         layer_id: str | None = None,
     ) -> None:
-        """Render specific cartographic features to an SVG file or accumulate in-memory.
+        """Render cartographic features to an SVG file or accumulate in-memory.
 
         Args:
-            feature_type: Type of features to render (RoadType, RailwayType, etc.)
-            subtypes: Optional list of specific subtypes to render.
-                     If None, all subtypes are rendered.
+            features: FeatureSpec describing which OSM features to render.
+                     Use namespace classes from the ``features`` module, e.g.
+                     ``features.ROADS.MAJOR`` or ``features.ROADS.MAJOR | features.WATERWAYS.BODIES``.
             style: Style definition for the features
             output_path: Path where the SVG file will be saved.
                         If None, layer is accumulated in memory for later combining.
-            layer_id: Optional ID for the SVG group (default: feature type name)
+            layer_id: Optional ID for the SVG group.
+                     Defaults to the joined tag filter keys (e.g. "highway").
 
         Example:
-            >>> # Save directly to file (backward compatible)
+            >>> from osm_to_svg import features
+            >>> # Save directly to file
             >>> mapper.render_features(
-            ...     RoadType,
-            ...     [RoadType.MOTORWAY, RoadType.PRIMARY],
+            ...     features.ROADS.MAJOR,
             ...     Style(stroke="#FF0000", stroke_width=2.0),
             ...     "roads.svg"
             ... )
             >>>
-            >>> # Accumulate in memory for combining
+            >>> # Combine roads and waterways in one call
             >>> mapper.render_features(
-            ...     RoadType,
-            ...     [RoadType.MOTORWAY],
-            ...     Style(stroke="#FF0000", stroke_width=2.0)
+            ...     features.ROADS.MAJOR | features.WATERWAYS.BODIES,
+            ...     Style(stroke="#000000", fill="#4A90E2")
             ... )
             >>> mapper.save_combined("combined.svg")
         """
@@ -141,14 +141,16 @@ class SvgMapper:
             raise RuntimeError("SvgMapper must be used as a context manager")
 
         # Extract features from PBF
-        features = self.parser.extract_features(feature_type, subtypes)
+        osm_features = self.parser.extract_features(features)
 
         # Determine layer ID
         if layer_id is None:
-            layer_id = feature_type.__name__.lower()
+            layer_id = "_".join(sorted(features.tag_filters.keys()))
 
         # Render to SVG (file or in-memory)
-        element = self.renderer.render_features(features, style, output_path, layer_id)
+        element = self.renderer.render_features(
+            osm_features, style, output_path, layer_id
+        )
 
         # If in-memory mode, accumulate layer
         if output_path is None and element is not None:

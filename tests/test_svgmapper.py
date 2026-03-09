@@ -5,7 +5,8 @@ from pathlib import Path
 import pytest
 
 mapper_module = import_module("osm_to_svg.SvgMapper")
-from osm_to_svg.features import RoadType
+from osm_to_svg import features
+from osm_to_svg.features import FeatureSpec
 from osm_to_svg.models import Style
 from osm_to_svg.SvgMapper import SvgMapper
 
@@ -17,7 +18,7 @@ class DummyParser:
     def get_bounds(self) -> tuple[float, float, float, float]:
         return (8.0, 52.0, 8.2, 52.2)
 
-    def extract_features(self, feature_type, subtypes):  # noqa: ANN001
+    def extract_features(self, spec: FeatureSpec):  # noqa: ANN001
         return []
 
 
@@ -79,7 +80,7 @@ def test_svgmapper_enforces_context_manager_for_rendering(
     mapper = SvgMapper(str(pbf_path))
 
     with pytest.raises(RuntimeError, match="context manager"):
-        mapper.render_features(RoadType, None, Style(stroke="#000"))
+        mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000"))
 
 
 def test_svgmapper_gets_bounds_inside_context(
@@ -111,7 +112,9 @@ def test_save_combined_uses_accumulated_in_memory_layers(
     monkeypatch.setattr(mapper_module, "combine_elements", fake_combine_elements)
 
     with SvgMapper(str(pbf_path), background_color="#ffffff") as mapper:
-        mapper.render_features(RoadType, None, Style(stroke="#000"), output_path=None)
+        mapper.render_features(
+            features.ROADS.MAJOR, Style(stroke="#000"), output_path=None
+        )
         mapper.place_poi_markers(
             str(marker_svg_path),
             coords=[(52.0, 8.0)],

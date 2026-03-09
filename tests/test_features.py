@@ -1,61 +1,147 @@
-from enum import Enum
+from osm_to_svg import features
+from osm_to_svg.features import FeatureSpec
 
-import pytest
-
-from osm_to_svg.features import (
-    GreenSpaceType,
-    RailwayType,
-    RoadType,
-    WaterwayType,
-    get_osm_filter,
-)
+# ---------------------------------------------------------------------------
+# FeatureSpec construction
+# ---------------------------------------------------------------------------
 
 
-def test_get_osm_filter_for_regular_feature_uses_tag_mapping() -> None:
-    result = get_osm_filter(RoadType, [RoadType.MOTORWAY, RoadType.PRIMARY])
-    assert result == {"highway": ["motorway", "primary"]}
+def test_feature_spec_has_correct_tag_filters_for_road() -> None:
+    assert features.ROADS.MOTORWAY.tag_filters == {"highway": ["motorway"]}
+    assert features.ROADS.MOTORWAY.needs_areas is False
 
 
-def test_get_osm_filter_for_waterways_returns_multi_tag_filter() -> None:
-    result = get_osm_filter(WaterwayType, [WaterwayType.RIVER])
-    assert result["waterway"] == ["river"]
-    assert result["natural"] == ["water", "coastline"]
+def test_feature_spec_has_correct_tag_filters_for_railway() -> None:
+    assert features.RAILWAYS.RAIL.tag_filters == {"railway": ["rail"]}
+    assert features.RAILWAYS.RAIL.needs_areas is False
 
 
-def test_get_osm_filter_for_waterways_without_subtypes_uses_defaults() -> None:
-    result = get_osm_filter(WaterwayType)
-    assert result["waterway"] == ["river", "stream", "canal", "drain", "ditch"]
-    assert result["natural"] == ["water", "coastline"]
+def test_feature_spec_has_correct_tag_filters_for_linear_waterway() -> None:
+    assert features.WATERWAYS.RIVER.tag_filters == {"waterway": ["river"]}
+    assert features.WATERWAYS.RIVER.needs_areas is False
 
 
-def test_get_osm_filter_for_green_spaces_splits_by_tag_key() -> None:
-    result = get_osm_filter(
-        GreenSpaceType,
-        [GreenSpaceType.PARK, GreenSpaceType.WOOD, GreenSpaceType.MEADOW],
-    )
-    assert result == {
-        "leisure": ["park"],
-        "natural": ["wood"],
-        "landuse": ["meadow"],
+def test_feature_spec_water_body_uses_natural_tag_and_needs_areas() -> None:
+    assert features.WATERWAYS.WATER.tag_filters == {"natural": ["water"]}
+    assert features.WATERWAYS.WATER.needs_areas is True
+
+
+def test_feature_spec_building_uses_building_tag_and_needs_areas() -> None:
+    assert features.BUILDINGS.HOUSE.tag_filters == {"building": ["house"]}
+    assert features.BUILDINGS.HOUSE.needs_areas is True
+
+
+def test_feature_spec_green_space_splits_by_tag_key() -> None:
+    assert features.GREEN_SPACES.PARK.tag_filters == {"leisure": ["park"]}
+    assert features.GREEN_SPACES.WOOD.tag_filters == {"natural": ["wood"]}
+    assert features.GREEN_SPACES.FOREST.tag_filters == {"landuse": ["forest"]}
+    assert features.GREEN_SPACES.PARK.needs_areas is True
+
+
+# ---------------------------------------------------------------------------
+# Shorthands
+# ---------------------------------------------------------------------------
+
+
+def test_roads_major_shorthand_contains_expected_values() -> None:
+    assert "motorway" in features.ROADS.MAJOR.tag_filters["highway"]
+    assert "tertiary" in features.ROADS.MAJOR.tag_filters["highway"]
+    assert features.ROADS.MAJOR.needs_areas is False
+
+
+def test_railways_active_shorthand_covers_all_active_types() -> None:
+    values = features.RAILWAYS.ACTIVE.tag_filters["railway"]
+    assert "rail" in values
+    assert "tram" in values
+    assert "abandoned" not in values
+
+
+def test_waterways_bodies_shorthand_uses_natural_water_and_needs_areas() -> None:
+    assert features.WATERWAYS.BODIES.tag_filters == {"natural": ["water"]}
+    assert features.WATERWAYS.BODIES.needs_areas is True
+
+
+def test_waterways_linear_shorthand_does_not_need_areas() -> None:
+    assert features.WATERWAYS.LINEAR.needs_areas is False
+
+
+def test_buildings_residential_shorthand_covers_subtypes() -> None:
+    values = features.BUILDINGS.RESIDENTIAL.tag_filters["building"]
+    assert "house" in values
+    assert "apartments" in values
+    assert features.BUILDINGS.RESIDENTIAL.needs_areas is True
+
+
+def test_green_spaces_all_shorthand_covers_all_tag_keys() -> None:
+    assert "leisure" in features.GREEN_SPACES.ALL.tag_filters
+    assert "natural" in features.GREEN_SPACES.ALL.tag_filters
+    assert "landuse" in features.GREEN_SPACES.ALL.tag_filters
+
+
+# ---------------------------------------------------------------------------
+# FeatureSpec | union operator
+# ---------------------------------------------------------------------------
+
+
+def test_or_merges_tag_filters_from_two_specs() -> None:
+    combined = features.ROADS.MOTORWAY | features.ROADS.PRIMARY
+    assert "motorway" in combined.tag_filters["highway"]
+    assert "primary" in combined.tag_filters["highway"]
+
+
+def test_or_merges_different_tag_keys() -> None:
+    combined = features.ROADS.MAJOR | features.WATERWAYS.BODIES
+    assert "highway" in combined.tag_filters
+    assert "natural" in combined.tag_filters
+
+
+def test_or_needs_areas_is_true_if_any_spec_needs_areas() -> None:
+    combined = (
+        features.ROADS.MAJOR | features.WATERWAYS.BODIES
+    )  # roads=False, bodies=True
+    assert combined.needs_areas is True
+
+
+def test_or_needs_areas_is_false_when_neither_spec_needs_areas() -> None:
+    combined = features.ROADS.MAJOR | features.RAILWAYS.ACTIVE
+    assert combined.needs_areas is False
+
+
+def test_or_deduplicates_values_within_same_key() -> None:
+    # ROADS.MAJOR already contains motorway; combining with ROADS.MOTORWAY should not duplicate
+    combined = features.ROADS.MAJOR | features.ROADS.MOTORWAY
+    assert combined.tag_filters["highway"].count("motorway") == 1
+
+
+# ---------------------------------------------------------------------------
+# Name collision resolution (_TYPE suffix)
+# ---------------------------------------------------------------------------
+
+
+def test_pedestrian_type_is_single_value() -> None:
+    assert features.ROADS.PEDESTRIAN_TYPE.tag_filters == {"highway": ["pedestrian"]}
+
+
+def test_pedestrian_shorthand_covers_multiple_values() -> None:
+    values = features.ROADS.PEDESTRIAN.tag_filters["highway"]
+    assert "footway" in values
+    assert "pedestrian" in values
+    assert "steps" in values
+
+
+def test_buildings_residential_type_is_single_value() -> None:
+    assert features.BUILDINGS.RESIDENTIAL_TYPE.tag_filters == {
+        "building": ["residential"]
     }
 
 
-def test_get_osm_filter_for_green_spaces_without_subtypes_uses_all_groups() -> None:
-    result = get_osm_filter(GreenSpaceType)
-    assert "leisure" in result
-    assert "natural" in result
-    assert "landuse" in result
+def test_buildings_commercial_type_is_single_value() -> None:
+    assert features.BUILDINGS.COMMERCIAL_TYPE.tag_filters == {
+        "building": ["commercial"]
+    }
 
 
-def test_get_osm_filter_for_regular_feature_without_subtypes_returns_all() -> None:
-    result = get_osm_filter(RailwayType)
-    assert set(result.keys()) == {"railway"}
-    assert len(result["railway"]) == len(list(RailwayType))
-
-
-def test_get_osm_filter_raises_for_unknown_feature_type() -> None:
-    class UnknownFeature(str, Enum):
-        VALUE = "value"
-
-    with pytest.raises(ValueError, match="Unknown feature type"):
-        get_osm_filter(UnknownFeature)
+def test_buildings_industrial_type_is_single_value() -> None:
+    assert features.BUILDINGS.INDUSTRIAL_TYPE.tag_filters == {
+        "building": ["industrial"]
+    }

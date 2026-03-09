@@ -1,14 +1,8 @@
 """PBF file parser using osmium."""
 
-from enum import Enum
-
 import osmium
 
-from osm_to_svg.features import (
-    BuildingType,
-    WaterwayType,
-    get_osm_filter,
-)
+from osm_to_svg.features import FeatureSpec
 from osm_to_svg.models import Feature
 
 
@@ -45,23 +39,15 @@ class BoundsHandler(osmium.SimpleHandler):
 class FeatureHandler(osmium.SimpleHandler):
     """Handler to extract specific features from a PBF file."""
 
-    def __init__(
-        self,
-        feature_type: type[Enum],
-        subtypes: list[Enum] | None = None,
-    ):
+    def __init__(self, spec: FeatureSpec):
         """Initialize feature extraction handler.
 
         Args:
-            feature_type: Feature enum class to filter for.
-            subtypes: Optional subset of enum values to include.
+            spec: FeatureSpec describing which OSM tags to match.
         """
         super().__init__()
-        self.feature_type = feature_type
         self.features: list[Feature] = []
-
-        # Get OSM tag filters
-        self.tag_filters = get_osm_filter(feature_type, subtypes)
+        self.tag_filters = spec.tag_filters
 
         # Cache for node locations (needed to resolve way geometries)
         self.node_cache: dict[int, tuple[float, float]] = {}
@@ -119,15 +105,6 @@ class FeatureHandler(osmium.SimpleHandler):
         for tag_key, valid_values in self.tag_filters.items():
             if tag_key in tags and tags[tag_key] in valid_values:
                 return True
-
-        # Special handling for waterways: also check natural=water with water type
-        if self.feature_type == WaterwayType:
-            if "natural" in tags and tags["natural"] == "water":
-                # Accept any water body
-                return True
-            if "natural" in tags and tags["natural"] == "coastline":
-                return True
-
         return False
 
 
@@ -152,28 +129,23 @@ class PBFParser:
         handler.apply_file(self.pbf_path, locations=True)
         return handler.get_bounds()
 
-    def extract_features(
-        self,
-        feature_type: type[Enum],
-        subtypes: list[Enum] | None = None,
-    ) -> list[Feature]:
-        """Extract features of a specific type from the PBF file.
+    def extract_features(self, spec: FeatureSpec) -> list[Feature]:
+        """Extract features matching the given spec from the PBF file.
 
         Args:
-            feature_type: Type of features to extract (RoadType, RailwayType, etc.)
-            subtypes: Optional list of specific subtypes to extract
+            spec: FeatureSpec describing which OSM tags to match.
 
         Returns:
             List of Feature objects
         """
-        handler = FeatureHandler(feature_type, subtypes)
+        handler = FeatureHandler(spec)
 
         # First pass: cache all node locations
         handler.apply_file(self.pbf_path, locations=True)
 
         # Second pass: extract ways and areas with features
-        if feature_type == BuildingType or feature_type == WaterwayType:
-            # Buildings and some waterways might be areas (multipolygons)
+        if spec.needs_areas:
+            # Some features (buildings, water bodies, green spaces) are areas/multipolygons
             handler.apply_file(self.pbf_path, locations=True, idx="flex_mem")
 
         # Deduplicate features because multi-pass extraction can revisit

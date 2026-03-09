@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from osm_to_svg.features import BuildingType, RoadType, WaterwayType
+from osm_to_svg import features
+from osm_to_svg.features import FeatureSpec
 from osm_to_svg.parser import FeatureHandler, PBFParser
 
 
@@ -28,7 +29,7 @@ def test_parser_get_bounds_from_tiny_fixture(tiny_pbf_fixture_path: Path) -> Non
 def test_parser_extracts_road_features(tiny_pbf_fixture_path: Path) -> None:
     parser = PBFParser(str(tiny_pbf_fixture_path))
 
-    roads = parser.extract_features(RoadType, [RoadType.PRIMARY])
+    roads = parser.extract_features(features.ROADS.PRIMARY)
 
     assert len(roads) == 1
     assert roads[0].tags["highway"] == "primary"
@@ -40,7 +41,7 @@ def test_parser_extracts_buildings_without_duplicate_ids(
 ) -> None:
     parser = PBFParser(str(tiny_pbf_fixture_path))
 
-    buildings = parser.extract_features(BuildingType, [BuildingType.YES])
+    buildings = parser.extract_features(features.BUILDINGS.YES)
 
     assert len(buildings) >= 1
     assert all(feature.tags.get("building") == "yes" for feature in buildings)
@@ -53,17 +54,18 @@ def test_parser_extracts_buildings_without_duplicate_ids(
 def test_parser_extracts_waterway_features(tiny_pbf_fixture_path: Path) -> None:
     parser = PBFParser(str(tiny_pbf_fixture_path))
 
-    waterways = parser.extract_features(WaterwayType, [WaterwayType.RIVER])
+    waterways = parser.extract_features(features.WATERWAYS.RIVER)
 
     assert len(waterways) == 1
     assert waterways[0].tags["waterway"] == "river"
 
 
-def test_feature_handler_matches_filter_for_water_natural_tags() -> None:
-    handler = FeatureHandler(WaterwayType, [WaterwayType.RIVER])
+def test_feature_handler_matches_water_body_via_natural_tag() -> None:
+    # WATERWAYS.BODIES carries natural=water in its tag_filters directly
+    handler = FeatureHandler(features.WATERWAYS.BODIES)
 
     assert handler._matches_filter({"natural": "water"}) is True
-    assert handler._matches_filter({"natural": "coastline"}) is True
+    assert handler._matches_filter({"waterway": "river"}) is False
 
 
 def test_feature_handler_area_extraction_and_error_handling() -> None:
@@ -82,7 +84,7 @@ def test_feature_handler_area_extraction_and_error_handling() -> None:
                 raise self._rings
             return self._rings
 
-    handler = FeatureHandler(BuildingType, [BuildingType.YES])
+    handler = FeatureHandler(features.BUILDINGS.YES)
 
     valid_area = DummyArea(
         {"building": "yes"},
@@ -113,16 +115,16 @@ def test_feature_handler_way_skips_invalid_geometry() -> None:
             self.tags = [type("Tag", (), {"k": "highway", "v": "primary"})]
             self.nodes = [DummyWayNode(1)]
 
-    handler = FeatureHandler(RoadType, [RoadType.PRIMARY])
+    handler = FeatureHandler(features.ROADS.PRIMARY)
     handler.node_cache = {1: (8.0, 52.0)}
 
     handler.way(DummyWay())
     assert handler.features == []
 
 
-def test_feature_handler_special_waterway_natural_fallback_branches() -> None:
-    handler = FeatureHandler(WaterwayType, [WaterwayType.RIVER])
-    handler.tag_filters = {"waterway": ["river"]}
+def test_feature_handler_does_not_match_unrelated_tags() -> None:
+    handler = FeatureHandler(features.WATERWAYS.RIVER)
 
-    assert handler._matches_filter({"natural": "water"}) is True
-    assert handler._matches_filter({"natural": "coastline"}) is True
+    assert handler._matches_filter({"natural": "water"}) is False
+    assert handler._matches_filter({"natural": "coastline"}) is False
+    assert handler._matches_filter({"waterway": "river"}) is True
