@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from osm_to_svg import Style, SvgMapper, features
+from osm_to_svg import PoiStyle, Style, SvgMapper, features
 
 # Set up directories relative to this script
 script_dir = Path(__file__).parent
@@ -73,9 +73,11 @@ with SvgMapper(str(hannover_pbf), bounds=hannover_bbox) as mapper:
     # Layer 7: POI markers
     print("  - POI markers...")
     mapper.place_poi_markers(
-        marker_svg_path=str(marker_svg),
         coords=pois,
-        width_meters=500,
+        poi_style=PoiStyle(
+            marker_svg_path=str(marker_svg),
+            width_meters=500,
+        ),
     )
 
     # Save all layers combined

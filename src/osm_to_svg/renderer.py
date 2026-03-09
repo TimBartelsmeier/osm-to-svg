@@ -1,25 +1,12 @@
 """SVG rendering for OSM features and POI markers."""
 
 import xml.etree.ElementTree as ET
-from typing import Any, Literal
+from typing import Any
 
 import svgwrite
 
-from osm_to_svg.models import Feature, Style
+from osm_to_svg.models import Feature, MarkerAnchor, PoiStyle, Style
 from osm_to_svg.projection import CoordinateTransformer
-
-# Type alias for marker anchor positions
-MarkerAnchor = Literal[
-    "top",
-    "top-right",
-    "right",
-    "bottom-right",
-    "bottom",
-    "bottom-left",
-    "left",
-    "top-left",
-    "center",
-]
 
 
 class SVGRenderer:
@@ -109,50 +96,32 @@ class SVGRenderer:
 
     def place_poi_markers(
         self,
-        marker_svg_path: str,
         coords: list[tuple[float, float]],
-        scale: float | None = None,
-        anchor: MarkerAnchor = "center",
-        width_meters: float | None = None,
-        height_meters: float | None = None,
+        poi_style: PoiStyle,
         layer_id: str = "pois",
     ) -> ET.Element:
         """Place POI markers at specified coordinates and return an in-memory element.
 
         Args:
-            marker_svg_path: Path to SVG file to use as marker
             coords: List of (lat, lon) coordinates where markers should be placed
-            scale: Scale factor for the marker (1.0 = original size).
-                   Mutually exclusive with width_meters/height_meters.
-            anchor: Point of the marker that is anchored to the coordinate.
-                   Options: "top", "top-right", "right", "bottom-right", "bottom",
-                   "bottom-left", "left", "top-left", "center" (default: "center")
-            width_meters: Desired marker width in meters. If specified, scale is calculated
-                         to achieve this width. Mutually exclusive with scale and height_meters.
-            height_meters: Desired marker height in meters. If specified, scale is calculated
-                          to achieve this height. Mutually exclusive with scale and width_meters.
+            poi_style: POI marker styling and sizing configuration.
+                Includes marker SVG path, anchor position, and exactly one sizing method
+                (`scale`, `width_meters`, or `height_meters`).
+            layer_id: ID for the SVG group containing the marker layer.
 
         Returns:
             ET.Element representing the rendered POI layer
         """
-        # Validate that only one sizing method is specified
-        sizing_methods = sum(
-            [scale is not None, width_meters is not None, height_meters is not None]
-        )
-        if sizing_methods == 0:
-            raise ValueError(
-                "Must specify either scale, width_meters, or height_meters"
-            )
-        if sizing_methods > 1:
-            raise ValueError(
-                "Cannot specify multiple sizing methods (scale, width_meters, height_meters)"
-            )
+        scale = poi_style.scale
+        width_meters = poi_style.width_meters
+        height_meters = poi_style.height_meters
+        anchor = poi_style.anchor
 
         width, height = self.transformer.get_dimensions()
         viewbox = self.transformer.get_viewbox()
 
         # Parse marker SVG to get its dimensions and content
-        marker_tree = ET.parse(marker_svg_path)
+        marker_tree = ET.parse(poi_style.marker_svg_path)
         marker_root = marker_tree.getroot()
 
         # Extract marker dimensions

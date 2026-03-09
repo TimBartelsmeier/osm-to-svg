@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from osm_to_svg.models import Feature, Style
+from osm_to_svg.models import Feature, PoiStyle, Style
 from osm_to_svg.renderer import SVGRenderer
 
 SVG_NS = "http://www.w3.org/2000/svg"
@@ -55,16 +55,16 @@ def test_place_poi_markers_requires_exactly_one_sizing_method(
 
     with pytest.raises(ValueError, match="Must specify"):
         renderer.place_poi_markers(
-            str(marker_svg_path),
             coords=[(52.0, 8.0)],
+            poi_style=PoiStyle(marker_svg_path=str(marker_svg_path)),
         )
 
     with pytest.raises(ValueError, match="Cannot specify multiple"):
         renderer.place_poi_markers(
-            str(marker_svg_path),
             coords=[(52.0, 8.0)],
-            scale=1.0,
-            width_meters=20.0,
+            poi_style=PoiStyle(
+                marker_svg_path=str(marker_svg_path), scale=1.0, width_meters=20.0
+            ),
         )
 
 
@@ -75,9 +75,8 @@ def test_place_poi_markers_returns_in_memory_element(
     renderer = SVGRenderer(dummy_transformer)
 
     element = renderer.place_poi_markers(
-        str(marker_svg_path),
         coords=[(52.0, 8.0)],
-        width_meters=25.0,
+        poi_style=PoiStyle(marker_svg_path=str(marker_svg_path), width_meters=25.0),
     )
 
     assert element is not None
@@ -93,9 +92,8 @@ def test_place_poi_markers_supports_height_meters(
     renderer = SVGRenderer(dummy_transformer)
 
     element = renderer.place_poi_markers(
-        str(marker_svg_path),
         coords=[(52.0, 8.0)],
-        height_meters=10.0,
+        poi_style=PoiStyle(marker_svg_path=str(marker_svg_path), height_meters=10.0),
     )
 
     assert element is not None

@@ -5,10 +5,10 @@ from pathlib import Path
 
 from osm_to_svg.combiner import combine_elements
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import Style
+from osm_to_svg.models import PoiStyle, Style
 from osm_to_svg.parser import PBFParser
 from osm_to_svg.projection import CoordinateTransformer
-from osm_to_svg.renderer import MarkerAnchor, SVGRenderer
+from osm_to_svg.renderer import SVGRenderer
 
 
 class SvgMapper:
@@ -26,7 +26,8 @@ class SvgMapper:
         ...         Style(stroke="#FF0000", stroke_width=2.0),
         ...     )
         ...     mapper.place_poi_markers(
-        ...         "marker.svg", [(48.1374, 11.5755)], 1.0
+        ...         [(48.1374, 11.5755)],
+        ...         PoiStyle(marker_svg_path="marker.svg", scale=1.0),
         ...     )
         ...     mapper.save("final.svg")
     """
@@ -142,48 +143,33 @@ class SvgMapper:
 
     def place_poi_markers(
         self,
-        marker_svg_path: str,
         coords: list[tuple[float, float]],
-        scale: float | None = None,
-        anchor: MarkerAnchor = "center",
-        width_meters: float | None = None,
-        height_meters: float | None = None,
+        poi_style: PoiStyle,
+        layer_id: str | None = None,
     ) -> None:
         """Place POI markers at specified geographic coordinates and accumulate the layer.
 
         The output layer will have the same dimensions as feature renders from
         the same PBF file, allowing proper layering.
 
-        Marker size can be specified using scale (relative to original size),
-        width_meters (absolute width in meters), or height_meters (absolute height in meters).
-        Exactly one sizing method must be specified.
-
         Args:
-            marker_svg_path: Path to SVG file to use as the marker icon
             coords: List of (latitude, longitude) tuples where markers should be placed
-            scale: Scale factor for the markers (1.0 = original size, 2.0 = double size).
-                   Mutually exclusive with width_meters/height_meters.
-            anchor: Point of the marker that is anchored to the coordinate.
-                   Options: "top", "top-right", "right", "bottom-right", "bottom",
-                   "bottom-left", "left", "top-left", "center" (default: "center")
-            width_meters: Desired marker width in meters. If specified, scale is calculated
-                         to achieve this width. Mutually exclusive with scale and height_meters.
-            height_meters: Desired marker height in meters. If specified, scale is calculated
-                          to achieve this height. Mutually exclusive with scale and width_meters.
+            poi_style: Marker style/configuration including marker SVG path, anchor,
+                and exactly one sizing method (`scale`, `width_meters`, or `height_meters`).
+            layer_id: Optional ID for the POI SVG group.
+                Defaults to "pois".
 
         Example:
             >>> # Using scale parameter (relative sizing)
             >>> mapper.place_poi_markers(
-            ...     "pin.svg",
             ...     [(48.1374, 11.5755), (48.1383, 11.5767)],
-            ...     scale=1.5,
+            ...     PoiStyle(marker_svg_path="pin.svg", scale=1.5),
             ... )
             >>>
             >>> # Using width_meters (absolute width in meters)
             >>> mapper.place_poi_markers(
-            ...     "pin.svg",
             ...     [(48.1374, 11.5755)],
-            ...     width_meters=100.0
+            ...     PoiStyle(marker_svg_path="pin.svg", width_meters=100.0)
             ... )
             >>> mapper.save("combined.svg")
         """
@@ -191,18 +177,20 @@ class SvgMapper:
             raise RuntimeError("SvgMapper must be used as a context manager")
 
         # Validate marker SVG exists
-        if not Path(marker_svg_path).exists():
-            raise FileNotFoundError(f"Marker SVG file not found: {marker_svg_path}")
+        if not Path(poi_style.marker_svg_path).exists():
+            raise FileNotFoundError(
+                f"Marker SVG file not found: {poi_style.marker_svg_path}"
+            )
+
+        # Determine layer ID
+        if layer_id is None:
+            layer_id = "pois"
+        poi_layer_id = f"{len(self._layers)} {layer_id}"
 
         # Render POI markers in-memory and accumulate layer
-        poi_layer_id = f"{len(self._layers)} pois"
         element = self.renderer.place_poi_markers(
-            marker_svg_path,
             coords,
-            scale,
-            anchor,
-            width_meters,
-            height_meters,
+            poi_style,
             poi_layer_id,
         )
         self._layers.append(element)

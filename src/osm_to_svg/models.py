@@ -1,8 +1,21 @@
 """Data models for styling and feature representation."""
 
 from dataclasses import dataclass
+from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+MarkerAnchor = Literal[
+    "top",
+    "top-right",
+    "right",
+    "bottom-right",
+    "bottom",
+    "bottom-left",
+    "left",
+    "top-left",
+    "center",
+]
 
 
 class Style(BaseModel):
@@ -43,6 +56,55 @@ class Style(BaseModel):
         if self.fill_opacity is not None:
             attrs["fill-opacity"] = str(self.fill_opacity)
         return attrs
+
+
+class PoiStyle(BaseModel):
+    """Style/configuration for placing POI markers.
+
+    Exactly one sizing method must be provided: `scale`, `width_meters`, or
+    `height_meters`.
+    """
+
+    marker_svg_path: str = Field(description="Path to SVG file used as marker")
+    scale: float | None = Field(
+        default=None,
+        gt=0,
+        description="Scale factor for marker size relative to marker SVG dimensions",
+    )
+    anchor: MarkerAnchor = Field(
+        default="center",
+        description="Anchor point of the marker aligned to each POI coordinate",
+    )
+    width_meters: float | None = Field(
+        default=None,
+        gt=0,
+        description="Target marker width in meters",
+    )
+    height_meters: float | None = Field(
+        default=None,
+        gt=0,
+        description="Target marker height in meters",
+    )
+
+    @model_validator(mode="after")
+    def validate_sizing_methods(self) -> "PoiStyle":
+        """Ensure exactly one sizing method is configured."""
+        sizing_methods = sum(
+            [
+                self.scale is not None,
+                self.width_meters is not None,
+                self.height_meters is not None,
+            ]
+        )
+        if sizing_methods == 0:
+            raise ValueError(
+                "Must specify either scale, width_meters, or height_meters"
+            )
+        if sizing_methods > 1:
+            raise ValueError(
+                "Cannot specify multiple sizing methods (scale, width_meters, height_meters)"
+            )
+        return self
 
 
 @dataclass

@@ -7,7 +7,7 @@ import pytest
 mapper_module = import_module("osm_to_svg.SvgMapper")
 from osm_to_svg import features
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import Style
+from osm_to_svg.models import PoiStyle, Style
 from osm_to_svg.SvgMapper import SvgMapper
 
 
@@ -42,12 +42,8 @@ class DummyRenderer:
 
     def place_poi_markers(
         self,
-        marker_svg_path,  # noqa: ANN001
         coords,  # noqa: ANN001
-        scale=None,  # noqa: ANN001
-        anchor="center",  # noqa: ANN001
-        width_meters=None,  # noqa: ANN001
-        height_meters=None,  # noqa: ANN001
+        poi_style,  # noqa: ANN001
         layer_id="pois",  # noqa: ANN001
     ):
         return ET.Element("svg")
@@ -110,9 +106,8 @@ def test_save_uses_accumulated_in_memory_layers(
     with SvgMapper(str(pbf_path), background_color="#ffffff") as mapper:
         mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000"))
         mapper.place_poi_markers(
-            str(marker_svg_path),
             coords=[(52.0, 8.0)],
-            scale=1.0,
+            poi_style=PoiStyle(marker_svg_path=str(marker_svg_path), scale=1.0),
         )
         mapper.save("combined.svg")
 
@@ -151,7 +146,10 @@ def test_svgmapper_place_poi_requires_context(
 ) -> None:
     mapper = SvgMapper(str(pbf_path))
     with pytest.raises(RuntimeError, match="context manager"):
-        mapper.place_poi_markers(str(marker_svg_path), coords=[(52.0, 8.0)], scale=1.0)
+        mapper.place_poi_markers(
+            coords=[(52.0, 8.0)],
+            poi_style=PoiStyle(marker_svg_path=str(marker_svg_path), scale=1.0),
+        )
 
 
 def test_svgmapper_place_poi_raises_for_missing_marker(
@@ -162,9 +160,10 @@ def test_svgmapper_place_poi_raises_for_missing_marker(
     with SvgMapper(str(pbf_path)) as mapper:
         with pytest.raises(FileNotFoundError, match="Marker SVG file not found"):
             mapper.place_poi_markers(
-                str(tmp_path / "missing.svg"),
                 coords=[(52.0, 8.0)],
-                scale=1.0,
+                poi_style=PoiStyle(
+                    marker_svg_path=str(tmp_path / "missing.svg"), scale=1.0
+                ),
             )
 
 
@@ -196,23 +195,15 @@ def _capture_render_layer_ids(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 
     def spy_poi(
         self,
-        marker_svg_path,
         coords,
-        scale=None,
-        anchor="center",  # noqa: ANN001
-        width_meters=None,
-        height_meters=None,
+        poi_style,
         layer_id="pois",
     ):
         captured.append(layer_id)
         return original_poi(
             self,
-            marker_svg_path,
             coords,
-            scale,
-            anchor,
-            width_meters,
-            height_meters,
+            poi_style,
             layer_id,
         )
 
@@ -289,6 +280,28 @@ def test_layer_id_poi_markers_uses_pois_with_index(
 
     with SvgMapper(str(pbf_path)) as mapper:
         mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000"))
-        mapper.place_poi_markers(str(marker_svg_path), coords=[(52.0, 8.0)], scale=1.0)
+        mapper.place_poi_markers(
+            coords=[(52.0, 8.0)],
+            poi_style=PoiStyle(marker_svg_path=str(marker_svg_path), scale=1.0),
+        )
 
     assert captured == ["0 highway", "1 pois"]
+
+
+def test_layer_id_poi_markers_explicit_value_gets_prefixed_with_index(
+    pbf_path: Path,
+    marker_svg_path: Path,
+    patched_svgmapper_dependencies,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured = _capture_render_layer_ids(monkeypatch)
+
+    with SvgMapper(str(pbf_path)) as mapper:
+        mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000"))
+        mapper.place_poi_markers(
+            coords=[(52.0, 8.0)],
+            poi_style=PoiStyle(marker_svg_path=str(marker_svg_path), scale=1.0),
+            layer_id="landmarks",
+        )
+
+    assert captured == ["0 highway", "1 landmarks"]
