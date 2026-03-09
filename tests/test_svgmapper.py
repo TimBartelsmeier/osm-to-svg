@@ -48,6 +48,7 @@ class DummyRenderer:
         anchor="center",  # noqa: ANN001
         width_meters=None,  # noqa: ANN001
         height_meters=None,  # noqa: ANN001
+        layer_id="pois",  # noqa: ANN001
     ):
         return ET.Element("svg")
 
@@ -178,3 +179,116 @@ def test_svgmapper_getters_require_context(
 
     with pytest.raises(RuntimeError, match="context manager"):
         mapper.get_dimensions()
+
+
+# --- layer ID generation ---
+
+
+def _capture_render_layer_ids(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Patch DummyRenderer to record layer_id values passed to render_features/place_poi_markers."""
+    captured: list[str] = []
+    original_render = DummyRenderer.render_features
+    original_poi = DummyRenderer.place_poi_markers
+
+    def spy_render(self, features, style, layer_id):  # noqa: ANN001
+        captured.append(layer_id)
+        return original_render(self, features, style, layer_id)
+
+    def spy_poi(
+        self,
+        marker_svg_path,
+        coords,
+        scale=None,
+        anchor="center",  # noqa: ANN001
+        width_meters=None,
+        height_meters=None,
+        layer_id="pois",
+    ):
+        captured.append(layer_id)
+        return original_poi(
+            self,
+            marker_svg_path,
+            coords,
+            scale,
+            anchor,
+            width_meters,
+            height_meters,
+            layer_id,
+        )
+
+    monkeypatch.setattr(DummyRenderer, "render_features", spy_render)
+    monkeypatch.setattr(DummyRenderer, "place_poi_markers", spy_poi)
+    return captured
+
+
+def test_layer_id_default_uses_tag_key_with_index(
+    pbf_path: Path,
+    patched_svgmapper_dependencies,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured = _capture_render_layer_ids(monkeypatch)
+
+    with SvgMapper(str(pbf_path)) as mapper:
+        mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000"))
+
+    assert captured == ["0 highway"]
+
+
+def test_layer_id_explicit_value_gets_prefixed_with_index(
+    pbf_path: Path,
+    patched_svgmapper_dependencies,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured = _capture_render_layer_ids(monkeypatch)
+
+    with SvgMapper(str(pbf_path)) as mapper:
+        mapper.render_features(
+            features.ROADS.MAJOR, Style(stroke="#000"), layer_id="roads"
+        )
+
+    assert captured == ["0 roads"]
+
+
+def test_layer_id_sequential_calls_increment_index(
+    pbf_path: Path,
+    patched_svgmapper_dependencies,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured = _capture_render_layer_ids(monkeypatch)
+
+    with SvgMapper(str(pbf_path)) as mapper:
+        mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000"))
+        mapper.render_features(features.ROADS.MAJOR, Style(stroke="#FF0000"))
+
+    assert captured == ["0 highway", "1 highway"]
+
+
+def test_layer_id_combined_features_joins_tag_keys(
+    pbf_path: Path,
+    patched_svgmapper_dependencies,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured = _capture_render_layer_ids(monkeypatch)
+
+    with SvgMapper(str(pbf_path)) as mapper:
+        mapper.render_features(
+            features.ROADS.MAJOR | features.BUILDINGS.YES,
+            Style(stroke="#000"),
+        )
+
+    assert captured == ["0 building_highway"]
+
+
+def test_layer_id_poi_markers_uses_pois_with_index(
+    pbf_path: Path,
+    marker_svg_path: Path,
+    patched_svgmapper_dependencies,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured = _capture_render_layer_ids(monkeypatch)
+
+    with SvgMapper(str(pbf_path)) as mapper:
+        mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000"))
+        mapper.place_poi_markers(str(marker_svg_path), coords=[(52.0, 8.0)], scale=1.0)
+
+    assert captured == ["0 highway", "1 pois"]
