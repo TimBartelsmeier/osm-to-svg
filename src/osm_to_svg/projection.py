@@ -4,6 +4,8 @@ import math
 
 from pyproj import Transformer
 
+from osm_to_svg.validation import validate_bbox
+
 
 class CoordinateTransformer:
     """Handles coordinate transformation from WGS84 to SVG coordinates.
@@ -31,7 +33,12 @@ class CoordinateTransformer:
                   The scale is accurate at the center latitude.
             dpi: Dots per inch for the output SVG (default: 96)
         """
-        self.geo_bounds = bounds
+        if scale <= 0:
+            raise ValueError("scale must be greater than 0")
+        if dpi <= 0:
+            raise ValueError("dpi must be greater than 0")
+
+        self.geo_bounds = validate_bbox(bounds)
         self.scale = scale
         self.dpi = dpi
 
@@ -41,7 +48,7 @@ class CoordinateTransformer:
         )
 
         # Project bounding box corners to get projected bounds
-        min_lon, min_lat, max_lon, max_lat = bounds
+        min_lon, min_lat, max_lon, max_lat = self.geo_bounds
 
         min_x, min_y = self.transformer.transform(min_lon, min_lat)
         max_x, max_y = self.transformer.transform(max_lon, max_lat)
@@ -67,8 +74,8 @@ class CoordinateTransformer:
         pixels_per_meter = self.dpi / (self.scale * (1.0 / inches_per_meter))
 
         # Calculate SVG dimensions from actual ground distance
-        self.svg_width = int(actual_width_m * pixels_per_meter)
-        self.svg_height = int(actual_height_m * pixels_per_meter)
+        self.svg_width = max(1, int(actual_width_m * pixels_per_meter))
+        self.svg_height = max(1, int(actual_height_m * pixels_per_meter))
 
         # Calculate scaling factors
         self.scale_x = self.svg_width / self.proj_width

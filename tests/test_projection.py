@@ -40,3 +40,16 @@ def test_projection_meters_to_pixels_returns_positive_scalars(
     px_x, px_y = transformer.meters_to_pixels()
     assert px_x > 0
     assert px_y > 0
+
+
+def test_projection_rejects_invalid_scale_and_dpi() -> None:
+    with pytest.raises(ValueError, match="scale must be greater than 0"):
+        CoordinateTransformer((8.0, 52.0, 8.2, 52.2), scale=0, dpi=96)
+
+    with pytest.raises(ValueError, match="dpi must be greater than 0"):
+        CoordinateTransformer((8.0, 52.0, 8.2, 52.2), scale=10000, dpi=0)
+
+
+def test_projection_rejects_invalid_bounds() -> None:
+    with pytest.raises(ValueError, match="min_lon"):
+        CoordinateTransformer((8.2, 52.0, 8.0, 52.2), scale=10000, dpi=96)

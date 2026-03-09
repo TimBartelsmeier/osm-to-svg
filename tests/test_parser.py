@@ -4,7 +4,7 @@ import pytest
 
 from osm_to_svg import features
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.parser import FeatureHandler, PBFParser
+from osm_to_svg.parsing import FeatureHandler, PBFParser
 
 
 @pytest.fixture

@@ -3,7 +3,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from osm_to_svg.downloader import download_from_overpass, download_from_url
+from osm_to_svg.acquisition.downloader import download_from_overpass, download_from_url
 
 
 class DummyStreamResponse:

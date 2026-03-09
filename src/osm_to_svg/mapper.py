@@ -3,12 +3,14 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from osm_to_svg.combiner import combine_elements
 from osm_to_svg.features import FeatureSpec
 from osm_to_svg.models import PoiStyle, Style
-from osm_to_svg.parser import PBFParser
+from osm_to_svg.parsing import PBFParser
 from osm_to_svg.projection import CoordinateTransformer
-from osm_to_svg.renderer import SVGRenderer
+from osm_to_svg.rendering.combiner import combine_elements
+from osm_to_svg.rendering.renderer import SVGRenderer
+
+__all__ = ["SvgMapper"]
 
 
 class SvgMapper:

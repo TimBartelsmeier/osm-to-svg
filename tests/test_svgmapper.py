@@ -4,13 +4,13 @@ from pathlib import Path
 
 import pytest
 
-mapper_module = import_module("osm_to_svg.SvgMapper")
+mapper_module = import_module("osm_to_svg.mapper")
 create_map_module = import_module("osm_to_svg.create_map")
 from osm_to_svg import features
 from osm_to_svg.create_map import create_map
 from osm_to_svg.features import FeatureSpec
+from osm_to_svg.mapper import SvgMapper
 from osm_to_svg.models import PoiStyle, Style
-from osm_to_svg.SvgMapper import SvgMapper
 
 
 class DummyParser:

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from osm_to_svg.extractor import extract_from_pbf
+from osm_to_svg.acquisition.extractor import extract_from_pbf
 
 
 def test_extract_from_pbf_rejects_missing_source_file(tmp_path: Path) -> None:

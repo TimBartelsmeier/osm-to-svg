@@ -62,7 +62,8 @@ class PoiStyle(BaseModel):
     """Style/configuration for placing POI markers.
 
     Exactly one sizing method must be provided: `scale`, `width_meters`, or
-    `height_meters`.
+    `height_meters`. This is enforced by the model validator and raises
+    ValueError when zero or multiple sizing methods are configured.
     """
 
     marker_svg_path: str = Field(description="Path to SVG file used as marker")
@@ -87,7 +88,7 @@ class PoiStyle(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_sizing_methods(self) -> "PoiStyle":
+    def _validate_single_sizing_method(self) -> "PoiStyle":
         """Ensure exactly one sizing method is configured."""
         sizing_methods = sum(
             [

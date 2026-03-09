@@ -8,7 +8,6 @@ def _create_root_with_boundary_clip(
     height: str | None,
     viewbox: str | None,
 ) -> ET.Element:
-    """Create a root SVG element with a boundary clipping path from viewBox."""
     if viewbox is None:
         raise ValueError("viewBox is required for combining SVG layers")
 
@@ -51,7 +50,6 @@ def _append_layer_from_source(
     layer_id: str,
     source_name: str,
 ) -> None:
-    """Validate and append a source SVG root as a clipped layer group."""
     if source_root.get("viewBox") != viewbox:
         raise ValueError(
             f"{source_name} has inconsistent viewBox. "
@@ -79,23 +77,9 @@ def _append_layer_from_source(
 def combine_elements(
     elements: list[ET.Element], output_path: str, background_color: str | None = None
 ) -> None:
-    """Combine multiple in-memory SVG elements into a single layered SVG.
-
-    The order of elements determines the z-order in the final image
-    (first element is bottom layer, last element is top layer).
-
-    Args:
-        elements: List of ET.Element SVG roots to combine
-        output_path: Path where combined SVG will be saved
-        background_color: Optional background color for the combined SVG
-
-    Raises:
-        ValueError: If elements is empty or elements have inconsistent dimensions
-    """
     if not elements:
         raise ValueError("elements cannot be empty")
 
-    # Get dimensions and viewBox from first element
     first_root = elements[0]
     width = first_root.get("width")
     height = first_root.get("height")
@@ -108,7 +92,6 @@ def combine_elements(
 
     svg_ns = "http://www.w3.org/2000/svg"
 
-    # Add background if specified (before any layers)
     if background_color:
         background = ET.Element(
             f"{{{svg_ns}}}rect",
@@ -122,7 +105,6 @@ def combine_elements(
         )
         combined_root.append(background)
 
-    # Process each element
     for idx, root in enumerate(elements):
         _append_layer_from_source(
             source_root=root,
@@ -132,7 +114,6 @@ def combine_elements(
             source_name=f"Element {idx}",
         )
 
-    # Write combined SVG
     tree = ET.ElementTree(combined_root)
-    ET.indent(tree, space="  ")  # Pretty print
+    ET.indent(tree, space="  ")
     tree.write(output_path, encoding="utf-8", xml_declaration=True)

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from osm_to_svg.combiner import combine_elements
+from osm_to_svg.rendering.combiner import combine_elements
 
 SVG_NS = "http://www.w3.org/2000/svg"
 
@@ -15,6 +15,13 @@ def _svg(text: str) -> ET.Element:
 def test_combine_elements_rejects_empty_list(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="elements cannot be empty"):
         combine_elements([], str(tmp_path / "out.svg"))
+
+
+def test_combine_elements_requires_viewbox(tmp_path: Path) -> None:
+    layer = _svg('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50" />')
+
+    with pytest.raises(ValueError, match="viewBox is required"):
+        combine_elements([layer], str(tmp_path / "out.svg"))
 
 
 def test_combine_elements_merges_layers_and_background(tmp_path: Path) -> None:

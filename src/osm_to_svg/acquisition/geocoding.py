@@ -7,6 +7,21 @@ import httpx
 from osm_to_svg.validation import validate_bbox
 
 
+def _validate_positive_distance(name: str, value: float | None) -> None:
+    if value is not None and value <= 0:
+        raise ValueError(f"{name} must be greater than 0")
+
+
+def _kilometers_per_longitude_degree(latitude: float) -> float:
+    km = 111.0 * math.cos(math.radians(latitude))
+    if abs(km) < 1e-9:
+        raise ValueError(
+            "Cannot build east/west bounding box at this latitude because "
+            "longitude degrees approach zero length near the poles."
+        )
+    return km
+
+
 def get_bbox_from_place(
     place_name: str,
     *,
@@ -18,49 +33,13 @@ def get_bbox_from_place(
     south_km: float | None = None,
     timeout: int = 30,
 ) -> tuple[float, float, float, float]:
-    """Get bounding box coordinates for a place by name with dimensions in kilometers.
+    _validate_positive_distance("width_km", width_km)
+    _validate_positive_distance("east_km", east_km)
+    _validate_positive_distance("west_km", west_km)
+    _validate_positive_distance("height_km", height_km)
+    _validate_positive_distance("north_km", north_km)
+    _validate_positive_distance("south_km", south_km)
 
-    This function geocodes a place name using the Nominatim API and creates a bounding
-    box around the returned center point with the specified dimensions in kilometers.
-
-    For width, specify either:
-    - width_km: Creates a symmetric box (extends equally east and west)
-    - east_km and west_km: Creates an asymmetric box
-
-    For height, specify either:
-    - height_km: Creates a symmetric box (extends equally north and south)
-    - north_km and south_km: Creates an asymmetric box
-
-    Args:
-        place_name: Name of the place to geocode (e.g., "Hannover, Germany")
-        width_km: Total width in kilometers (symmetric, optional)
-        east_km: Distance to extend east from center in km (optional)
-        west_km: Distance to extend west from center in km (optional)
-        height_km: Total height in kilometers (symmetric, optional)
-        north_km: Distance to extend north from center in km (optional)
-        south_km: Distance to extend south from center in km (optional)
-        timeout: Request timeout in seconds (default: 30)
-
-    Returns:
-        Bounding box as (min_lon, min_lat, max_lon, max_lat)
-
-    Raises:
-        ValueError: If place not found, invalid parameter combinations, or API error
-        httpx.HTTPError: If the geocoding request fails
-
-    Example:
-        >>> # Symmetric bounding box
-        >>> bbox = get_bbox_from_place("Hannover, Germany", width_km=10, height_km=10)
-        >>> # Asymmetric bounding box
-        >>> bbox = get_bbox_from_place(
-        ...     "Berlin",
-        ...     east_km=15,
-        ...     west_km=10,
-        ...     north_km=12,
-        ...     south_km=8
-        ... )
-    """
-    # Validate parameter combinations
     if width_km is not None and (east_km is not None or west_km is not None):
         raise ValueError(
             "Cannot specify both width_km and east_km/west_km. "
@@ -79,7 +58,6 @@ def get_bbox_from_place(
     if height_km is None and (north_km is None or south_km is None):
         raise ValueError("Must specify either height_km or both north_km and south_km")
 
-    # Convert symmetric to asymmetric for consistent handling
     if width_km is not None:
         east_km = width_km / 2
         west_km = width_km / 2
@@ -91,7 +69,6 @@ def get_bbox_from_place(
     assert east_km is not None and west_km is not None
     assert north_km is not None and south_km is not None
 
-    # Geocode the place name using Nominatim
     url = "https://nominatim.openstreetmap.org/search"
     params = {
         "q": place_name,
@@ -115,25 +92,18 @@ def get_bbox_from_place(
             "Try being more specific (e.g., include country or region)."
         )
 
-    # Extract center coordinates
     result = results[0]
     center_lat = float(result["lat"])
     center_lon = float(result["lon"])
 
-    # Calculate bounding box
-    # For latitude: 1 degree ≈ 111 km (constant)
     lat_degree_km = 111.0
+    lon_degree_km = _kilometers_per_longitude_degree(center_lat)
 
-    # For longitude: 1 degree ≈ 111 km * cos(latitude)
-    lon_degree_km = 111.0 * math.cos(math.radians(center_lat))
-
-    # Calculate offsets in degrees
     north_offset = north_km / lat_degree_km
     south_offset = south_km / lat_degree_km
     east_offset = east_km / lon_degree_km
     west_offset = west_km / lon_degree_km
 
-    # Calculate bounding box coordinates
     min_lat = center_lat - south_offset
     max_lat = center_lat + north_offset
     min_lon = center_lon - west_offset

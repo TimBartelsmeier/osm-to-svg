@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from osm_to_svg.geocoding import get_bbox_from_place
+from osm_to_svg.acquisition.geocoding import get_bbox_from_place
 
 
 class DummyResponse:
@@ -81,3 +81,22 @@ def test_get_bbox_from_place_raises_when_no_results(
 
     with pytest.raises(ValueError, match="Could not find location"):
         get_bbox_from_place("Nowhere", width_km=10, height_km=10)
+
+
+def test_get_bbox_from_place_rejects_non_positive_dimensions() -> None:
+    with pytest.raises(ValueError, match="width_km must be greater than 0"):
+        get_bbox_from_place("Hannover", width_km=0, height_km=10)
+
+    with pytest.raises(ValueError, match="north_km must be greater than 0"):
+        get_bbox_from_place("Hannover", east_km=1, west_km=1, north_km=-1, south_km=1)
+
+
+def test_get_bbox_from_place_rejects_east_west_box_near_poles(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        httpx, "get", lambda *args, **kwargs: DummyResponse([{"lat": "90", "lon": "0"}])
+    )
+
+    with pytest.raises(ValueError, match="longitude degrees approach zero"):
+        get_bbox_from_place("North Pole", width_km=10, height_km=10)

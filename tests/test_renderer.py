@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from osm_to_svg.models import Feature, PoiStyle, Style
-from osm_to_svg.renderer import SVGRenderer
+from osm_to_svg.rendering.renderer import SVGRenderer
 
 SVG_NS = "http://www.w3.org/2000/svg"
 
@@ -135,6 +135,7 @@ def test_calculate_anchor_offset_falls_back_to_center_for_unknown_anchor(
 
 def test_parse_dimension_handles_number_and_invalid_string(dummy_transformer) -> None:
     renderer = SVGRenderer(dummy_transformer)
+    assert renderer._parse_svg_dimension("12px") == 12.0
     assert renderer._parse_dimension(12) == 12.0
     assert renderer._parse_dimension("15pt") == 15.0
     assert renderer._parse_dimension("invalid") == 24.0
@@ -169,5 +170,38 @@ def test_copy_element_handles_supported_svg_nodes(
     for child in root:
         renderer._copy_element(child, group, dwg)
 
-    # Unknown <line> should be ignored; known elements should be copied
+    # Supported elements (including <line>) should be copied.
     assert len(group.elements) >= 1
+    serialized = "\n".join(element.tostring() for element in group.elements)
+    assert "<line" in serialized
+
+
+def test_copy_element_supports_polyline_polygon_and_ellipse(
+    dummy_transformer,
+    tmp_path: Path,
+) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+    path = tmp_path / "marker-shapes.svg"
+    path.write_text(
+        """
+<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20">
+  <polyline points="0,0 5,5 9,1" />
+  <polygon points="1,1 3,1 2,3" />
+  <ellipse cx="5" cy="5" rx="2" ry="1" />
+</svg>
+""".strip(),
+        encoding="utf-8",
+    )
+
+    root = ET.parse(path).getroot()
+    import svgwrite
+
+    dwg = svgwrite.Drawing(":memory:")
+    group = dwg.g(id="target")
+    for child in root:
+        renderer._copy_element(child, group, dwg)
+
+    serialized = "\n".join(element.tostring() for element in group.elements)
+    assert "<polyline" in serialized
+    assert "<polygon" in serialized
+    assert "<ellipse" in serialized

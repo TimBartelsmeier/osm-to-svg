@@ -1,8 +1,8 @@
 """Convenience utility for one-shot SVG map creation."""
 
 from osm_to_svg.features import FeatureSpec
+from osm_to_svg.mapper import SvgMapper
 from osm_to_svg.models import PoiStyle, Style
-from osm_to_svg.SvgMapper import SvgMapper
 
 
 def create_map(
