@@ -24,8 +24,8 @@ output_svg = output_dir / "all_buildings_roads.svg"
 hannover_bbox = (9.68, 52.34, 9.79, 52.41)
 
 # Render all buildings and roads
-print("Rendering all buildings and roads...")
-print("⚠️  Warning: This may take a while and produce a large file.")
+print("Rendering all buildings and roads.")
+print("This may take a while...")
 
 # All building types via dedicated shorthand
 all_buildings = features.BUILDINGS.ALL
@@ -33,8 +33,6 @@ all_buildings = features.BUILDINGS.ALL
 # All road types combined into one spec via |
 all_roads = features.ROADS.MAJOR | features.ROADS.LOCAL | features.ROADS.PEDESTRIAN
 
-print("  - All buildings...")
-print("  - All roads...")
 create_map(
     pbf_path=str(hannover_pbf),
     bounds=hannover_bbox,

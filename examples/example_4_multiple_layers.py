@@ -26,14 +26,15 @@ pois = [
 ]
 
 # Render multiple layers
-print("Rendering comprehensive map...")
-print("  - Water bodies...")
-print("  - Forests...")
-print("  - Parks and gardens...")
-print("  - Major roads...")
-print("  - Local roads...")
-print("  - Railways...")
-print("  - POI markers...")
+print("Rendering comprehensive map:")
+print("  - Water bodies")
+print("  - Forests")
+print("  - Parks and gardens")
+print("  - Major roads")
+print("  - Local roads")
+print("  - Railways")
+print("  - POI markers")
+print("This may take some time...")
 create_map(
     pbf_path=str(hannover_pbf),
     bounds=hannover_bbox,
