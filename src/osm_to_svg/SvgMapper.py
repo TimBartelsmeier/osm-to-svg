@@ -18,6 +18,11 @@ class SvgMapper:
     The output SVG is generated with a specified scale (e.g., 1:100,000) and DPI,
     where the scale is accurate at the center latitude of the map.
 
+    For accurate clipping and predictable output dimensions, it is recommended to
+    pass ``bounds`` explicitly even when the input PBF is already cropped. Some
+    features (for example long roads) can extend beyond the intended region, and
+    explicit bounds ensure the SVG is sized and clipped to the area of interest.
+
     Example:
         >>> from osm_to_svg import features
         >>> with SvgMapper("city.osm.pbf", scale=50000, dpi=96, background_color="#FFFFFF") as mapper:
@@ -51,7 +56,9 @@ class SvgMapper:
                  Standard values: 96 (web/screen), 72 (print), 300 (high-res print).
             bounds: Optional custom bounding box as (min_lon, min_lat, max_lon, max_lat).
                    If not provided, bounds will be extracted from the PBF file by scanning
-                   all nodes, which may include nodes outside the area of interest.
+                     all nodes, which may include nodes outside the area of interest.
+                     Passing bounds explicitly is recommended to ensure clipping and
+                     SVG dimensions match your intended region.
             background_color: Optional background color for the SVG (e.g., "#FFFFFF", "white").
                             If None, the background will be transparent (default: None).
         """

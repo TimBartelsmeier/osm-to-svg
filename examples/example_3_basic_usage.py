@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from osm_to_svg import Style, SvgMapper, features
+from osm_to_svg import Style, create_map, features
 
 # Set up directories relative to this script
 script_dir = Path(__file__).parent
@@ -19,10 +19,15 @@ hannover_bbox = (9.68, 52.34, 9.79, 52.41)
 
 # Render the road network
 print("Rendering major roads...")
-with SvgMapper(str(hannover_pbf), bounds=hannover_bbox) as mapper:
-    mapper.render_features(
-        features=features.ROADS.MAJOR,
-        style=Style(stroke="#000000", stroke_width=2.0),
-    )
-    mapper.save(str(output_svg))
+create_map(
+    pbf_path=str(hannover_pbf),
+    bounds=hannover_bbox,
+    feature_layers=[
+        (
+            features.ROADS.MAJOR,
+            Style(stroke="#000000", stroke_width=2.0),
+        )
+    ],
+    output_path=str(output_svg),
+)
 print(f"Saved: {output_svg}")

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from osm_to_svg import PoiStyle, Style, SvgMapper, features
+from osm_to_svg import PoiStyle, Style, create_map, features
 
 # Set up directories relative to this script
 script_dir = Path(__file__).parent
@@ -27,60 +27,34 @@ pois = [
 
 # Render multiple layers
 print("Rendering comprehensive map...")
-with SvgMapper(str(hannover_pbf), bounds=hannover_bbox) as mapper:
-    # Layer 1: Water bodies (filled blue shapes)
-    print("  - Water bodies...")
-    mapper.render_features(
-        features=features.WATER.BODIES,
-        style=Style(fill="#4A90E2"),
-    )
-
-    # Layer 2: Forests (dark green)
-    print("  - Forests...")
-    mapper.render_features(
-        features=features.GREEN_SPACES.FORESTS,
-        style=Style(fill="#046A04"),
-    )
-
-    # Layer 3: Parks and gardens (light green)
-    print("  - Parks and gardens...")
-    mapper.render_features(
-        features=features.GREEN_SPACES.PARKS,
-        style=Style(fill="#1FC21F"),
-    )
-
-    # Layer 4: Major roads (black)
-    print("  - Major roads...")
-    mapper.render_features(
-        features=features.ROADS.MAJOR,
-        style=Style(stroke="#000000", stroke_width=1),
-    )
-
-    # Layer 5: Local roads (grey)
-    print("  - Local roads...")
-    mapper.render_features(
-        features=features.ROADS.LOCAL,
-        style=Style(stroke="#5E5E5E", stroke_width=0.5),
-    )
-
-    # Layer 6: Railway tracks (orange)
-    print("  - Railways...")
-    mapper.render_features(
-        features=features.RAILWAYS.ACTIVE,
-        style=Style(stroke="#FF8C00", stroke_width=0.2),
-    )
-
-    # Layer 7: POI markers
-    print("  - POI markers...")
-    mapper.place_poi_markers(
-        coords=pois,
-        poi_style=PoiStyle(
-            marker_svg_path=str(marker_svg),
-            width_meters=500,
-        ),
-    )
-
-    # Save all layers combined
-    mapper.save(str(output_svg))
+print("  - Water bodies...")
+print("  - Forests...")
+print("  - Parks and gardens...")
+print("  - Major roads...")
+print("  - Local roads...")
+print("  - Railways...")
+print("  - POI markers...")
+create_map(
+    pbf_path=str(hannover_pbf),
+    bounds=hannover_bbox,
+    feature_layers=[
+        (features.WATER.BODIES, Style(fill="#4A90E2")),
+        (features.GREEN_SPACES.FORESTS, Style(fill="#046A04")),
+        (features.GREEN_SPACES.PARKS, Style(fill="#1FC21F")),
+        (features.ROADS.MAJOR, Style(stroke="#000000", stroke_width=1)),
+        (features.ROADS.LOCAL, Style(stroke="#5E5E5E", stroke_width=0.5)),
+        (features.RAILWAYS.ACTIVE, Style(stroke="#FF8C00", stroke_width=0.2)),
+    ],
+    poi_layers=[
+        (
+            pois,
+            PoiStyle(
+                marker_svg_path=str(marker_svg),
+                width_meters=500,
+            ),
+        )
+    ],
+    output_path=str(output_svg),
+)
 
 print(f"Saved: {output_svg}")

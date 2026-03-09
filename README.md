@@ -58,7 +58,7 @@ Note that the Overpass API is often overloaded, may time out, applies rate limit
 
 ## Bounding box considerations and querying place names
 
-The PBF file should cover only the region of interest. Everything contained in the file is rendered into the SVG, so a smaller file produces a smaller SVG and faster rendering times. It is recommended to pass the bounding box explicitly to `SvgMapper`, even if the PBF file is already cropped to the region of interest, because some features (such as long roads) can extend beyond the selected region. Specifying the bounding box ensures the SVG is sized correctly and clips to the region of interest.
+The PBF file should cover only the region of interest. Everything contained in the file is rendered into the SVG, so a smaller file produces a smaller SVG and faster rendering times. It is recommended to pass the bounding box explicitly to `create_map` (or `SvgMapper`), even if the PBF file is already cropped to the region of interest, because some features (such as long roads) can extend beyond the selected region. Specifying the bounding box ensures the SVG is sized correctly and clips to the region of interest.
 
 You can obtain a bounding box for a named place using `get_bbox_from_place`:
 
@@ -73,19 +73,21 @@ See [examples/example_1_geocode_bbox.py](examples/example_1_geocode_bbox.py) for
 
 ## Basic usage
 
-`SvgMapper` is the main class. It is used as a context manager and renders one or more feature layers that are combined into a final SVG.
+`create_map` is the recommended utility for one-shot rendering. It wraps `SvgMapper` internally and renders one or more layers into a final SVG.
 
 ```python
-from osm_to_svg import Style, SvgMapper, features
+from osm_to_svg import Style, create_map, features
 
 bbox = (9.68, 52.34, 9.79, 52.41)
 
-with SvgMapper("hannover.osm.pbf", bounds=bbox) as mapper:
-    mapper.render_features(
-        features=features.ROADS.MAJOR,
-        style=Style(stroke="#000000", stroke_width=2.0),
-    )
-    mapper.save("roads.svg")
+create_map(
+    pbf_path="hannover.osm.pbf",
+    bounds=bbox,
+    feature_layers=[
+        (features.ROADS.MAJOR, Style(stroke="#000000", stroke_width=2.0)),
+    ],
+    output_path="roads.svg",
+)
 ```
 
 See [examples/example_3_basic_usage.py](examples/example_3_basic_usage.py) for the full script.
@@ -95,44 +97,54 @@ See [examples/example_3_basic_usage.py](examples/example_3_basic_usage.py) for t
 Multiple feature layers can be rendered and combined into a single SVG. All feature types are accessed through the `features` module as `features.ROADS`, `features.RAILWAYS`, `features.WATER`, `features.BUILDINGS`, and `features.GREEN_SPACES`. Specs can be combined with `|` to render multiple feature types in a single call.
 
 ```python
-from osm_to_svg import Style, SvgMapper, features
+from osm_to_svg import Style, create_map, features
 
 bbox = (9.68, 52.34, 9.79, 52.41)
 
-with SvgMapper("hannover.osm.pbf", bounds=bbox) as mapper:
-    mapper.render_features(features=features.WATER.BODIES, style=Style(fill="#4A90E2"))
-    mapper.render_features(features=features.GREEN_SPACES.FORESTS, style=Style(fill="#046A04"))
-    mapper.render_features(features=features.ROADS.MAJOR, style=Style(stroke="#000000", stroke_width=2.0))
-    mapper.save("map.svg")
+create_map(
+    pbf_path="hannover.osm.pbf",
+    bounds=bbox,
+    feature_layers=[
+        (features.WATER.BODIES, Style(fill="#4A90E2")),
+        (features.GREEN_SPACES.FORESTS, Style(fill="#046A04")),
+        (features.ROADS.MAJOR, Style(stroke="#000000", stroke_width=2.0)),
+    ],
+    output_path="map.svg",
+)
 ```
 
 See [examples/example_4_multiple_layers.py](examples/example_4_multiple_layers.py) for the full script including POI markers.
 
-## SvgMapper options
+## create_map options
 
-`SvgMapper` accepts the following constructor arguments:
+`create_map` accepts the same map-configuration arguments as `SvgMapper`, plus layer lists and an output path:
 
 - `pbf_path` — path to the `.osm.pbf` file to read.
 - `scale` — map scale denominator (default: `100000` for 1:100,000). At this scale, 1 km in reality equals 1 cm in the output. The scale is accurate at the centre latitude of the map bounds.
 - `dpi` — dots per inch for the output SVG (default: `96`). Common values: `96` (screen), `72` (print), `300` (high-res print).
 - `bounds` — optional bounding box as `(min_lon, min_lat, max_lon, max_lat)`. If omitted, bounds are derived from the PBF file by scanning all nodes.
 - `background_color` — optional background fill for the SVG (e.g. `"#FFFFFF"`, `"white"`). Defaults to `None` (transparent).
+- `feature_layers` — list of `(FeatureSpec, Style)` tuples.
+- `poi_layers` — list of `([(lat, lon), ...], PoiStyle)` tuples.
+- `output_path` — path for the final combined SVG file.
 
 ```python
-from osm_to_svg import Style, SvgMapper, features
+from osm_to_svg import Style, create_map, features
 
-with SvgMapper(
-    "hannover.osm.pbf",
+create_map(
+    pbf_path="hannover.osm.pbf",
     scale=75000,
     dpi=300,
     bounds=(9.68, 52.34, 9.79, 52.41),
     background_color="#F5F5F5",
-) as mapper:
-    mapper.render_features(features=features.ROADS.MAJOR, style=Style(stroke="#000000"))
-    mapper.save("map.svg")
+    feature_layers=[
+        (features.ROADS.MAJOR, Style(stroke="#000000")),
+    ],
+    output_path="map.svg",
+)
 ```
 
-All feature layers are accumulated in memory and written to a single file with `save`.
+For advanced workflows, `SvgMapper` is still available as a context manager API.
 
 ## Styling
 
@@ -169,14 +181,24 @@ combined_style = Style(
 
 ## POI markers
 
-`place_poi_markers` places an SVG icon at one or more geographic coordinates. The output layer has the same dimensions as feature layers, so it can be combined directly.
+POI marker layers are passed through `poi_layers` as `(coords, PoiStyle)` tuples. The output layer has the same dimensions as feature layers, so it can be combined directly.
 
 ```python
-mapper.place_poi_markers(
-    marker_svg_path="pin.svg",
-    coords=[(52.3731, 9.7372), (52.3665, 9.7353)],  # (lat, lon)
-    scale=1.5,          # relative to the marker's original size
-    anchor="bottom",    # which point of the icon aligns to the coordinate
+from osm_to_svg import PoiStyle, create_map
+
+create_map(
+    pbf_path="hannover.osm.pbf",
+    poi_layers=[
+        (
+            [(52.3731, 9.7372), (52.3665, 9.7353)],  # (lat, lon)
+            PoiStyle(
+                marker_svg_path="pin.svg",
+                scale=1.5,          # relative to the marker's original size
+                anchor="bottom",   # which point aligns to the coordinate
+            ),
+        )
+    ],
+    output_path="pois.svg",
 )
 ```
 
@@ -189,14 +211,23 @@ mapper.place_poi_markers(
 **Anchor** — the `anchor` parameter controls which point of the icon is pinned to the coordinate. Accepted values: `"center"` (default), `"top"`, `"top-right"`, `"right"`, `"bottom-right"`, `"bottom"`, `"bottom-left"`, `"left"`, `"top-left"`.
 
 ```python
-# Absolute sizing — marker is always 200 m wide regardless of scale
-mapper.place_poi_markers("pin.svg", [(52.37, 9.74)], width_meters=200.0)
+from osm_to_svg import PoiStyle, Style, create_map, features
 
-# Combine with render_features layers and save
-with SvgMapper("hannover.osm.pbf", bounds=bbox) as mapper:
-    mapper.render_features(features=features.ROADS.MAJOR, style=Style(stroke="#000000"))
-    mapper.place_poi_markers("pin.svg", [(52.3731, 9.7372)], scale=1.0, anchor="bottom")
-    mapper.save("map.svg")
+# Absolute sizing — marker is always 200 m wide regardless of scale
+poi_style = PoiStyle(marker_svg_path="pin.svg", width_meters=200.0)
+
+# Combine with feature layers
+create_map(
+    pbf_path="hannover.osm.pbf",
+    bounds=bbox,
+    feature_layers=[
+        (features.ROADS.MAJOR, Style(stroke="#000000")),
+    ],
+    poi_layers=[
+        ([(52.3731, 9.7372)], poi_style),
+    ],
+    output_path="map.svg",
+)
 ```
 
 ## Running the examples
@@ -217,16 +248,30 @@ All examples can be run via pixi:
 All features are accessed through the `features` module. Individual types match a single OSM tag value. Shorthands are pre-built `|` unions of individual types. Any spec can be further combined with `|`:
 
 ```python
-from osm_to_svg import features
+from osm_to_svg import Style, create_map, features
+
+style = Style(stroke="#000000")
 
 # Individual type
-mapper.render_features(features=features.ROADS.MOTORWAY, style=style)
+create_map(
+    pbf_path="hannover.osm.pbf",
+    feature_layers=[(features.ROADS.MOTORWAY, style)],
+    output_path="motorway.svg",
+)
 
 # Shorthand
-mapper.render_features(features=features.ROADS.MAJOR, style=style)
+create_map(
+    pbf_path="hannover.osm.pbf",
+    feature_layers=[(features.ROADS.MAJOR, style)],
+    output_path="major_roads.svg",
+)
 
 # Ad-hoc combination
-mapper.render_features(features=features.ROADS.MAJOR | features.WATER.BODIES, style=style)
+create_map(
+    pbf_path="hannover.osm.pbf",
+    feature_layers=[(features.ROADS.MAJOR | features.WATER.BODIES, style)],
+    output_path="roads_and_water.svg",
+)
 ```
 
 ### ROADS

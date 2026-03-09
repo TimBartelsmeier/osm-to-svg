@@ -8,7 +8,7 @@ Consider using a smaller bounding box or specific subtypes for production use.
 
 from pathlib import Path
 
-from osm_to_svg import Style, SvgMapper, features
+from osm_to_svg import Style, create_map, features
 
 # Set up directories relative to this script
 script_dir = Path(__file__).parent
@@ -33,24 +33,17 @@ all_buildings = features.BUILDINGS.ALL
 # All road types combined into one spec via |
 all_roads = features.ROADS.MAJOR | features.ROADS.LOCAL | features.ROADS.PEDESTRIAN
 
-with SvgMapper(
-    str(hannover_pbf), bounds=hannover_bbox, background_color="#FFFFFF"
-) as mapper:
-    # Layer 1: All buildings (filled grey shapes)
-    print("  - All buildings...")
-    mapper.render_features(
-        features=all_buildings,
-        style=Style(fill="#925000"),
-    )
-
-    # Layer 2: All roads (black lines)
-    print("  - All roads...")
-    mapper.render_features(
-        features=all_roads,
-        style=Style(stroke="#000000", stroke_width=0.25),
-    )
-
-    # Save combined layers
-    mapper.save(str(output_svg))
+print("  - All buildings...")
+print("  - All roads...")
+create_map(
+    pbf_path=str(hannover_pbf),
+    bounds=hannover_bbox,
+    background_color="#FFFFFF",
+    feature_layers=[
+        (all_buildings, Style(fill="#925000")),
+        (all_roads, Style(stroke="#000000", stroke_width=0.25)),
+    ],
+    output_path=str(output_svg),
+)
 
 print(f"Saved: {output_svg}")

@@ -5,7 +5,9 @@ from pathlib import Path
 import pytest
 
 mapper_module = import_module("osm_to_svg.SvgMapper")
+create_map_module = import_module("osm_to_svg.create_map")
 from osm_to_svg import features
+from osm_to_svg.create_map import create_map
 from osm_to_svg.features import FeatureSpec
 from osm_to_svg.models import PoiStyle, Style
 from osm_to_svg.SvgMapper import SvgMapper
@@ -305,3 +307,148 @@ def test_layer_id_poi_markers_explicit_value_gets_prefixed_with_index(
         )
 
     assert captured == ["0 highway", "1 landmarks"]
+
+
+def test_create_map_uses_svgmapper_workflow(
+    pbf_path: Path,
+    marker_svg_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, object]] = []
+
+    class SpyMapper:
+        def __init__(
+            self,
+            pbf_path: str,
+            scale: int = 100000,
+            dpi: int = 96,
+            bounds: tuple[float, float, float, float] | None = None,
+            background_color: str | None = None,
+        ):
+            calls.append(
+                (
+                    "init",
+                    {
+                        "pbf_path": pbf_path,
+                        "scale": scale,
+                        "dpi": dpi,
+                        "bounds": bounds,
+                        "background_color": background_color,
+                    },
+                )
+            )
+
+        def __enter__(self):
+            calls.append(("enter", None))
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):  # noqa: ANN001
+            calls.append(("exit", None))
+
+        def render_features(self, feature_spec: FeatureSpec, style: Style) -> None:
+            calls.append(("render_features", (feature_spec, style)))
+
+        def place_poi_markers(
+            self,
+            coords: list[tuple[float, float]],
+            poi_style: PoiStyle,
+        ) -> None:
+            calls.append(("place_poi_markers", (coords, poi_style)))
+
+        def save(self, output_path: str) -> None:
+            calls.append(("save", output_path))
+
+    monkeypatch.setattr(create_map_module, "SvgMapper", SpyMapper)
+
+    feature_layers = [
+        (features.WATER.BODIES, Style(fill="#4A90E2")),
+        (features.ROADS.MAJOR, Style(stroke="#000000", stroke_width=1.0)),
+    ]
+    poi_layers = [
+        (
+            [(52.0, 8.0)],
+            PoiStyle(marker_svg_path=str(marker_svg_path), scale=1.0),
+        )
+    ]
+
+    create_map(
+        pbf_path=str(pbf_path),
+        scale=75000,
+        dpi=300,
+        bounds=(9.6, 52.3, 9.8, 52.5),
+        background_color="#FFFFFF",
+        feature_layers=feature_layers,
+        poi_layers=poi_layers,
+        output_path="result.svg",
+    )
+
+    assert calls[0] == (
+        "init",
+        {
+            "pbf_path": str(pbf_path),
+            "scale": 75000,
+            "dpi": 300,
+            "bounds": (9.6, 52.3, 9.8, 52.5),
+            "background_color": "#FFFFFF",
+        },
+    )
+    assert calls[1][0] == "enter"
+    assert [name for name, _ in calls] == [
+        "init",
+        "enter",
+        "render_features",
+        "render_features",
+        "place_poi_markers",
+        "save",
+        "exit",
+    ]
+    assert calls[2][1] == feature_layers[0]
+    assert calls[3][1] == feature_layers[1]
+    assert calls[4][1] == poi_layers[0]
+    assert calls[5] == ("save", "result.svg")
+
+
+def test_create_map_defaults_to_empty_layers(
+    pbf_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+
+    class SpyMapper:
+        def __init__(
+            self,
+            pbf_path: str,
+            scale: int = 100000,
+            dpi: int = 96,
+            bounds: tuple[float, float, float, float] | None = None,
+            background_color: str | None = None,
+        ):
+            del pbf_path, scale, dpi, bounds, background_color
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):  # noqa: ANN001
+            return None
+
+        def render_features(self, feature_spec: FeatureSpec, style: Style) -> None:
+            del feature_spec, style
+            calls.append("render_features")
+
+        def place_poi_markers(
+            self,
+            coords: list[tuple[float, float]],
+            poi_style: PoiStyle,
+        ) -> None:
+            del coords, poi_style
+            calls.append("place_poi_markers")
+
+        def save(self, output_path: str) -> None:
+            del output_path
+            calls.append("save")
+
+    monkeypatch.setattr(create_map_module, "SvgMapper", SpyMapper)
+
+    create_map(pbf_path=str(pbf_path), output_path="empty.svg")
+
+    assert calls == ["save"]
