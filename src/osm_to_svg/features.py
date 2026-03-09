@@ -71,6 +71,8 @@ class ROADS:
 
     Individual types match a single highway= value.
     Shorthands group common subsets for cartographic use.
+    CYCLEWAY is standalone and not included in MAJOR, LOCAL,
+    or PEDESTRIAN shorthands; include it explicitly when needed.
 
     Usage::
 
@@ -217,9 +219,10 @@ class WATER:
     Linear waterways (RIVER, STREAM, …) use way geometry (needs_areas=False).
     Water bodies (WATER_AREA, LAKE, …) use area/polygon geometry (needs_areas=True).
 
-    Note: LAKE, RESERVOIR, and POND all map to natural=water because OSM encodes
-    the sub-type via a secondary ``water=`` tag that cannot be AND-filtered here.
-    They are separate named specs for discoverability but are functionally equivalent.
+    Note: LAKE, RESERVOIR, and POND all map to natural=water with identical
+    filters. OSM stores these as secondary ``water=`` sub-types, which are not
+    AND-filtered here. They are separate named specs for discoverability but
+    functionally equivalent; use WATER_AREA or BODIES for generic rendering.
 
     Usage::
 
@@ -416,6 +419,30 @@ class BUILDINGS:
     """Shorthand for multi-household residential buildings.
 
     OSM tags: building=apartments, terrace.
+    """
+    ALL = (
+        RESIDENTIAL
+        | COMMERCIAL
+        | INDUSTRIAL
+        | RELIGIOUS
+        | INSTITUTIONAL
+        | YES
+        | BUILDING
+        | GARAGE
+        | GARAGES
+        | PARKING
+        | SHED
+        | ROOF
+        | CONSTRUCTION
+    )
+    """Shorthand for all building feature types covered by this module.
+
+    OSM tags: building=yes, building, residential, house, detached,
+    semidetached_house, apartments, terrace, bungalow, commercial, retail,
+    office, supermarket, hotel, industrial, warehouse, manufacture, hospital,
+    school, university, church, cathedral, mosque, temple, synagogue,
+    government, civic, public, garage, garages, parking, shed, roof,
+    construction.
     """
 
 

@@ -27,15 +27,8 @@ hannover_bbox = (9.68, 52.34, 9.79, 52.41)
 print("Rendering all buildings and roads...")
 print("⚠️  Warning: This may take a while and produce a large file.")
 
-# All building types combined into one spec via |
-all_buildings = (
-    features.BUILDINGS.RESIDENTIAL
-    | features.BUILDINGS.COMMERCIAL
-    | features.BUILDINGS.INDUSTRIAL
-    | features.BUILDINGS.RELIGIOUS
-    | features.BUILDINGS.INSTITUTIONAL
-    | features.BUILDINGS.YES
-)
+# All building types via dedicated shorthand
+all_buildings = features.BUILDINGS.ALL
 
 # All road types combined into one spec via |
 all_roads = features.ROADS.MAJOR | features.ROADS.LOCAL | features.ROADS.PEDESTRIAN
