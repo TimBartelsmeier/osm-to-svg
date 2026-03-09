@@ -61,7 +61,7 @@ def test_parser_extracts_waterway_features(tiny_pbf_fixture_path: Path) -> None:
 
 
 def test_feature_handler_matches_water_body_via_natural_tag() -> None:
-    # WATERWAYS.BODIES carries natural=water in its tag_filters directly
+    # WATER.BODIES carries natural=water in its tag_filters directly
     handler = FeatureHandler(features.WATER.BODIES)
 
     assert handler._matches_filter({"natural": "water"}) is True

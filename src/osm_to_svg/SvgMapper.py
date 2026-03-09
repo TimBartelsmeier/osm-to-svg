@@ -3,7 +3,7 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from osm_to_svg.combiner import combine_elements, combine_svgs
+from osm_to_svg.combiner import combine_elements
 from osm_to_svg.features import FeatureSpec
 from osm_to_svg.models import Style
 from osm_to_svg.parser import PBFParser
@@ -24,12 +24,11 @@ class SvgMapper:
         ...     mapper.render_features(
         ...         features.ROADS.MAJOR,
         ...         Style(stroke="#FF0000", stroke_width=2.0),
-        ...         "roads.svg"
         ...     )
         ...     mapper.place_poi_markers(
-        ...         "marker.svg", [(48.1374, 11.5755)], 1.0, "pois.svg"
+        ...         "marker.svg", [(48.1374, 11.5755)], 1.0
         ...     )
-        ...     mapper.combine(["roads.svg", "pois.svg"], "final.svg")
+        ...     mapper.save("final.svg")
     """
 
     def __init__(
@@ -106,36 +105,25 @@ class SvgMapper:
         self,
         features: FeatureSpec,
         style: Style,
-        output_path: str | None = None,
         layer_id: str | None = None,
     ) -> None:
-        """Render cartographic features to an SVG file or accumulate in-memory.
+        """Render cartographic features and accumulate the layer in memory.
 
         Args:
             features: FeatureSpec describing which OSM features to render.
                      Use namespace classes from the ``features`` module, e.g.
-                     ``features.ROADS.MAJOR`` or ``features.ROADS.MAJOR | features.WATERWAYS.BODIES``.
+                     ``features.ROADS.MAJOR`` or ``features.ROADS.MAJOR | features.WATER.BODIES``.
             style: Style definition for the features
-            output_path: Path where the SVG file will be saved.
-                        If None, layer is accumulated in memory for later combining.
             layer_id: Optional ID for the SVG group.
                      Defaults to the joined tag filter keys (e.g. "highway").
 
         Example:
             >>> from osm_to_svg import features
-            >>> # Save directly to file
             >>> mapper.render_features(
-            ...     features.ROADS.MAJOR,
-            ...     Style(stroke="#FF0000", stroke_width=2.0),
-            ...     "roads.svg"
-            ... )
-            >>>
-            >>> # Combine roads and waterways in one call
-            >>> mapper.render_features(
-            ...     features.ROADS.MAJOR | features.WATERWAYS.BODIES,
+            ...     features.ROADS.MAJOR | features.WATER.BODIES,
             ...     Style(stroke="#000000", fill="#4A90E2")
             ... )
-            >>> mapper.save_combined("combined.svg")
+            >>> mapper.save("combined.svg")
         """
         if self.parser is None or self.renderer is None:
             raise RuntimeError("SvgMapper must be used as a context manager")
@@ -147,28 +135,22 @@ class SvgMapper:
         if layer_id is None:
             layer_id = "_".join(sorted(features.tag_filters.keys()))
 
-        # Render to SVG (file or in-memory)
-        element = self.renderer.render_features(
-            osm_features, style, output_path, layer_id
-        )
-
-        # If in-memory mode, accumulate layer
-        if output_path is None and element is not None:
-            self._layers.append(element)
+        # Render to in-memory element and accumulate layer
+        element = self.renderer.render_features(osm_features, style, layer_id)
+        self._layers.append(element)
 
     def place_poi_markers(
         self,
         marker_svg_path: str,
         coords: list[tuple[float, float]],
         scale: float | None = None,
-        output_path: str | None = None,
         anchor: MarkerAnchor = "center",
         width_meters: float | None = None,
         height_meters: float | None = None,
     ) -> None:
-        """Place POI markers at specified geographic coordinates.
+        """Place POI markers at specified geographic coordinates and accumulate the layer.
 
-        The output SVG will have the same dimensions as feature renders from
+        The output layer will have the same dimensions as feature renders from
         the same PBF file, allowing proper layering.
 
         Marker size can be specified using scale (relative to original size),
@@ -180,8 +162,6 @@ class SvgMapper:
             coords: List of (latitude, longitude) tuples where markers should be placed
             scale: Scale factor for the markers (1.0 = original size, 2.0 = double size).
                    Mutually exclusive with width_meters/height_meters.
-            output_path: Path where the SVG file will be saved.
-                        If None, layer is accumulated in memory for later combining.
             anchor: Point of the marker that is anchored to the coordinate.
                    Options: "top", "top-right", "right", "bottom-right", "bottom",
                    "bottom-left", "left", "top-left", "center" (default: "center")
@@ -196,7 +176,6 @@ class SvgMapper:
             ...     "pin.svg",
             ...     [(48.1374, 11.5755), (48.1383, 11.5767)],
             ...     scale=1.5,
-            ...     output_path="pois.svg"
             ... )
             >>>
             >>> # Using width_meters (absolute width in meters)
@@ -205,14 +184,7 @@ class SvgMapper:
             ...     [(48.1374, 11.5755)],
             ...     width_meters=100.0
             ... )
-            >>>
-            >>> # Using height_meters (absolute height in meters)
-            >>> mapper.place_poi_markers(
-            ...     "pin.svg",
-            ...     [(48.1374, 11.5755)],
-            ...     height_meters=50.0
-            ... )
-            >>> mapper.save_combined("combined.svg")
+            >>> mapper.save("combined.svg")
         """
         if self.renderer is None:
             raise RuntimeError("SvgMapper must be used as a context manager")
@@ -221,48 +193,21 @@ class SvgMapper:
         if not Path(marker_svg_path).exists():
             raise FileNotFoundError(f"Marker SVG file not found: {marker_svg_path}")
 
-        # Render POI markers (file or in-memory)
+        # Render POI markers in-memory and accumulate layer
         element = self.renderer.place_poi_markers(
             marker_svg_path,
             coords,
             scale,
-            output_path,
             anchor,
             width_meters,
             height_meters,
         )
+        self._layers.append(element)
 
-        # If in-memory mode, accumulate layer
-        if output_path is None and element is not None:
-            self._layers.append(element)
-
-    def combine(self, svg_paths: list[str], output_path: str) -> None:
-        """Combine multiple SVG files into a single layered file.
-
-        The order of svg_paths determines the z-order (first is bottom,
-        last is top). Each input SVG is wrapped in a group in the output.
-
-        This method is for combining existing SVG files. For in-memory layer
-        composition, use save_combined() instead.
-
-        Args:
-            svg_paths: List of paths to SVG files to combine
-            output_path: Path where the combined SVG will be saved
-
-        Example:
-            >>> mapper.combine(
-            ...     ["water.svg", "roads.svg", "buildings.svg", "pois.svg"],
-            ...     "final_map.svg"
-            ... )
-        """
-        combine_svgs(svg_paths, output_path)
-
-    def save_combined(self, output_path: str) -> None:
+    def save(self, output_path: str) -> None:
         """Save all accumulated in-memory layers to a combined SVG file.
 
-        This method combines all layers rendered with output_path=None
-        into a single SVG file. The z-order is determined by the order
-        in which render methods were called (first call = bottom layer).
+        Combines all layers in the order they were rendered (first call = bottom layer).
 
         Args:
             output_path: Path where the combined SVG will be saved
@@ -272,12 +217,9 @@ class SvgMapper:
 
         Example:
             >>> with SvgMapper("city.osm.pbf") as mapper:
-            ...     # Render multiple layers without saving to disk
-            ...     mapper.render_features(WaterwayType, None, water_style)
-            ...     mapper.render_features(RoadType, None, road_style)
-            ...     mapper.render_features(BuildingType, None, building_style)
-            ...     # Save all layers combined
-            ...     mapper.save_combined("city_map.svg")
+            ...     mapper.render_features(features.WATER.BODIES, Style(fill="#4A90E2"))
+            ...     mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000000"))
+            ...     mapper.save("city_map.svg")
         """
         if not self._layers:
             raise ValueError(

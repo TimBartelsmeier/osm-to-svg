@@ -58,6 +58,6 @@ with SvgMapper(
     )
 
     # Save combined layers
-    mapper.save_combined(str(output_svg))
+    mapper.save(str(output_svg))
 
 print(f"Saved: {output_svg}")

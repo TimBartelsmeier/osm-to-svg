@@ -23,6 +23,6 @@ with SvgMapper(str(hannover_pbf), bounds=hannover_bbox) as mapper:
     mapper.render_features(
         features=features.ROADS.MAJOR,
         style=Style(stroke="#000000", stroke_width=2.0),
-        output_path=str(output_svg),
     )
+    mapper.save(str(output_svg))
 print(f"Saved: {output_svg}")

@@ -23,7 +23,6 @@ def test_render_features_returns_in_memory_element(dummy_transformer) -> None:
     element = renderer.render_features(
         features,
         Style(stroke="#000", fill="none"),
-        output_path=None,
         layer_id="roads",
     )
 
@@ -39,7 +38,6 @@ def test_render_features_skips_invalid_geometry(dummy_transformer) -> None:
     element = renderer.render_features(
         [Feature(geometry=[(8.0, 52.0)], tags={})],
         Style(stroke="#000", fill="none"),
-        output_path=None,
         layer_id="roads",
     )
 
@@ -59,7 +57,6 @@ def test_place_poi_markers_requires_exactly_one_sizing_method(
         renderer.place_poi_markers(
             str(marker_svg_path),
             coords=[(52.0, 8.0)],
-            output_path=None,
         )
 
     with pytest.raises(ValueError, match="Cannot specify multiple"):
@@ -68,7 +65,6 @@ def test_place_poi_markers_requires_exactly_one_sizing_method(
             coords=[(52.0, 8.0)],
             scale=1.0,
             width_meters=20.0,
-            output_path=None,
         )
 
 
@@ -82,7 +78,6 @@ def test_place_poi_markers_returns_in_memory_element(
         str(marker_svg_path),
         coords=[(52.0, 8.0)],
         width_meters=25.0,
-        output_path=None,
     )
 
     assert element is not None
@@ -101,32 +96,9 @@ def test_place_poi_markers_supports_height_meters(
         str(marker_svg_path),
         coords=[(52.0, 8.0)],
         height_meters=10.0,
-        output_path=None,
     )
 
     assert element is not None
-
-
-@pytest.mark.integration
-def test_place_poi_markers_writes_file_with_background(
-    tmp_path: Path,
-    dummy_transformer,
-    marker_svg_path: Path,
-) -> None:
-    renderer = SVGRenderer(dummy_transformer, background_color="#101010")
-    output_file = tmp_path / "pois.svg"
-
-    renderer.place_poi_markers(
-        str(marker_svg_path),
-        coords=[(52.0, 8.0)],
-        scale=1.0,
-        output_path=str(output_file),
-        anchor="top-left",
-    )
-
-    assert output_file.exists()
-    root = ET.parse(output_file).getroot()
-    assert root.tag.endswith("svg")
 
 
 @pytest.mark.parametrize(
@@ -201,20 +173,3 @@ def test_copy_element_handles_supported_svg_nodes(
 
     # Unknown <line> should be ignored; known elements should be copied
     assert len(group.elements) >= 1
-
-
-@pytest.mark.integration
-def test_render_features_writes_file(tmp_path: Path, dummy_transformer) -> None:
-    renderer = SVGRenderer(dummy_transformer, background_color="#000000")
-    output_file = tmp_path / "roads.svg"
-
-    renderer.render_features(
-        [Feature(geometry=[(8.0, 52.0), (8.1, 52.1)], tags={})],
-        Style(stroke="#ffffff", fill="none"),
-        output_path=str(output_file),
-        layer_id="roads",
-    )
-
-    assert output_file.exists()
-    root = ET.parse(output_file).getroot()
-    assert root.tag.endswith("svg")

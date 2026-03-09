@@ -22,8 +22,8 @@ def test_feature_spec_has_correct_tag_filters_for_linear_waterway() -> None:
 
 
 def test_feature_spec_water_body_uses_natural_tag_and_needs_areas() -> None:
-    assert features.WATER.WATER.tag_filters == {"natural": ["water"]}
-    assert features.WATER.WATER.needs_areas is True
+    assert features.WATER.WATER_AREA.tag_filters == {"natural": ["water"]}
+    assert features.WATER.WATER_AREA.needs_areas is True
 
 
 def test_feature_spec_building_uses_building_tag_and_needs_areas() -> None:

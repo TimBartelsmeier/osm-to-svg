@@ -76,37 +76,33 @@ See [examples/example_1_geocode_bbox.py](examples/example_1_geocode_bbox.py) for
 `SvgMapper` is the main class. It is used as a context manager and renders one or more feature layers that are combined into a final SVG.
 
 ```python
-from osm_to_svg import MAJOR_ROADS, RoadType, Style, SvgMapper
+from osm_to_svg import Style, SvgMapper, features
 
 bbox = (9.68, 52.34, 9.79, 52.41)
 
 with SvgMapper("hannover.osm.pbf", bounds=bbox) as mapper:
     mapper.render_features(
-        feature_type=RoadType,
-        subtypes=MAJOR_ROADS,
+        features=features.ROADS.MAJOR,
         style=Style(stroke="#000000", stroke_width=2.0),
-        output_path="roads.svg",
     )
+    mapper.save("roads.svg")
 ```
 
 See [examples/example_3_basic_usage.py](examples/example_3_basic_usage.py) for the full script.
 
 ## Multiple layers
 
-Multiple feature types can be rendered as separate layers and combined into a single SVG. Supported feature types are `RoadType`, `RailwayType`, `WaterwayType`, `BuildingType`, and `GreenSpaceType`. Each type comes with predefined shorthand groups (e.g. `MAJOR_ROADS`, `WATER_BODIES`, `FORESTS`).
+Multiple feature layers can be rendered and combined into a single SVG. All feature types are accessed through the `features` module as `features.ROADS`, `features.RAILWAYS`, `features.WATER`, `features.BUILDINGS`, and `features.GREEN_SPACES`. Specs can be combined with `|` to render multiple feature types in a single call.
 
 ```python
-from osm_to_svg import (
-    FORESTS, MAJOR_ROADS, WATER_BODIES,
-    GreenSpaceType, RoadType, Style, SvgMapper, WaterwayType,
-)
+from osm_to_svg import Style, SvgMapper, features
 
 bbox = (9.68, 52.34, 9.79, 52.41)
 
 with SvgMapper("hannover.osm.pbf", bounds=bbox) as mapper:
-    mapper.render_features(WaterwayType, WATER_BODIES, Style(fill="#4A90E2"))
-    mapper.render_features(GreenSpaceType, FORESTS, Style(fill="#046A04"))
-    mapper.render_features(RoadType, MAJOR_ROADS, Style(stroke="#000000", stroke_width=2.0))
+    mapper.render_features(features=features.WATER.BODIES, style=Style(fill="#4A90E2"))
+    mapper.render_features(features=features.GREEN_SPACES.FORESTS, style=Style(fill="#046A04"))
+    mapper.render_features(features=features.ROADS.MAJOR, style=Style(stroke="#000000", stroke_width=2.0))
     mapper.save("map.svg")
 ```
 
@@ -123,7 +119,7 @@ See [examples/example_4_multiple_layers.py](examples/example_4_multiple_layers.p
 - `background_color` — optional background fill for the SVG (e.g. `"#FFFFFF"`, `"white"`). Defaults to `None` (transparent).
 
 ```python
-from osm_to_svg import Style, SvgMapper, RoadType, MAJOR_ROADS
+from osm_to_svg import Style, SvgMapper, features
 
 with SvgMapper(
     "hannover.osm.pbf",
@@ -132,18 +128,11 @@ with SvgMapper(
     bounds=(9.68, 52.34, 9.79, 52.41),
     background_color="#F5F5F5",
 ) as mapper:
-    mapper.render_features(RoadType, MAJOR_ROADS, Style(stroke="#000000"))
-    mapper.save_combined("map.svg")
+    mapper.render_features(features=features.ROADS.MAJOR, style=Style(stroke="#000000"))
+    mapper.save("map.svg")
 ```
 
-Layers can either be written to individual files by passing `output_path` to `render_features`, or accumulated in memory (omit `output_path`) and flushed to a single file with `save_combined`. When saving individual files use `combine` to merge them:
-
-```python
-with SvgMapper("hannover.osm.pbf", bounds=bbox) as mapper:
-    mapper.render_features(WaterwayType, WATER_BODIES, Style(fill="#4A90E2"), "water.svg")
-    mapper.render_features(RoadType, MAJOR_ROADS, Style(stroke="#000000"), "roads.svg")
-    mapper.combine(["water.svg", "roads.svg"], "map.svg")
-```
+All feature layers are accumulated in memory and written to a single file with `save`.
 
 ## Styling
 
@@ -203,11 +192,11 @@ mapper.place_poi_markers(
 # Absolute sizing — marker is always 200 m wide regardless of scale
 mapper.place_poi_markers("pin.svg", [(52.37, 9.74)], width_meters=200.0)
 
-# In-memory workflow — layer is combined with render_features layers
+# Combine with render_features layers and save
 with SvgMapper("hannover.osm.pbf", bounds=bbox) as mapper:
-    mapper.render_features(RoadType, MAJOR_ROADS, Style(stroke="#000000"))
+    mapper.render_features(features=features.ROADS.MAJOR, style=Style(stroke="#000000"))
     mapper.place_poi_markers("pin.svg", [(52.3731, 9.7372)], scale=1.0, anchor="bottom")
-    mapper.save_combined("map.svg")
+    mapper.save("map.svg")
 ```
 
 ## Running the examples
@@ -225,170 +214,196 @@ All examples can be run via pixi:
 
 ## Available features
 
-### RoadType
+All features are accessed through the `features` module. Individual types match a single OSM tag value. Shorthands are pre-built `|` unions of individual types. Any spec can be further combined with `|`:
+
+```python
+from osm_to_svg import features
+
+# Individual type
+mapper.render_features(features=features.ROADS.MOTORWAY, style=style)
+
+# Shorthand
+mapper.render_features(features=features.ROADS.MAJOR, style=style)
+
+# Ad-hoc combination
+mapper.render_features(features=features.ROADS.MAJOR | features.WATER.BODIES, style=style)
+```
+
+### ROADS
 
 OSM tag: `highway`
 
-- `MOTORWAY` (`motorway`)
-- `MOTORWAY_LINK` (`motorway_link`)
-- `TRUNK` (`trunk`)
-- `TRUNK_LINK` (`trunk_link`)
-- `PRIMARY` (`primary`)
-- `PRIMARY_LINK` (`primary_link`)
-- `SECONDARY` (`secondary`)
-- `SECONDARY_LINK` (`secondary_link`)
-- `TERTIARY` (`tertiary`)
-- `TERTIARY_LINK` (`tertiary_link`)
-- `RESIDENTIAL` (`residential`)
-- `UNCLASSIFIED` (`unclassified`)
-- `SERVICE` (`service`)
-- `LIVING_STREET` (`living_street`)
-- `CYCLEWAY` (`cycleway`)
-- `FOOTWAY` (`footway`)
-- `PATH` (`path`)
-- `PEDESTRIAN` (`pedestrian`)
-- `STEPS` (`steps`)
-- `TRACK` (`track`)
-- `ROAD` (`road`)
+| Member | OSM value | Description |
+|---|---|---|
+| `features.ROADS.MOTORWAY` | `highway=motorway` | High-capacity divided motorway |
+| `features.ROADS.MOTORWAY_LINK` | `highway=motorway_link` | Motorway ramp |
+| `features.ROADS.TRUNK` | `highway=trunk` | High-importance road below motorway standard |
+| `features.ROADS.TRUNK_LINK` | `highway=trunk_link` | Trunk road ramp |
+| `features.ROADS.PRIMARY` | `highway=primary` | Major road linking large towns |
+| `features.ROADS.PRIMARY_LINK` | `highway=primary_link` | Primary road slip road |
+| `features.ROADS.SECONDARY` | `highway=secondary` | Road linking towns and villages |
+| `features.ROADS.SECONDARY_LINK` | `highway=secondary_link` | Secondary road slip road |
+| `features.ROADS.TERTIARY` | `highway=tertiary` | Road linking smaller settlements |
+| `features.ROADS.TERTIARY_LINK` | `highway=tertiary_link` | Tertiary road slip road |
+| `features.ROADS.RESIDENTIAL` | `highway=residential` | Road in a residential area |
+| `features.ROADS.UNCLASSIFIED` | `highway=unclassified` | Minor road; lowest public road class |
+| `features.ROADS.SERVICE` | `highway=service` | Access road for parking, driveways |
+| `features.ROADS.LIVING_STREET` | `highway=living_street` | Pedestrian-priority street |
+| `features.ROADS.CYCLEWAY` | `highway=cycleway` | Dedicated cycling path |
+| `features.ROADS.FOOTWAY` | `highway=footway` | Designated footpath |
+| `features.ROADS.PATH` | `highway=path` | Unpaved multi-use trail |
+| `features.ROADS.PEDESTRIAN_TYPE` | `highway=pedestrian` | Pedestrianised street (single value; see `PEDESTRIAN` shorthand) |
+| `features.ROADS.STEPS` | `highway=steps` | Stairway connection |
+| `features.ROADS.TRACK` | `highway=track` | Agricultural or forestry track |
+| `features.ROADS.ROAD` | `highway=road` | Road of unknown classification |
 
 Shorthands:
 
-| Shorthand | Subtypes included |
+| Shorthand | Composition |
 |---|---|
-| `MAJOR_ROADS` | MOTORWAY, MOTORWAY_LINK, TRUNK, TRUNK_LINK, PRIMARY, PRIMARY_LINK, SECONDARY, SECONDARY_LINK, TERTIARY, TERTIARY_LINK |
-| `ARTERIAL_ROADS` | MOTORWAY, MOTORWAY_LINK, TRUNK, TRUNK_LINK, PRIMARY, PRIMARY_LINK |
-| `LOCAL_ROADS` | RESIDENTIAL, UNCLASSIFIED, SERVICE, LIVING_STREET |
-| `PEDESTRIAN_PATHS` | FOOTWAY, PATH, PEDESTRIAN, STEPS |
+| `features.ROADS.MAJOR` | `MOTORWAY` \| `MOTORWAY_LINK` \| `TRUNK` \| `TRUNK_LINK` \| `PRIMARY` \| `PRIMARY_LINK` \| `SECONDARY` \| `SECONDARY_LINK` \| `TERTIARY` \| `TERTIARY_LINK` |
+| `features.ROADS.ARTERIAL` | `MOTORWAY` \| `MOTORWAY_LINK` \| `TRUNK` \| `TRUNK_LINK` \| `PRIMARY` \| `PRIMARY_LINK` |
+| `features.ROADS.LOCAL` | `RESIDENTIAL` \| `UNCLASSIFIED` \| `SERVICE` \| `LIVING_STREET` |
+| `features.ROADS.PEDESTRIAN` | `FOOTWAY` \| `PATH` \| `PEDESTRIAN_TYPE` \| `STEPS` |
 
-### RailwayType
+### RAILWAYS
 
 OSM tag: `railway`
 
-- `RAIL` (`rail`)
-- `LIGHT_RAIL` (`light_rail`)
-- `SUBWAY` (`subway`)
-- `TRAM` (`tram`)
-- `MONORAIL` (`monorail`)
-- `FUNICULAR` (`funicular`)
-- `NARROW_GAUGE` (`narrow_gauge`)
-- `ABANDONED` (`abandoned`)
-- `DISUSED` (`disused`)
-- `PRESERVED` (`preserved`)
+| Member | OSM value | Description |
+|---|---|---|
+| `features.RAILWAYS.RAIL` | `railway=rail` | Standard-gauge heavy rail |
+| `features.RAILWAYS.LIGHT_RAIL` | `railway=light_rail` | Light rail and commuter rail |
+| `features.RAILWAYS.SUBWAY` | `railway=subway` | Underground metro |
+| `features.RAILWAYS.TRAM` | `railway=tram` | Street-running tram |
+| `features.RAILWAYS.MONORAIL` | `railway=monorail` | Single-rail guided transit |
+| `features.RAILWAYS.FUNICULAR` | `railway=funicular` | Cable-driven hillside railway |
+| `features.RAILWAYS.NARROW_GAUGE` | `railway=narrow_gauge` | Narrow-gauge railway |
+| `features.RAILWAYS.ABANDONED` | `railway=abandoned` | Abandoned line |
+| `features.RAILWAYS.DISUSED` | `railway=disused` | Disused but intact line |
+| `features.RAILWAYS.PRESERVED` | `railway=preserved` | Heritage or museum railway |
 
 Shorthands:
 
-| Shorthand | Subtypes included |
+| Shorthand | Composition |
 |---|---|
-| `ACTIVE_RAILWAYS` | RAIL, LIGHT_RAIL, SUBWAY, TRAM, MONORAIL, FUNICULAR, NARROW_GAUGE |
-| `URBAN_TRANSIT` | LIGHT_RAIL, SUBWAY, TRAM, MONORAIL |
-| `INACTIVE_RAILWAYS` | ABANDONED, DISUSED, PRESERVED |
+| `features.RAILWAYS.ACTIVE` | `RAIL` \| `LIGHT_RAIL` \| `SUBWAY` \| `TRAM` \| `MONORAIL` \| `FUNICULAR` \| `NARROW_GAUGE` |
+| `features.RAILWAYS.URBAN_TRANSIT` | `LIGHT_RAIL` \| `SUBWAY` \| `TRAM` \| `MONORAIL` |
+| `features.RAILWAYS.INACTIVE` | `ABANDONED` \| `DISUSED` \| `PRESERVED` |
 
-### WaterwayType
+### WATER
 
 OSM tags: `waterway`, `natural`
 
-- `RIVER` (`river`)
-- `STREAM` (`stream`)
-- `CANAL` (`canal`)
-- `DRAIN` (`drain`)
-- `DITCH` (`ditch`)
-- `WATER` (`water`)
-- `LAKE` (`lake`)
-- `RESERVOIR` (`reservoir`)
-- `POND` (`pond`)
-- `COASTLINE` (`coastline`)
+| Member | OSM value | Description |
+|---|---|---|
+| `features.WATER.RIVER` | `waterway=river` | Major natural watercourse (line) |
+| `features.WATER.STREAM` | `waterway=stream` | Minor watercourse (line) |
+| `features.WATER.CANAL` | `waterway=canal` | Artificial navigable waterway (line) |
+| `features.WATER.DRAIN` | `waterway=drain` | Drainage channel (line) |
+| `features.WATER.DITCH` | `waterway=ditch` | Small drainage ditch (line) |
+| `features.WATER.WATER_AREA` | `natural=water` | Generic water area polygon |
+| `features.WATER.LAKE` | `natural=water` | Lake (same spec as `WATER_AREA`; OSM `water=lake` sub-type not filterable) |
+| `features.WATER.RESERVOIR` | `natural=water` | Reservoir (same spec as `WATER_AREA`) |
+| `features.WATER.POND` | `natural=water` | Pond (same spec as `WATER_AREA`) |
+| `features.WATER.COASTLINE` | `natural=coastline` | Ocean/sea coastline area |
 
 Shorthands:
 
-| Shorthand | Subtypes included |
+| Shorthand | Composition |
 |---|---|
-| `LINEAR_WATERWAYS` | RIVER, STREAM, CANAL, DRAIN, DITCH |
-| `WATER_BODIES` | WATER, LAKE, RESERVOIR, POND |
-| `NATURAL_WATERWAYS` | RIVER, STREAM, LAKE, POND |
-| `ARTIFICIAL_WATERWAYS` | CANAL, DRAIN, DITCH, RESERVOIR |
-| `MAJOR_WATERWAYS` | RIVER, CANAL |
+| `features.WATER.LINEAR` | `RIVER` \| `STREAM` \| `CANAL` \| `DRAIN` \| `DITCH` |
+| `features.WATER.BODIES` | `WATER_AREA` |
+| `features.WATER.NATURAL` | `RIVER` \| `STREAM` \| `WATER_AREA` |
+| `features.WATER.ARTIFICIAL` | `CANAL` \| `DRAIN` \| `DITCH` \| `WATER_AREA` |
+| `features.WATER.MAJOR` | `RIVER` \| `CANAL` |
 
-### BuildingType
+### BUILDINGS
 
 OSM tag: `building`
 
-- `YES` (`yes`)
-- `BUILDING` (`building`)
-- `RESIDENTIAL` (`residential`)
-- `HOUSE` (`house`)
-- `DETACHED` (`detached`)
-- `SEMIDETACHED_HOUSE` (`semidetached_house`)
-- `APARTMENTS` (`apartments`)
-- `TERRACE` (`terrace`)
-- `BUNGALOW` (`bungalow`)
-- `COMMERCIAL` (`commercial`)
-- `RETAIL` (`retail`)
-- `OFFICE` (`office`)
-- `SUPERMARKET` (`supermarket`)
-- `HOTEL` (`hotel`)
-- `INDUSTRIAL` (`industrial`)
-- `WAREHOUSE` (`warehouse`)
-- `MANUFACTURE` (`manufacture`)
-- `HOSPITAL` (`hospital`)
-- `SCHOOL` (`school`)
-- `UNIVERSITY` (`university`)
-- `CHURCH` (`church`)
-- `CATHEDRAL` (`cathedral`)
-- `MOSQUE` (`mosque`)
-- `TEMPLE` (`temple`)
-- `SYNAGOGUE` (`synagogue`)
-- `GOVERNMENT` (`government`)
-- `CIVIC` (`civic`)
-- `PUBLIC` (`public`)
-- `GARAGE` (`garage`)
-- `GARAGES` (`garages`)
-- `PARKING` (`parking`)
-- `SHED` (`shed`)
-- `ROOF` (`roof`)
-- `CONSTRUCTION` (`construction`)
+| Member | OSM value | Description |
+|---|---|---|
+| `features.BUILDINGS.YES` | `building=yes` | Generic unclassified building |
+| `features.BUILDINGS.BUILDING` | `building=building` | Explicitly tagged building |
+| `features.BUILDINGS.HOUSE` | `building=house` | Single-family house |
+| `features.BUILDINGS.DETACHED` | `building=detached` | Detached house |
+| `features.BUILDINGS.SEMIDETACHED_HOUSE` | `building=semidetached_house` | Semi-detached house |
+| `features.BUILDINGS.APARTMENTS` | `building=apartments` | Apartment building |
+| `features.BUILDINGS.TERRACE` | `building=terrace` | Terraced houses |
+| `features.BUILDINGS.BUNGALOW` | `building=bungalow` | Single-storey house |
+| `features.BUILDINGS.RESIDENTIAL_TYPE` | `building=residential` | Generic residential (single value; see `RESIDENTIAL` shorthand) |
+| `features.BUILDINGS.RETAIL` | `building=retail` | Retail building |
+| `features.BUILDINGS.OFFICE` | `building=office` | Office building |
+| `features.BUILDINGS.SUPERMARKET` | `building=supermarket` | Supermarket |
+| `features.BUILDINGS.HOTEL` | `building=hotel` | Hotel |
+| `features.BUILDINGS.COMMERCIAL_TYPE` | `building=commercial` | Generic commercial (single value; see `COMMERCIAL` shorthand) |
+| `features.BUILDINGS.WAREHOUSE` | `building=warehouse` | Warehouse |
+| `features.BUILDINGS.MANUFACTURE` | `building=manufacture` | Factory or manufacturing building |
+| `features.BUILDINGS.INDUSTRIAL_TYPE` | `building=industrial` | Generic industrial (single value; see `INDUSTRIAL` shorthand) |
+| `features.BUILDINGS.HOSPITAL` | `building=hospital` | Hospital |
+| `features.BUILDINGS.SCHOOL` | `building=school` | School |
+| `features.BUILDINGS.UNIVERSITY` | `building=university` | University building |
+| `features.BUILDINGS.CHURCH` | `building=church` | Church |
+| `features.BUILDINGS.CATHEDRAL` | `building=cathedral` | Cathedral |
+| `features.BUILDINGS.MOSQUE` | `building=mosque` | Mosque |
+| `features.BUILDINGS.TEMPLE` | `building=temple` | Temple |
+| `features.BUILDINGS.SYNAGOGUE` | `building=synagogue` | Synagogue |
+| `features.BUILDINGS.GOVERNMENT` | `building=government` | Government building |
+| `features.BUILDINGS.CIVIC` | `building=civic` | Civic building |
+| `features.BUILDINGS.PUBLIC` | `building=public` | Generic public building |
+| `features.BUILDINGS.GARAGE` | `building=garage` | Private garage |
+| `features.BUILDINGS.GARAGES` | `building=garages` | Block of garages |
+| `features.BUILDINGS.PARKING` | `building=parking` | Parking structure |
+| `features.BUILDINGS.SHED` | `building=shed` | Shed or outbuilding |
+| `features.BUILDINGS.ROOF` | `building=roof` | Roof structure |
+| `features.BUILDINGS.CONSTRUCTION` | `building=construction` | Building under construction |
 
 Shorthands:
 
-| Shorthand | Subtypes included |
+| Shorthand | Composition |
 |---|---|
-| `RESIDENTIAL_BUILDINGS` | RESIDENTIAL, HOUSE, DETACHED, SEMIDETACHED_HOUSE, APARTMENTS, TERRACE, BUNGALOW |
-| `COMMERCIAL_BUILDINGS` | COMMERCIAL, RETAIL, OFFICE, SUPERMARKET, HOTEL |
-| `INDUSTRIAL_BUILDINGS` | INDUSTRIAL, WAREHOUSE, MANUFACTURE |
-| `RELIGIOUS_BUILDINGS` | CHURCH, CATHEDRAL, MOSQUE, TEMPLE, SYNAGOGUE |
-| `INSTITUTIONAL_BUILDINGS` | HOSPITAL, SCHOOL, UNIVERSITY, GOVERNMENT, CIVIC, PUBLIC |
-| `SINGLE_FAMILY_HOMES` | HOUSE, DETACHED, SEMIDETACHED_HOUSE, BUNGALOW |
-| `MULTI_FAMILY_HOMES` | APARTMENTS, TERRACE |
+| `features.BUILDINGS.RESIDENTIAL` | `RESIDENTIAL_TYPE` \| `HOUSE` \| `DETACHED` \| `SEMIDETACHED_HOUSE` \| `APARTMENTS` \| `TERRACE` \| `BUNGALOW` |
+| `features.BUILDINGS.COMMERCIAL` | `COMMERCIAL_TYPE` \| `RETAIL` \| `OFFICE` \| `SUPERMARKET` \| `HOTEL` |
+| `features.BUILDINGS.INDUSTRIAL` | `INDUSTRIAL_TYPE` \| `WAREHOUSE` \| `MANUFACTURE` |
+| `features.BUILDINGS.RELIGIOUS` | `CHURCH` \| `CATHEDRAL` \| `MOSQUE` \| `TEMPLE` \| `SYNAGOGUE` |
+| `features.BUILDINGS.INSTITUTIONAL` | `HOSPITAL` \| `SCHOOL` \| `UNIVERSITY` \| `GOVERNMENT` \| `CIVIC` \| `PUBLIC` |
+| `features.BUILDINGS.SINGLE_FAMILY` | `HOUSE` \| `DETACHED` \| `SEMIDETACHED_HOUSE` \| `BUNGALOW` |
+| `features.BUILDINGS.MULTI_FAMILY` | `APARTMENTS` \| `TERRACE` |
 
-### GreenSpaceType
+### GREEN_SPACES
 
 OSM tags: `leisure`, `natural`, `landuse`
 
-- `PARK` (`park`) — `leisure`
-- `GARDEN` (`garden`) — `leisure`
-- `NATURE_RESERVE` (`nature_reserve`) — `leisure`
-- `RECREATION_GROUND` (`recreation_ground`) — `leisure`
-- `COMMON` (`common`) — `leisure`
-- `GOLF_COURSE` (`golf_course`) — `leisure`
-- `WOOD` (`wood`) — `natural`
-- `SCRUB` (`scrub`) — `natural`
-- `GRASSLAND` (`grassland`) — `natural`
-- `HEATH` (`heath`) — `natural`
-- `WETLAND` (`wetland`) — `natural`
-- `FOREST` (`forest`) — `landuse`
-- `MEADOW` (`meadow`) — `landuse`
-- `GRASS` (`grass`) — `landuse`
-- `ORCHARD` (`orchard`) — `landuse`
-- `VINEYARD` (`vineyard`) — `landuse`
-- `CEMETERY` (`cemetery`) — `landuse`
-- `ALLOTMENTS` (`allotments`) — `landuse`
+| Member | OSM tag | Description |
+|---|---|---|
+| `features.GREEN_SPACES.PARK` | `leisure=park` | Public park |
+| `features.GREEN_SPACES.GARDEN` | `leisure=garden` | Public or private garden |
+| `features.GREEN_SPACES.NATURE_RESERVE` | `leisure=nature_reserve` | Protected nature reserve |
+| `features.GREEN_SPACES.RECREATION_GROUND` | `leisure=recreation_ground` | Recreation area |
+| `features.GREEN_SPACES.COMMON` | `leisure=common` | Public common land |
+| `features.GREEN_SPACES.GOLF_COURSE` | `leisure=golf_course` | Golf course |
+| `features.GREEN_SPACES.WOOD` | `natural=wood` | Natural woodland |
+| `features.GREEN_SPACES.SCRUB` | `natural=scrub` | Scrubland |
+| `features.GREEN_SPACES.GRASSLAND` | `natural=grassland` | Natural grassland |
+| `features.GREEN_SPACES.HEATH` | `natural=heath` | Heath or moorland |
+| `features.GREEN_SPACES.WETLAND` | `natural=wetland` | Wetland or marsh |
+| `features.GREEN_SPACES.FOREST` | `landuse=forest` | Managed forest |
+| `features.GREEN_SPACES.MEADOW` | `landuse=meadow` | Meadow |
+| `features.GREEN_SPACES.GRASS` | `landuse=grass` | Managed grass area |
+| `features.GREEN_SPACES.ORCHARD` | `landuse=orchard` | Orchard |
+| `features.GREEN_SPACES.VINEYARD` | `landuse=vineyard` | Vineyard |
+| `features.GREEN_SPACES.CEMETERY` | `landuse=cemetery` | Cemetery |
+| `features.GREEN_SPACES.ALLOTMENTS` | `landuse=allotments` | Allotment garden |
 
 Shorthands:
 
-| Shorthand | Subtypes included |
+| Shorthand | Composition |
 |---|---|
-| `PARKS_AND_GARDENS` | PARK, GARDEN, RECREATION_GROUND, COMMON |
-| `FORESTS` | WOOD, FOREST |
-| `NATURAL_VEGETATION` | WOOD, SCRUB, GRASSLAND, HEATH, WETLAND |
-| `PROTECTED_AREAS` | NATURE_RESERVE, WETLAND |
-| `AGRICULTURAL_LAND` | MEADOW, GRASS, ORCHARD, VINEYARD, ALLOTMENTS |
-| `ALL_GREEN_SPACES` | PARK, GARDEN, NATURE_RESERVE, RECREATION_GROUND, COMMON, WOOD, SCRUB, GRASSLAND, HEATH, WETLAND, FOREST, MEADOW, GRASS |
+| `features.GREEN_SPACES.PARKS` | `PARK` \| `GARDEN` \| `RECREATION_GROUND` \| `COMMON` |
+| `features.GREEN_SPACES.FORESTS` | `WOOD` \| `FOREST` |
+| `features.GREEN_SPACES.NATURAL` | `WOOD` \| `SCRUB` \| `GRASSLAND` \| `HEATH` \| `WETLAND` |
+| `features.GREEN_SPACES.PROTECTED` | `NATURE_RESERVE` \| `WETLAND` |
+| `features.GREEN_SPACES.AGRICULTURAL` | `MEADOW` \| `GRASS` \| `ORCHARD` \| `VINEYARD` \| `ALLOTMENTS` |
+| `features.GREEN_SPACES.ALL` | `PARK` \| `GARDEN` \| `NATURE_RESERVE` \| `RECREATION_GROUND` \| `COMMON` \| `GOLF_COURSE` \| `WOOD` \| `SCRUB` \| `GRASSLAND` \| `HEATH` \| `WETLAND` \| `FOREST` \| `MEADOW` \| `GRASS` \| `ORCHARD` \| `VINEYARD` \| `CEMETERY` \| `ALLOTMENTS` |
+

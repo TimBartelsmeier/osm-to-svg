@@ -79,6 +79,6 @@ with SvgMapper(str(hannover_pbf), bounds=hannover_bbox) as mapper:
     )
 
     # Save all layers combined
-    mapper.save_combined(str(output_svg))
+    mapper.save(str(output_svg))
 
 print(f"Saved: {output_svg}")

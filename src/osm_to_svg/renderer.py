@@ -1,8 +1,7 @@
 """SVG rendering for OSM features and POI markers."""
 
 import xml.etree.ElementTree as ET
-from typing import Any
-from typing import Literal
+from typing import Any, Literal
 
 import svgwrite
 
@@ -43,33 +42,27 @@ class SVGRenderer:
         self,
         features: list[Feature],
         style: Style,
-        output_path: str | None,
         layer_id: str = "features",
-    ) -> ET.Element | None:
-        """Render features to an SVG file or return in-memory element.
+    ) -> ET.Element:
+        """Render features to an in-memory SVG element.
 
         Args:
             features: List of Feature objects to render
             style: Style definition for the features
-            output_path: Path where SVG file will be saved, or None for in-memory
             layer_id: ID for the SVG group element
 
         Returns:
-            ET.Element if output_path is None, otherwise None
+            ET.Element representing the rendered layer
         """
         width, height = self.transformer.get_dimensions()
         viewbox = self.transformer.get_viewbox()
 
-        # Create SVG drawing (use dummy path for in-memory mode)
+        # Create SVG drawing
         dwg = svgwrite.Drawing(
-            output_path or ":memory:",
+            ":memory:",
             size=(f"{width}px", f"{height}px"),
             viewBox=viewbox,
         )
-
-        # Add background if specified (only for direct file output)
-        if self.background_color and output_path is not None:
-            self._add_background(dwg, viewbox)
 
         # Parse viewBox to get clipping boundaries
         vb_parts = viewbox.split()
@@ -112,31 +105,24 @@ class SVGRenderer:
 
         dwg.add(group)
 
-        # Save to file or return in-memory element
-        if output_path is None:
-            return self._drawing_to_element(dwg)
-        else:
-            dwg.save()
-            return None
+        return self._drawing_to_element(dwg)
 
     def place_poi_markers(
         self,
         marker_svg_path: str,
         coords: list[tuple[float, float]],
         scale: float | None = None,
-        output_path: str | None = None,
         anchor: MarkerAnchor = "center",
         width_meters: float | None = None,
         height_meters: float | None = None,
-    ) -> ET.Element | None:
-        """Place POI markers at specified coordinates.
+    ) -> ET.Element:
+        """Place POI markers at specified coordinates and return an in-memory element.
 
         Args:
             marker_svg_path: Path to SVG file to use as marker
             coords: List of (lat, lon) coordinates where markers should be placed
             scale: Scale factor for the marker (1.0 = original size).
                    Mutually exclusive with width_meters/height_meters.
-            output_path: Path where SVG file will be saved, or None for in-memory
             anchor: Point of the marker that is anchored to the coordinate.
                    Options: "top", "top-right", "right", "bottom-right", "bottom",
                    "bottom-left", "left", "top-left", "center" (default: "center")
@@ -146,7 +132,7 @@ class SVGRenderer:
                           to achieve this height. Mutually exclusive with scale and width_meters.
 
         Returns:
-            ET.Element if output_path is None, otherwise None
+            ET.Element representing the rendered POI layer
         """
         # Validate that only one sizing method is specified
         sizing_methods = sum(
@@ -182,15 +168,11 @@ class SVGRenderer:
 
         # Create SVG drawing
         dwg = svgwrite.Drawing(
-            output_path,
+            ":memory:",
             size=(f"{width}px", f"{height}px"),
             viewBox=viewbox,
             debug=False,  # Disable validation for copying external SVG elements
         )
-
-        # Add background if specified (only for direct file output)
-        if self.background_color and output_path is not None:
-            self._add_background(dwg, viewbox)
 
         # Parse viewBox to get clipping boundaries
         vb_parts = viewbox.split()
@@ -241,12 +223,7 @@ class SVGRenderer:
 
         dwg.add(pois_group)
 
-        # Save to file or return in-memory element
-        if output_path is None:
-            return self._drawing_to_element(dwg)
-        else:
-            dwg.save()
-            return None
+        return self._drawing_to_element(dwg)
 
     def _add_background(self, dwg: svgwrite.Drawing, viewbox: str) -> None:
         """Add a background rectangle to the SVG drawing.

@@ -37,24 +37,19 @@ class DummyRenderer:
         self.transformer = transformer
         self.background_color = background_color
 
-    def render_features(self, features, style, output_path, layer_id):  # noqa: ANN001
-        if output_path is None:
-            return ET.Element("svg")
-        return None
+    def render_features(self, features, style, layer_id):  # noqa: ANN001
+        return ET.Element("svg")
 
     def place_poi_markers(
         self,
         marker_svg_path,  # noqa: ANN001
         coords,  # noqa: ANN001
         scale=None,  # noqa: ANN001
-        output_path=None,
         anchor="center",  # noqa: ANN001
         width_meters=None,  # noqa: ANN001
         height_meters=None,  # noqa: ANN001
     ):
-        if output_path is None:
-            return ET.Element("svg")
-        return None
+        return ET.Element("svg")
 
 
 @pytest.fixture
@@ -92,7 +87,7 @@ def test_svgmapper_gets_bounds_inside_context(
         assert mapper.get_dimensions() == (200, 100)
 
 
-def test_save_combined_uses_accumulated_in_memory_layers(
+def test_save_uses_accumulated_in_memory_layers(
     pbf_path: Path,
     marker_svg_path: Path,
     patched_svgmapper_dependencies,
@@ -112,29 +107,26 @@ def test_save_combined_uses_accumulated_in_memory_layers(
     monkeypatch.setattr(mapper_module, "combine_elements", fake_combine_elements)
 
     with SvgMapper(str(pbf_path), background_color="#ffffff") as mapper:
-        mapper.render_features(
-            features.ROADS.MAJOR, Style(stroke="#000"), output_path=None
-        )
+        mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000"))
         mapper.place_poi_markers(
             str(marker_svg_path),
             coords=[(52.0, 8.0)],
             scale=1.0,
-            output_path=None,
         )
-        mapper.save_combined("combined.svg")
+        mapper.save("combined.svg")
 
     assert len(captured["elements"]) == 2
     assert captured["output_path"] == "combined.svg"
     assert captured["background_color"] == "#ffffff"
 
 
-def test_save_combined_raises_when_no_layers(
+def test_save_raises_when_no_layers(
     pbf_path: Path,
     patched_svgmapper_dependencies,
 ) -> None:
     with SvgMapper(str(pbf_path)) as mapper:
         with pytest.raises(ValueError, match="No layers to combine"):
-            mapper.save_combined("combined.svg")
+            mapper.save("combined.svg")
 
 
 def test_svgmapper_raises_for_missing_pbf_file(tmp_path: Path) -> None:
@@ -173,26 +165,6 @@ def test_svgmapper_place_poi_raises_for_missing_marker(
                 coords=[(52.0, 8.0)],
                 scale=1.0,
             )
-
-
-def test_svgmapper_combine_delegates_to_combine_svgs(
-    pbf_path: Path,
-    patched_svgmapper_dependencies,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    captured: dict[str, object] = {}
-
-    def fake_combine_svgs(svg_paths: list[str], output_path: str) -> None:
-        captured["svg_paths"] = svg_paths
-        captured["output_path"] = output_path
-
-    monkeypatch.setattr(mapper_module, "combine_svgs", fake_combine_svgs)
-
-    with SvgMapper(str(pbf_path)) as mapper:
-        mapper.combine(["a.svg", "b.svg"], "out.svg")
-
-    assert captured["svg_paths"] == ["a.svg", "b.svg"]
-    assert captured["output_path"] == "out.svg"
 
 
 def test_svgmapper_getters_require_context(
