@@ -136,25 +136,28 @@ class ROADS:
         | TERTIARY
         | TERTIARY_LINK
     )
-    """All arterial road classes from motorway through tertiary including connecting links.
+    """Shorthand for arterial road network from motorway through tertiary, including link roads.
 
-    Use for city/regional-scale maps and main traffic network visualisation.
+    OSM tags: highway=motorway, motorway_link, trunk, trunk_link, primary,
+    primary_link, secondary, secondary_link, tertiary, tertiary_link.
     """
     ARTERIAL = MOTORWAY | MOTORWAY_LINK | TRUNK | TRUNK_LINK | PRIMARY | PRIMARY_LINK
-    """Highest-hierarchy roads: motorways, trunk, and primary with their connecting links.
+    """Shorthand for highest-hierarchy roads: motorway, trunk, and primary classes with links.
 
-    Use for navigation-focused maps and highway system visualisation.
+    OSM tags: highway=motorway, motorway_link, trunk, trunk_link, primary,
+    primary_link.
     """
     LOCAL = RESIDENTIAL | UNCLASSIFIED | SERVICE | LIVING_STREET
-    """Local street network: residential, unclassified, service, and living streets.
+    """Shorthand for local access street network and traffic-calmed residential streets.
 
-    Use for neighbourhood maps and street-level detail.
+    OSM tags: highway=residential, unclassified, service, living_street.
     """
     PEDESTRIAN = FOOTWAY | PATH | PEDESTRIAN_TYPE | STEPS
-    """Pedestrian-only paths and walkways: footway, path, pedestrian, and steps.
+    """Shorthand for pedestrian-focused paths, walkways, and stair connections.
 
-    Use for walkability maps and pedestrian navigation. See also PEDESTRIAN_TYPE for the
-    single highway=pedestrian tag value.
+    OSM tags: highway=footway, path, pedestrian, steps.
+    
+    See also PEDESTRIAN_TYPE for the single highway=pedestrian tag value.
     """
 
 
@@ -191,19 +194,20 @@ class RAILWAYS:
 
     # ---- shorthands ----
     ACTIVE = RAIL | LIGHT_RAIL | SUBWAY | TRAM | MONORAIL | FUNICULAR | NARROW_GAUGE
-    """All currently operating railway infrastructure.
+    """Shorthand for currently operating railway and rail-transit infrastructure.
 
-    Use for transit maps and active transportation network visualisation.
+    OSM tags: railway=rail, light_rail, subway, tram, monorail, funicular,
+    narrow_gauge.
     """
     URBAN_TRANSIT = LIGHT_RAIL | SUBWAY | TRAM | MONORAIL
-    """Urban public transportation systems: light rail, subway, tram, and monorail.
+    """Shorthand for urban rail transit systems.
 
-    Use for city transit maps and public transport visualisation.
+    OSM tags: railway=light_rail, subway, tram, monorail.
     """
     INACTIVE = ABANDONED | DISUSED | PRESERVED
-    """Defunct or historical railways: abandoned, disused, and preserved lines.
+    """Shorthand for non-operational and heritage railway lines.
 
-    Use for heritage maps and historical infrastructure visualisation.
+    OSM tags: railway=abandoned, disused, preserved.
     """
 
 
@@ -249,27 +253,30 @@ class WATER:
 
     # ---- shorthands ----
     LINEAR = RIVER | STREAM | CANAL | DRAIN | DITCH
-    """All flowing water features rendered as lines: river, stream, canal, drain, ditch.
+    """Shorthand for flowing and channelized waterways rendered as line features.
 
-    Use for hydrography maps and drainage network visualisation.
+    OSM tags: waterway=river, stream, canal, drain, ditch.
     """
     BODIES = WATER_AREA
-    """Standing water areas (natural=water polygons).
+    """Shorthand for standing inland water areas represented as polygons.
 
-    Use for water body mapping and recreation area visualisation.
+    OSM tags: natural=water.
     """
     NATURAL = RIVER | STREAM | WATER_AREA
-    """Natural watercourses (river, stream) and water bodies (natural=water areas).
+    """Shorthand for natural watercourses and standing natural water areas.
 
-    Use for environmental maps and natural resource visualisation.
+    OSM tags: waterway=river, stream; natural=water.
     """
     ARTIFICIAL = CANAL | DRAIN | DITCH | WATER_AREA
-    """Human-constructed water infrastructure (canal, drain, ditch) plus water areas.
+    """Shorthand for human-made channels together with standing water areas.
 
-    Use for infrastructure maps and water management visualisation.
+    OSM tags: waterway=canal, drain, ditch; natural=water.
     """
     MAJOR = RIVER | CANAL
-    """Major navigable waterways: rivers and canals rendered as lines."""
+    """Shorthand for major navigable waterways rendered as line features.
+
+    OSM tags: waterway=river, canal.
+    """
 
 
 class BUILDINGS:
@@ -369,39 +376,46 @@ class BUILDINGS:
         | TERRACE
         | BUNGALOW
     )
-    """All residential building types: residential, house, detached, semidetached_house, apartments, terrace, bungalow.
+    """Shorthand for residential dwelling buildings across detached, attached, and multi-unit forms.
 
-    Use for housing maps and residential density analysis. See also RESIDENTIAL_TYPE for the single tag value.
+    OSM tags: building=residential, house, detached, semidetached_house,
+    apartments, terrace, bungalow.
+
+    See also RESIDENTIAL_TYPE for the single tag value.
     """
     COMMERCIAL = COMMERCIAL_TYPE | RETAIL | OFFICE | SUPERMARKET | HOTEL
-    """Commercial and business buildings: commercial, retail, office, supermarket, hotel.
+    """Shorthand for commercial and business-use buildings.
 
-    Use for business district maps and commercial activity visualisation. See also COMMERCIAL_TYPE for the single tag value.
+    OSM tags: building=commercial, retail, office, supermarket, hotel.
+
+    See also COMMERCIAL_TYPE for the single tag value.
     """
     INDUSTRIAL = INDUSTRIAL_TYPE | WAREHOUSE | MANUFACTURE
-    """Industrial facilities and warehouses: industrial, warehouse, manufacture.
+    """Shorthand for industrial production and storage buildings.
 
-    Use for industrial zone maps and logistics infrastructure. See also INDUSTRIAL_TYPE for the single tag value.
+    OSM tags: building=industrial, warehouse, manufacture.
+
+    See also INDUSTRIAL_TYPE for the single tag value.
     """
     RELIGIOUS = CHURCH | CATHEDRAL | MOSQUE | TEMPLE | SYNAGOGUE
-    """Places of worship across all religions: church, cathedral, mosque, temple, synagogue.
+    """Shorthand for places of worship and religious buildings.
 
-    Use for cultural heritage maps and religious diversity visualisation.
+    OSM tags: building=church, cathedral, mosque, temple, synagogue.
     """
     INSTITUTIONAL = HOSPITAL | SCHOOL | UNIVERSITY | GOVERNMENT | CIVIC | PUBLIC
-    """Public services and institutional buildings: hospital, school, university, government, civic, public.
+    """Shorthand for civic, government, education, and healthcare institutions.
 
-    Use for civic infrastructure maps and public services visualisation.
+    OSM tags: building=hospital, school, university, government, civic, public.
     """
     SINGLE_FAMILY = HOUSE | DETACHED | SEMIDETACHED_HOUSE | BUNGALOW
-    """Single-family residential structures: house, detached, semidetached_house, bungalow.
+    """Shorthand for single-household and low-density dwelling buildings.
 
-    Use for low-density residential analysis.
+    OSM tags: building=house, detached, semidetached_house, bungalow.
     """
     MULTI_FAMILY = APARTMENTS | TERRACE
-    """Multi-family residential structures: apartments and terrace.
+    """Shorthand for multi-household residential buildings.
 
-    Use for medium/high-density residential analysis.
+    OSM tags: building=apartments, terrace.
     """
 
 
@@ -461,29 +475,29 @@ class GREEN_SPACES:
 
     # ---- shorthands ----
     PARKS = PARK | GARDEN | RECREATION_GROUND | COMMON
-    """Public parks and gardens: park, garden, recreation_ground, common.
+    """Public recreational green spaces and commons.
 
-    Use for recreation maps and public amenity visualisation.
+    OSM tags: leisure=park, garden, recreation_ground, common.
     """
     FORESTS = WOOD | FOREST
-    """Forested and wooded areas: natural=wood and landuse=forest.
+    """Wooded and forested land from natural and landuse classifications.
 
-    Use for forest cover maps and vegetation analysis.
+    OSM tags: natural=wood; landuse=forest.
     """
     NATURAL = WOOD | SCRUB | GRASSLAND | HEATH | WETLAND
-    """Natural vegetation areas: wood, scrub, grassland, heath, wetland.
+    """Naturally vegetated and semi-natural habitat areas.
 
-    Use for natural habitat maps and biodiversity visualisation.
+    OSM tags: natural=wood, scrub, grassland, heath, wetland.
     """
     PROTECTED = NATURE_RESERVE | WETLAND
-    """Protected natural areas: nature_reserve and wetland.
+    """Conservation-oriented protected or sensitive natural areas.
 
-    Use for conservation maps and protected area visualisation.
+    OSM tags: leisure=nature_reserve; natural=wetland.
     """
     AGRICULTURAL = MEADOW | GRASS | ORCHARD | VINEYARD | ALLOTMENTS
-    """Agricultural and managed green spaces: meadow, grass, orchard, vineyard, allotments.
+    """Agricultural and intensively managed green land.
 
-    Use for agricultural land use maps.
+    OSM tags: landuse=meadow, grass, orchard, vineyard, allotments.
     """
     ALL = (
         PARK
@@ -505,7 +519,9 @@ class GREEN_SPACES:
         | CEMETERY
         | ALLOTMENTS
     )
-    """All green and natural spaces across leisure=, natural=, and landuse= tag keys.
+    """All green-space and vegetation categories covered by this module.
 
-    Use for comprehensive green space analysis.
+    OSM tags: leisure=park, garden, nature_reserve, recreation_ground, common,
+    golf_course; natural=wood, scrub, grassland, heath, wetland;
+    landuse=forest, meadow, grass, orchard, vineyard, cemetery, allotments.
     """
