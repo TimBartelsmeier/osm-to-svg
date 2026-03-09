@@ -115,6 +115,7 @@ class SVGRenderer:
         anchor: MarkerAnchor = "center",
         width_meters: float | None = None,
         height_meters: float | None = None,
+        layer_id: str = "pois",
     ) -> ET.Element:
         """Place POI markers at specified coordinates and return an in-memory element.
 
@@ -179,7 +180,7 @@ class SVGRenderer:
         vb_x, vb_y, vb_width, vb_height = map(float, vb_parts)
 
         # Create clipping path to restrict rendering to bounding box
-        clip_id = "clip-pois"
+        clip_id = f"clip-{layer_id}"
         clip_path = dwg.defs.add(dwg.clipPath(id=clip_id))
         clip_path.add(
             dwg.rect(
@@ -189,7 +190,7 @@ class SVGRenderer:
         )
 
         # Create main group for all POIs with clipping applied
-        pois_group = dwg.g(id="pois", clip_path=f"url(#{clip_id})")
+        pois_group = dwg.g(id=layer_id, clip_path=f"url(#{clip_id})")
 
         # Place each POI marker
         for idx, (lat, lon) in enumerate(coords):

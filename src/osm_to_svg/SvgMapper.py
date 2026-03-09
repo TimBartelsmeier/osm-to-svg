@@ -134,6 +134,7 @@ class SvgMapper:
         # Determine layer ID
         if layer_id is None:
             layer_id = "_".join(sorted(features.tag_filters.keys()))
+        layer_id = f"{len(self._layers)} {layer_id}"
 
         # Render to in-memory element and accumulate layer
         element = self.renderer.render_features(osm_features, style, layer_id)
@@ -194,6 +195,7 @@ class SvgMapper:
             raise FileNotFoundError(f"Marker SVG file not found: {marker_svg_path}")
 
         # Render POI markers in-memory and accumulate layer
+        poi_layer_id = f"{len(self._layers)} pois"
         element = self.renderer.place_poi_markers(
             marker_svg_path,
             coords,
@@ -201,6 +203,7 @@ class SvgMapper:
             anchor,
             width_meters,
             height_meters,
+            poi_layer_id,
         )
         self._layers.append(element)
 
