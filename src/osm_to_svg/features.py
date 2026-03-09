@@ -192,7 +192,7 @@ class RAILWAYS:
     INACTIVE = FeatureSpec({"railway": ["abandoned", "disused", "preserved"]})
 
 
-class WATERWAYS:
+class WATER:
     """Waterway and water body features.
 
     Linear waterways (RIVER, STREAM, …) use way geometry (needs_areas=False).

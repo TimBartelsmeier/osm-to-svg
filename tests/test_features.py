@@ -17,13 +17,13 @@ def test_feature_spec_has_correct_tag_filters_for_railway() -> None:
 
 
 def test_feature_spec_has_correct_tag_filters_for_linear_waterway() -> None:
-    assert features.WATERWAYS.RIVER.tag_filters == {"waterway": ["river"]}
-    assert features.WATERWAYS.RIVER.needs_areas is False
+    assert features.WATER.RIVER.tag_filters == {"waterway": ["river"]}
+    assert features.WATER.RIVER.needs_areas is False
 
 
 def test_feature_spec_water_body_uses_natural_tag_and_needs_areas() -> None:
-    assert features.WATERWAYS.WATER.tag_filters == {"natural": ["water"]}
-    assert features.WATERWAYS.WATER.needs_areas is True
+    assert features.WATER.WATER.tag_filters == {"natural": ["water"]}
+    assert features.WATER.WATER.needs_areas is True
 
 
 def test_feature_spec_building_uses_building_tag_and_needs_areas() -> None:
@@ -57,12 +57,12 @@ def test_railways_active_shorthand_covers_all_active_types() -> None:
 
 
 def test_waterways_bodies_shorthand_uses_natural_water_and_needs_areas() -> None:
-    assert features.WATERWAYS.BODIES.tag_filters == {"natural": ["water"]}
-    assert features.WATERWAYS.BODIES.needs_areas is True
+    assert features.WATER.BODIES.tag_filters == {"natural": ["water"]}
+    assert features.WATER.BODIES.needs_areas is True
 
 
 def test_waterways_linear_shorthand_does_not_need_areas() -> None:
-    assert features.WATERWAYS.LINEAR.needs_areas is False
+    assert features.WATER.LINEAR.needs_areas is False
 
 
 def test_buildings_residential_shorthand_covers_subtypes() -> None:
@@ -90,15 +90,13 @@ def test_or_merges_tag_filters_from_two_specs() -> None:
 
 
 def test_or_merges_different_tag_keys() -> None:
-    combined = features.ROADS.MAJOR | features.WATERWAYS.BODIES
+    combined = features.ROADS.MAJOR | features.WATER.BODIES
     assert "highway" in combined.tag_filters
     assert "natural" in combined.tag_filters
 
 
 def test_or_needs_areas_is_true_if_any_spec_needs_areas() -> None:
-    combined = (
-        features.ROADS.MAJOR | features.WATERWAYS.BODIES
-    )  # roads=False, bodies=True
+    combined = features.ROADS.MAJOR | features.WATER.BODIES  # roads=False, bodies=True
     assert combined.needs_areas is True
 
 

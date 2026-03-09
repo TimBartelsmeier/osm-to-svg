@@ -54,7 +54,7 @@ def test_parser_extracts_buildings_without_duplicate_ids(
 def test_parser_extracts_waterway_features(tiny_pbf_fixture_path: Path) -> None:
     parser = PBFParser(str(tiny_pbf_fixture_path))
 
-    waterways = parser.extract_features(features.WATERWAYS.RIVER)
+    waterways = parser.extract_features(features.WATER.RIVER)
 
     assert len(waterways) == 1
     assert waterways[0].tags["waterway"] == "river"
@@ -62,7 +62,7 @@ def test_parser_extracts_waterway_features(tiny_pbf_fixture_path: Path) -> None:
 
 def test_feature_handler_matches_water_body_via_natural_tag() -> None:
     # WATERWAYS.BODIES carries natural=water in its tag_filters directly
-    handler = FeatureHandler(features.WATERWAYS.BODIES)
+    handler = FeatureHandler(features.WATER.BODIES)
 
     assert handler._matches_filter({"natural": "water"}) is True
     assert handler._matches_filter({"waterway": "river"}) is False
@@ -123,7 +123,7 @@ def test_feature_handler_way_skips_invalid_geometry() -> None:
 
 
 def test_feature_handler_does_not_match_unrelated_tags() -> None:
-    handler = FeatureHandler(features.WATERWAYS.RIVER)
+    handler = FeatureHandler(features.WATER.RIVER)
 
     assert handler._matches_filter({"natural": "water"}) is False
     assert handler._matches_filter({"natural": "coastline"}) is False

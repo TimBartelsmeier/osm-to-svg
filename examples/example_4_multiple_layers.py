@@ -31,7 +31,7 @@ with SvgMapper(str(hannover_pbf), bounds=hannover_bbox) as mapper:
     # Layer 1: Water bodies (filled blue shapes)
     print("  - Water bodies...")
     mapper.render_features(
-        features=features.WATERWAYS.BODIES,
+        features=features.WATER.BODIES,
         style=Style(fill="#4A90E2"),
     )
 
