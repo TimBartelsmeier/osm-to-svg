@@ -8,11 +8,13 @@ from osm_to_svg.validation import validate_bbox
 
 
 def _validate_positive_distance(name: str, value: float | None) -> None:
+    """Raise ValueError if value is not None and not strictly positive."""
     if value is not None and value <= 0:
         raise ValueError(f"{name} must be greater than 0")
 
 
 def _kilometers_per_longitude_degree(latitude: float) -> float:
+    """Return the ground distance in km represented by one degree of longitude at the given latitude."""
     km = 111.0 * math.cos(math.radians(latitude))
     if abs(km) < 1e-9:
         raise ValueError(
@@ -33,6 +35,34 @@ def get_bbox_from_place(
     south_km: float | None = None,
     timeout: int = 30,
 ) -> tuple[float, float, float, float]:
+    """Geocode a place name and return a bounding box centred on it.
+
+    Exactly one horizontal sizing method must be supplied: either ``width_km``
+    (symmetric) or both ``east_km`` **and** ``west_km`` (asymmetric). The same
+    rule applies vertically: either ``height_km`` or both ``north_km`` and
+    ``south_km``.
+
+    Args:
+        place_name: Human-readable place name to geocode via Nominatim.
+        width_km: Total east–west extent of the bounding box in kilometres
+            (splits evenly around the centroid).
+        east_km: Distance east of the centroid in kilometres.
+        west_km: Distance west of the centroid in kilometres.
+        height_km: Total north–south extent of the bounding box in kilometres
+            (splits evenly around the centroid).
+        north_km: Distance north of the centroid in kilometres.
+        south_km: Distance south of the centroid in kilometres.
+        timeout: HTTP request timeout in seconds (default: 30).
+
+    Returns:
+        Bounding box as ``(min_lon, min_lat, max_lon, max_lat)``.
+
+    Raises:
+        ValueError: If conflicting or incomplete sizing arguments are given, if
+            the place cannot be found, or if the resulting coordinates are
+            invalid.
+        httpx.HTTPError: If the Nominatim request fails.
+    """
     _validate_positive_distance("width_km", width_km)
     _validate_positive_distance("east_km", east_km)
     _validate_positive_distance("west_km", west_km)

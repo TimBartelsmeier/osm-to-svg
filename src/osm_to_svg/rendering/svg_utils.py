@@ -81,11 +81,13 @@ def copy_svg_element(element: ET.Element, parent: Any, dwg: svgwrite.Drawing) ->
 
 
 def _without_keys(attrs: dict[str, str], *keys: str) -> dict[str, str]:
+    """Return a copy of attrs with the specified keys removed."""
     excluded = set(keys)
     return {k: v for k, v in attrs.items() if k not in excluded}
 
 
 def _parse_points(raw_points: str) -> list[tuple[float, float]]:
+    """Parse an SVG ``points`` attribute string into a list of (x, y) float tuples."""
     values = raw_points.replace(",", " ").split()
     if len(values) < 2:
         return []

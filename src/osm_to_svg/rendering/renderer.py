@@ -19,6 +19,12 @@ class SVGRenderer:
     def __init__(
         self, transformer: CoordinateTransformer, background_color: str | None = None
     ):
+        """Initialize the renderer with a coordinate transformer.
+
+        Args:
+            transformer: Coordinate transformer used to project lat/lon to SVG space.
+            background_color: Optional background fill color for generated SVG layers.
+        """
         self.transformer = transformer
         self._background_color = background_color
 
@@ -28,6 +34,19 @@ class SVGRenderer:
         style: Style,
         layer_id: str = "features",
     ) -> ET.Element:
+        """Render a list of OSM features to an SVG ``<svg>`` element.
+
+        Each feature is drawn as a ``<polygon>`` (closed geometry) or
+        ``<polyline>`` (open geometry) with the given style applied.
+
+        Args:
+            features: OSM features to render.
+            style: SVG style (stroke, fill, opacity, …) applied to every element.
+            layer_id: ``id`` attribute for the wrapping ``<g>`` group (default: ``"features"``).
+
+        Returns:
+            Root ``<svg>`` element containing a clipped group of rendered shapes.
+        """
         width, height = self.transformer.get_dimensions()
         viewbox = self.transformer.get_viewbox()
 
@@ -76,6 +95,20 @@ class SVGRenderer:
         poi_style: PoiStyle,
         layer_id: str = "pois",
     ) -> ET.Element:
+        """Render POI markers at geographic coordinates and return an SVG ``<svg>`` element.
+
+        The marker SVG is read from ``poi_style.marker_svg_path`` and placed at
+        each coordinate using the anchor point and sizing method defined in
+        ``poi_style``.
+
+        Args:
+            coords: List of ``(latitude, longitude)`` tuples.
+            poi_style: Marker configuration including path, anchor, and sizing.
+            layer_id: ``id`` attribute for the wrapping ``<g>`` group (default: ``"pois"``).
+
+        Returns:
+            Root ``<svg>`` element containing a clipped group of placed markers.
+        """
         scale = poi_style.scale
         width_meters = poi_style.width_meters
         height_meters = poi_style.height_meters
@@ -154,6 +187,7 @@ class SVGRenderer:
         scale: float,
         anchor: MarkerAnchor,
     ) -> tuple[float, float]:
+        """Return the top-left SVG insertion point for a marker given its anchor."""
         scaled_width = marker_width * scale
         scaled_height = marker_height * scale
 
@@ -191,14 +225,17 @@ class SVGRenderer:
         return (svg_x + offset_x, svg_y + offset_y)
 
     def _drawing_to_element(self, dwg: svgwrite.Drawing) -> ET.Element:
+        """Serialize an svgwrite Drawing to an ElementTree Element."""
         svg_string = dwg.tostring()
         return ET.fromstring(svg_string)
 
     def _parse_svg_dimension(self, value: str | int | float) -> float:
+        """Delegate to :func:`~osm_to_svg.rendering.svg_utils.parse_svg_dimension`."""
         return parse_svg_dimension(value)
 
     def _sanitize_svg_id(self, value: str, prefix: str = "id") -> str:
-        normalized = re.sub(r"[^A-Za-z0-9_.-]+", "-", value.strip()).strip("-")
+        """Return a valid SVG id by replacing non-alphanumeric characters with hyphens."""
+        normalized = re.sub(r"[^A-Za-z0-9_.\-]+", "-", value.strip()).strip("-")
         if not normalized:
             return prefix
         if normalized[0].isdigit() or normalized[0] in {"-", "."}:
@@ -206,6 +243,7 @@ class SVGRenderer:
         return normalized
 
     def _parse_dimension(self, value: str | int | float) -> float:
+        """Alias for :meth:`_parse_svg_dimension`."""
         return self._parse_svg_dimension(value)
 
     def _copy_svg_subtree(
@@ -214,6 +252,7 @@ class SVGRenderer:
         parent: Any,
         dwg: svgwrite.Drawing,
     ) -> None:
+        """Delegate to :func:`~osm_to_svg.rendering.svg_utils.copy_svg_element`."""
         copy_svg_element(element, parent, dwg)
 
     def _copy_element(
@@ -222,4 +261,5 @@ class SVGRenderer:
         parent: Any,
         dwg: svgwrite.Drawing,
     ) -> None:
+        """Alias for :meth:`_copy_svg_subtree`."""
         self._copy_svg_subtree(element, parent, dwg)

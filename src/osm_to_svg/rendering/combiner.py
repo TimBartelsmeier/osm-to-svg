@@ -8,6 +8,7 @@ def _create_root_with_boundary_clip(
     height: str | None,
     viewbox: str | None,
 ) -> ET.Element:
+    """Create a root ``<svg>`` element with a ``boundary-clip`` clipPath in its defs."""
     if viewbox is None:
         raise ValueError("viewBox is required for combining SVG layers")
 
@@ -50,6 +51,7 @@ def _append_layer_from_source(
     layer_id: str,
     source_name: str,
 ) -> None:
+    """Append the visible children of source_root as a named layer group to combined_root."""
     if source_root.get("viewBox") != viewbox:
         raise ValueError(
             f"{source_name} has inconsistent viewBox. "
@@ -77,6 +79,20 @@ def _append_layer_from_source(
 def combine_elements(
     elements: list[ET.Element], output_path: str, background_color: str | None = None
 ) -> None:
+    """Combine multiple SVG ``<svg>`` elements into a single layered SVG file.
+
+    All elements must share the same ``viewBox``. They are stacked in the order
+    given (first element = bottom layer). An optional solid background rectangle
+    is inserted before any layers when ``background_color`` is provided.
+
+    Args:
+        elements: Non-empty list of SVG root elements to combine.
+        output_path: Destination file path for the combined SVG.
+        background_color: Optional fill color for a full-canvas background rectangle.
+
+    Raises:
+        ValueError: If ``elements`` is empty or the viewBoxes are inconsistent.
+    """
     if not elements:
         raise ValueError("elements cannot be empty")
 

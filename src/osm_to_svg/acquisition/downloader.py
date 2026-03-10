@@ -15,6 +15,22 @@ def download_from_overpass(
     output_path: str,
     timeout: int = 300,
 ) -> None:
+    """Download raw OSM data for a bounding box from the Overpass API.
+
+    Streams the response to a temporary file and atomically moves it to
+    ``output_path`` on success, so the destination is never left in a
+    partially written state.
+
+    Args:
+        bbox: Bounding box as ``(min_lon, min_lat, max_lon, max_lat)``.
+        output_path: Destination file path for the downloaded PBF data.
+        timeout: HTTP request timeout in seconds (default: 300).
+
+    Raises:
+        ValueError: If the bounding box is invalid or the API returns
+            HTML/XML instead of PBF data.
+        httpx.HTTPError: If the download fails or times out.
+    """
     min_lon, min_lat, max_lon, max_lat = validate_bbox(bbox)
     url = (
         f"https://overpass-api.de/api/map?bbox={min_lon},{min_lat},{max_lon},{max_lat}"
@@ -88,6 +104,20 @@ def download_from_url(
     output_path: str,
     timeout: int = 600,
 ) -> None:
+    """Download a file from an arbitrary URL to the given output path.
+
+    Intended for downloading PBF extracts from providers such as Geofabrik.
+    Streams the response to a temporary file and atomically moves it to
+    ``output_path`` on success.
+
+    Args:
+        url: Direct download URL.
+        output_path: Destination file path for the downloaded data.
+        timeout: HTTP request timeout in seconds (default: 600).
+
+    Raises:
+        httpx.HTTPError: If the download fails or times out.
+    """
     temp_fd, temp_path = tempfile.mkstemp(suffix=".osm.pbf", prefix="download_")
 
     try:

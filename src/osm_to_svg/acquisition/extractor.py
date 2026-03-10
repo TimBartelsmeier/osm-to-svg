@@ -11,6 +11,18 @@ def extract_from_pbf(
     bbox: tuple[float, float, float, float],
     output_path: str,
 ) -> None:
+    """Extract a bounding-box region from a PBF file using osmium-tool.
+
+    Args:
+        source_pbf_path: Path to the source OSM PBF file.
+        bbox: Bounding box to extract as ``(min_lon, min_lat, max_lon, max_lat)``.
+        output_path: Destination path for the extracted PBF file.
+
+    Raises:
+        FileNotFoundError: If the source PBF file does not exist.
+        ValueError: If the bounding box is invalid.
+        RuntimeError: If osmium-tool is not installed or the extraction fails.
+    """
     min_lon, min_lat, max_lon, max_lat = validate_bbox(bbox)
 
     source_path = Path(source_pbf_path)
