@@ -1,31 +1,41 @@
 # osm-to-svg
 
-A Python library for generating SVG maps from OpenStreetMap data. It reads PBF files, projects geographic coordinates, and renders styled layers for roads, waterways, railways, buildings, green spaces, and POI markers.
+A Python library for generating SVG maps from OpenStreetMap data. It allows creating SVG files that contain styled layers for roads, waterways, bodies of water, railways, buildings and green spaces; and allows placing POI markers. 
 
-> [!NOTE]
+TODO: advanced styling, arbitrary combinations, scaling, etc.
+
+> [!WARNING]
 > This project was programmed entirely with AI tools (Github Copilot with Claude Sonnet 4.5 & 4.6 and GPT-5.3.-Codex). This was partly because I needed such a tool for a private project but didn't have the time to implement it myself, and partly because I wanted to try out for myself how well “vibecoding” works.
 I have tested the functionality and, at least for my application, everything works as expected and without unintended side-effects. However, I have only given a cursory inspection to the generated code itself and I accept no liability for it.
 
 ## Installation
 
-The library is currently not published to PyPI. You can install it directly from this repo with your favorite package manager that supports installing from git. I recommend and use [`pixi`](https://pixi.prefix.dev/latest/), for which you'd do something like this:
+This library is currently not published to PyPI, conda-forge, or similar. You can install it directly from this repo with your favorite package manager that supports installing from git (for example, `pip` or `pixi`). I recommend [`pixi`](https://pixi.prefix.dev/latest/) because it allows managing packages and tools from pypi, conda repos like conda-forge, and from git (like this package) simultaneously.
 
+With `pixi`, you'd do something like this:
 1. [Install pixi on you system](https://pixi.prefix.dev/latest/installation)
 2. Create a new directory for your project.
 3. Open a terminal in the directory and run `pixi init`
 4. Run `pixi add python`
 5. Run `pixi add --pypi "osm-to-svg @ git+https://github.com/TimBartelsmeier/osm-to-svg"` to install this repository.
 6. Done! You can now use this package in python by importing `osm_to_svg`. Note that with pixi, you need to run `pixi run python <file/arguments>` instead of `python <file/arguments>`.
+7. You probably also want to install `osmium-tool` - see below for details.
 
-To play around with the styling options and see the results immediately, it is best to work in a Jupyter notebook.
+If you need to update this package, just run step 5 again. This will download the latest version from Github.
 
-## Data acquisition
+### Additional helpful packages
+To extract a region of interest from a larger `.osm.pbf` file, [`osmium-tool`](https://osmcode.org/osmium-tool/) has to be available via the PATH environment variable. You can install it globally if you like, but if you manage your project with `conda` or `pixi`, the easiest way is to install it to your project from conda-forge (i.e. `pixi add osmium-tool`).
 
-### Recommended: Download large file from hoster and extract region-of-interest
+To play around with the styling options and see the results immediately without switching files, I recommend working in a Jupyter notebook (`pixi add jupyter`).
 
-The recommended approach is to download a pre-built PBF file (for example, from [Geofabrik](https://download.geofabrik.de/)) and extract the region of interest using `extract_from_pbf`. This is more reliable than Overpass and supports any bounding box size.
+## Usage
+> [!NOTE]
+> Most of the code examples shown in this README are also included in the [example scripts](./examples/).
 
-Extraction requires [`osmium-tool`](https://osmcode.org/osmium-tool/) to be available (via the PATH environement variable). If you manage your project with `conda` or `pixi`, the easiest way is to install it from conda-forge (i.e. `pixi add osmium-tool`).
+### Obtaining OSM data
+To create maps, you need an `osm.pbf` file that contains the OSM data from your region of interest (ROI). The file _can_ include a larger region than what you are interested in, but this will result in longer processing times and larger files because the entire region contained in the PBF file is rendered into the SVG - if you later pass a bounding box to `create_map`, the SVG is simply cropped to that region. Therefore, you should make sure that the PBF file you use for plotting only contains the region you actually want to plot.
+
+The most reliable way to obtain an `osm.pbf` file of your ROI is to download a pre-built file from an online hoster. For example, [Geofabrik](https://download.geofabrik.de/) offers files that contain entire continents, countries, or subdivisions of countries. (To reduce the processing time, you should select the smallest division you can find that still encompasses your entire ROI.) You can then use this libraries `extract_from_pbf` method to extract a PBF file containing only your ROI.
 
 ```python
 from osm_to_svg import download_from_url, extract_from_pbf
@@ -42,210 +52,83 @@ extract_from_pbf(
 )
 ```
 
-See [examples/example_2_download_extract_pbf.py](examples/example_2_download_extract_pbf.py) for the full script.
+As detailed [above](#additional-helpful-packages), extraction requires `osmium-tool`.
 
-### Alternative: Overpass API
+#### Alternative approach: Overpass API
 
-Data can also be downloaded directly from the Overpass API:
+Data can also be downloaded directly from the Overpass API. Note that this is often overloaded, may time out, applies rate limiting, and only supports small bounding boxes.
 
 ```python
 from osm_to_svg import download_from_overpass
 
-download_from_overpass(bbox=(9.735, 52.372, 9.745, 52.378), output_path="area.osm.pbf")
+download_from_overpass(
+    bbox=(9.735, 52.372, 9.745, 52.378),
+    output_path="area.osm.pbf"
+)
 ```
 
-Note that the Overpass API is often overloaded, may time out, applies rate limiting, and only supports small bounding boxes.
-
-## Bounding box considerations and querying place names
-
-The PBF file should cover only the region of interest. Everything contained in the file is rendered into the SVG, so a smaller file produces a smaller SVG and faster rendering times. It is recommended to pass the bounding box explicitly to `create_map` (or `SvgMapper`), even if the PBF file is already cropped to the region of interest, because some features (such as long roads) can extend beyond the selected region. Specifying the bounding box ensures the SVG is sized correctly and clips to the region of interest.
-
-You can obtain a bounding box for a named place using `get_bbox_from_place`:
+#### Geocoding
+Instead of looking the coordinated up your self, you can query the bounding box for a named place using `get_bbox_from_place`. Internally, this which will query [OSM's Nominatim search engine](https://nominatim.openstreetmap.org/) for the place's coordinates and then calculate the bounding box based on the size you specified (see the method's docstring for more details).
 
 ```python
 from osm_to_svg import get_bbox_from_place
 
-bbox = get_bbox_from_place("Hannover, Germany", width_km=7.5, height_km=7.5)
+bbox = get_bbox_from_place(
+    "Hannover, Germany",
+    width_km=7.5,
+    height_km=7.5
+)
 # returns (min_lon, min_lat, max_lon, max_lat)
 ```
 
-See [examples/example_1_geocode_bbox.py](examples/example_1_geocode_bbox.py) for details.
+You can then use this `bbox` for cropping a pre-built PBF file as described above and/or to pass it to `create_map`.
 
-## Basic usage
+### Creating maps
+The `create_map` method is used to create SVG images from the cartographic data.
 
-`create_map` is the recommended utility for one-shot rendering. It wraps `SvgMapper` internally and renders one or more layers into a final SVG.
 
-```python
-from osm_to_svg import Style, create_map, features
-
-bbox = (9.68, 52.34, 9.79, 52.41)
-
-create_map(
-    pbf_path="hannover.osm.pbf",
-    bounds=bbox,
-    feature_layers=[
-        (features.ROADS.MAJOR, Style(stroke="#000000", stroke_width=2.0)),
-    ],
-    output_path="roads.svg",
-)
-```
-
-See [examples/example_3_basic_usage.py](examples/example_3_basic_usage.py) for the full script.
-
-## Multiple layers
-
-Multiple feature layers can be rendered and combined into a single SVG. All feature types are accessed through the `features` module as `features.ROADS`, `features.RAILWAYS`, `features.WATER`, `features.BUILDINGS`, and `features.GREEN_SPACES`. Specs can be combined with `|` to render multiple feature types in a single call.
-
-```python
-from osm_to_svg import Style, create_map, features
-
-bbox = (9.68, 52.34, 9.79, 52.41)
-
-create_map(
-    pbf_path="hannover.osm.pbf",
-    bounds=bbox,
-    feature_layers=[
-        (features.WATER.BODIES, Style(fill="#4A90E2")),
-        (features.GREEN_SPACES.FORESTS, Style(fill="#046A04")),
-        (features.ROADS.MAJOR, Style(stroke="#000000", stroke_width=2.0)),
-    ],
-    output_path="map.svg",
-)
-```
-
-See [examples/example_4_multiple_layers.py](examples/example_4_multiple_layers.py) for the full script including POI markers.
-
-## create_map options
-
-`create_map` accepts the same map-configuration arguments as `SvgMapper`, plus layer lists and an output path:
-
+Options:
 - `pbf_path` — path to the `.osm.pbf` file to read.
-- `scale` — map scale denominator (default: `100000` for 1:100,000). At this scale, 1 km in reality equals 1 cm in the output. The scale is accurate at the centre latitude of the map bounds.
+- `scale` — map scale denominator (default: `100000` for scale 1:100,000, i.e. 1 km in reality equals 1 cm in the output SVG). The scale is accurate at the centre latitude of the map bounds.
 - `dpi` — dots per inch for the output SVG (default: `96`). Common values: `96` (screen), `72` (print), `300` (high-res print).
-- `bounds` — optional bounding box as `(min_lon, min_lat, max_lon, max_lat)`. If omitted, bounds are derived from the PBF file by scanning all nodes.
+- `bounds` — optional bounding box as `(min_lon, min_lat, max_lon, max_lat)`. It is recommended to pass this even if your PBF file is already cropped to the region of interest because some features contained in the PBF file (such as long roads) can extend out of the PBF's region. Specifying the bounding box ensures the SVG is sized correctly and cropped to the region of interest. If omitted, bounds are derived from the PBF file by scanning all nodes.
 - `background_color` — optional background fill for the SVG (e.g. `"#FFFFFF"`, `"white"`). Defaults to `None` (transparent).
-- `feature_layers` — list of `(FeatureSpec, Style)` tuples.
-- `poi_layers` — list of `([(lat, lon), ...], PoiStyle)` tuples.
+- `feature_layers` — list of `(FeatureSpec, Style)` tuples. See below for details.
+- `poi_layers` — list of `([(lat, lon), ...], PoiStyle)` tuples. See below for details.
 - `output_path` — path for the final combined SVG file.
 
-```python
-from osm_to_svg import Style, create_map, features
+#### Specifiying features (roads, forests, ...)
+`feature_layers` is a list of `(FeatureSpec, Style)` tuples. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. The available features (and how to combine them) are described [below](#available-features).
 
-create_map(
-    pbf_path="hannover.osm.pbf",
-    scale=75000,
-    dpi=300,
-    bounds=(9.68, 52.34, 9.79, 52.41),
-    background_color="#F5F5F5",
-    feature_layers=[
-        (features.ROADS.MAJOR, Style(stroke="#000000")),
-    ],
-    output_path="map.svg",
-)
-```
-
-For advanced workflows, `SvgMapper` is still available as a context manager API.
-
-## Styling
-
-Feature layers are styled with the `Style` class. All attributes are optional and default to no stroke and no fill (i.e. invisible).
-
+Feature layers are styled with the `Style` class. All attributes are optional and default to no stroke and no fill (i.e. invisible). Options:
 - `stroke` — stroke colour as a CSS colour string (e.g. `"#000000"`, `"red"`). Use `"none"` for no stroke (default: `"none"`).
 - `stroke_width` — stroke width in points (1 pt = 1/72 inch) (default: `1.0`).
 - `fill` — fill colour. Use `"none"` for no fill (default: `"none"`).
 - `opacity` — overall opacity, `0.0`–`1.0` (default: `1.0`).
-- `stroke_opacity` — stroke-only opacity, `0.0`–`1.0` (default: `None`, inherits `opacity`).
-- `fill_opacity` — fill-only opacity, `0.0`–`1.0` (default: `None`, inherits `opacity`).
+- `stroke_opacity` — stroke-only opacity, `0.0`–`1.0` (default: `None` = inherits `opacity`).
+- `fill_opacity` — fill-only opacity, `0.0`–`1.0` (default: `None` = inherits `opacity`).
 
-```python
-from osm_to_svg import Style
+#### Adding point of interests (POIs)
+`poi_layers` is a list of `([(lat, lon), ...], PoiStyle)` tuples. Each entry places the same marker SVG at every coordinate in the list using the given `PoiStyle`.
 
-# Solid filled polygon (e.g. water body)
-water_style = Style(fill="#4A90E2")
+Coordinates must be provided as `(latitude, longitude)` pairs (note: the opposite order from the `bounds` bounding box, which uses `(lon, lat)`).
 
-# Stroked line with no fill (e.g. road)
-road_style = Style(stroke="#333333", stroke_width=1.5)
+POI markers are styled with the `PoiStyle` class. Required:
+- `marker_svg_path` — path to the SVG file used as the marker icon.
 
-# Semi-transparent overlay
-overlay_style = Style(fill="#1FC21F", fill_opacity=0.6)
+Exactly one of the following sizing methods must also be provided (specifying zero or more than one raises a `ValueError`):
+- `scale` — scale factor relative to the marker SVG's intrinsic dimensions (e.g. `1.0` = native size, `2.0` = double size).
+- `width_meters` — sets the marker width to a fixed distance in metres on the map (e.g. `500` makes the marker 500 m wide at the map scale).
+- `height_meters` — sets the marker height to a fixed distance in metres on the map.
 
-# Combined stroke and fill with separate opacities
-combined_style = Style(
-    stroke="#000000",
-    stroke_width=0.5,
-    stroke_opacity=0.8,
-    fill="#FFD700",
-    fill_opacity=0.4,
-)
-```
+Optional:
+- `anchor` — which point of the marker SVG is aligned to the POI coordinate. Accepted values: `"center"` (default), `"top"`, `"top-right"`, `"right"`, `"bottom-right"`, `"bottom"`, `"bottom-left"`, `"left"`, `"top-left"`. Use `"bottom"` for a classic pin-style marker where the tip points to the location.
 
-## POI markers
-
-POI marker layers are passed through `poi_layers` as `(coords, PoiStyle)` tuples. The output layer has the same dimensions as feature layers, so it can be combined directly.
-
-```python
-from osm_to_svg import PoiStyle, create_map
-
-create_map(
-    pbf_path="hannover.osm.pbf",
-    poi_layers=[
-        (
-            [(52.3731, 9.7372), (52.3665, 9.7353)],  # (lat, lon)
-            PoiStyle(
-                marker_svg_path="pin.svg",
-                scale=1.5,          # relative to the marker's original size
-                anchor="bottom",   # which point aligns to the coordinate
-            ),
-        )
-    ],
-    output_path="pois.svg",
-)
-```
-
-**Sizing** — exactly one of the following must be provided:
-
-- `scale` — scale factor relative to the marker's original size (`1.0` = original, `2.0` = double).
-- `width_meters` — desired marker width in metres on the map.
-- `height_meters` — desired marker height in metres on the map.
-
-**Anchor** — the `anchor` parameter controls which point of the icon is pinned to the coordinate. Accepted values: `"center"` (default), `"top"`, `"top-right"`, `"right"`, `"bottom-right"`, `"bottom"`, `"bottom-left"`, `"left"`, `"top-left"`.
-
-```python
-from osm_to_svg import PoiStyle, Style, create_map, features
-
-# Absolute sizing — marker is always 200 m wide regardless of scale
-poi_style = PoiStyle(marker_svg_path="pin.svg", width_meters=200.0)
-
-# Combine with feature layers
-create_map(
-    pbf_path="hannover.osm.pbf",
-    bounds=bbox,
-    feature_layers=[
-        (features.ROADS.MAJOR, Style(stroke="#000000")),
-    ],
-    poi_layers=[
-        ([(52.3731, 9.7372)], poi_style),
-    ],
-    output_path="map.svg",
-)
-```
-
-## Running the examples
-
-All examples can be run via pixi:
-
-| Command | Description |
-|---|---|
-| `pixi run example-1` | Geocode a place name and print its bounding box |
-| `pixi run example-2` | Download a Geofabrik PBF and extract a region |
-| `pixi run example-3` | Render major roads as a basic SVG |
-| `pixi run example-4` | Multi-layer map with water, green spaces, roads, railways, and POIs |
-| `pixi run example-5` | Render all buildings and roads |
-| `pixi run example-overpass` | Download data via Overpass API (may fail due to API limitations) |
+#### Full example
+See [examples/example_4_multiple_layers.py](examples/example_4_multiple_layers.py) for an example script that includes multiple layers and POI markers.
 
 ## Available features
-
-All features are accessed through the `features` module. Individual types match a single OSM tag value. Shorthands are pre-built `|` unions of individual types. Any spec can be further combined with `|`:
+All features are accessed through the `features` subpackage. Individual types match a single OSM tag value, for example, `osm_to_svg.features.ROADS.MOTORWAY` or `osm_to_svg.features.WATER.CANAL`. Multiple features can be combined with the `|` operator: `features.ROADS.MOTORWAY | features.WATER.CANAL` will create a new `FeatureSpec` object that, when passed to `create_map`, will result in motorways _and_ canals being plotted. There are also a lot of pre-defined unions ("shorthands") for typical use cases, for example, `features.ROADS.MAJOR` encompasses all major link roads, but no residential roads.
 
 ```python
 from osm_to_svg import Style, create_map, features
@@ -273,6 +156,8 @@ create_map(
     output_path="roads_and_water.svg",
 )
 ```
+
+Note: OSM is very granular in separating different types of features. For example, motorways (`features.ROADS.MOTORWAYS`) are tagged differently than the ramps leading to them (`features.ROADS.MOTORWAY_LINK`). This can be a curse and a blessing: it gives you very granular control over your maps, but if you have unexpected "gaps" in your map, you probabaly need to research what additional tags you need to include in your query. The shorthand groups included in this library are intended to provide a good starting point for common applications.
 
 ### ROADS
 

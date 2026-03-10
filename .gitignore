@@ -44,7 +44,7 @@ htmlcov/
 .pixi/
 
 # Output files
-examples/output/*
+#examples/output/*
 examples/osmdata/*
 
 # OS
