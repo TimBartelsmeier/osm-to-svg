@@ -5,7 +5,8 @@ from osm_to_svg.acquisition import (
     download_from_overpass,
     download_from_url,
     extract_from_pbf,
-    get_bbox_from_place,
+    geocode_place,
+    get_bbox_around_coordinates,
 )
 from osm_to_svg.create_map import create_map
 from osm_to_svg.features import FeatureSpec
@@ -27,5 +28,7 @@ __all__ = [
     "download_from_overpass",
     "download_from_url",
     "extract_from_pbf",
-    "get_bbox_from_place",
+    # Geocoding / bbox helpers
+    "geocode_place",
+    "get_bbox_around_coordinates",
 ]

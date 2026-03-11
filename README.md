@@ -54,6 +54,29 @@ extract_from_pbf(
 
 As detailed [above](#additional-helpful-packages), extraction requires `osmium-tool`.
 
+#### Geocoding
+Instead of looking the coordinates up yourself, you can use `geocode_place` to query [OSM's Nominatim search engine](https://nominatim.openstreetmap.org/) for a place's coordinates, and then use `get_bbox_around_coordinates` to compute a bounding box of the desired size around them.
+
+```python
+from osm_to_svg import geocode_place, get_bbox_around_coordinates
+
+# Step 1 – resolve the place name to coordinates
+lat, lon = geocode_place("Hannover, Germany")
+
+# Step 2 – build a bounding box around those coordinates
+bbox = get_bbox_around_coordinates(
+    lat,
+    lon,
+    width_km=7.5,
+    height_km=7.5,
+)
+# returns (min_lon, min_lat, max_lon, max_lat)
+
+# You can now pass the bbox object to extract_from_pbf (described above) and/or to pass create_map (described below).
+```
+
+`get_bbox_around_coordinates` also accept asymmetric extents: you can specify ``east_km`` and ``west_km`` instead of ``width_km``, and/or  ``north_km`` and ``south_km`` instead of ``height_km`` (see the function's docstring for the full parameter reference).
+
 #### Alternative approach: Overpass API
 
 Data can also be downloaded directly from the Overpass API. Note that this is often overloaded, may time out, applies rate limiting, and only supports small bounding boxes.
@@ -66,22 +89,6 @@ download_from_overpass(
     output_path="area.osm.pbf"
 )
 ```
-
-#### Geocoding
-Instead of looking the coordinated up your self, you can query the bounding box for a named place using `get_bbox_from_place`. Internally, this which will query [OSM's Nominatim search engine](https://nominatim.openstreetmap.org/) for the place's coordinates and then calculate the bounding box based on the size you specified (see the method's docstring for more details).
-
-```python
-from osm_to_svg import get_bbox_from_place
-
-bbox = get_bbox_from_place(
-    "Hannover, Germany",
-    width_km=7.5,
-    height_km=7.5
-)
-# returns (min_lon, min_lat, max_lon, max_lat)
-```
-
-You can then use this `bbox` for cropping a pre-built PBF file as described above and/or to pass it to `create_map`.
 
 ### Creating maps
 The `create_map` method is used to create SVG images from the cartographic data.

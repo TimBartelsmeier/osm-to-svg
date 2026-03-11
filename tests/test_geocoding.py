@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from osm_to_svg.acquisition.geocoding import get_bbox_from_place
+from osm_to_svg.acquisition.geocoding import geocode_place
 
 
 class DummyResponse:
@@ -17,86 +17,78 @@ class DummyResponse:
         return self._payload
 
 
-def test_get_bbox_from_place_rejects_conflicting_width_params() -> None:
-    with pytest.raises(ValueError, match="Cannot specify both width_km"):
-        get_bbox_from_place("Hannover", width_km=10, east_km=5, west_km=5, height_km=8)
-
-
-def test_get_bbox_from_place_rejects_conflicting_height_params() -> None:
-    with pytest.raises(ValueError, match="Cannot specify both height_km"):
-        get_bbox_from_place(
-            "Hannover",
-            width_km=10,
-            height_km=8,
-            north_km=4,
-            south_km=4,
-        )
-
-
-def test_get_bbox_from_place_rejects_missing_dimension_pairs() -> None:
-    with pytest.raises(ValueError, match="Must specify either width_km"):
-        get_bbox_from_place("Hannover", north_km=5, south_km=5)
-
-    with pytest.raises(ValueError, match="Must specify either height_km"):
-        get_bbox_from_place("Hannover", east_km=5, west_km=5)
-
-
-def test_get_bbox_from_place_computes_bbox_from_mocked_geocode(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_geocode_place_returns_lat_lon(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_get(url, params, headers, timeout):  # noqa: ANN001, ANN202
         assert "nominatim" in url
-        assert params["q"] == "Hannover"
+        assert params["q"] == "Hannover, Germany"
         assert timeout == 30
-        return DummyResponse([{"lat": "52.5", "lon": "9.7"}])
+        return DummyResponse([{"lat": "52.3759", "lon": "9.7320"}])
 
     monkeypatch.setattr(httpx, "get", fake_get)
 
-    min_lon, min_lat, max_lon, max_lat = get_bbox_from_place(
-        "Hannover",
-        width_km=10,
-        height_km=20,
-    )
+    lat, lon = geocode_place("Hannover, Germany")
 
-    assert min_lon < max_lon
-    assert min_lat < max_lat
-    assert min_lon == pytest.approx(9.6254, rel=1e-3)
-    assert max_lon == pytest.approx(9.7746, rel=1e-3)
+    assert lat == pytest.approx(52.3759)
+    assert lon == pytest.approx(9.7320)
 
 
-def test_get_bbox_from_place_wraps_http_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_geocode_place_forwards_custom_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured = {}
+
+    def fake_get(url, params, headers, timeout):  # noqa: ANN001, ANN202
+        captured["timeout"] = timeout
+        return DummyResponse([{"lat": "52.0", "lon": "9.0"}])
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+
+    geocode_place("Hannover", timeout=60)
+
+    assert captured["timeout"] == 60
+
+
+def test_geocode_place_wraps_http_errors(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_get(url, params, headers, timeout):  # noqa: ANN001, ANN202
         raise httpx.ConnectError("network down")
 
     monkeypatch.setattr(httpx, "get", fake_get)
 
     with pytest.raises(httpx.HTTPError, match="Failed to geocode"):
-        get_bbox_from_place("Hannover", width_km=10, height_km=10)
+        geocode_place("Hannover")
 
 
-def test_get_bbox_from_place_raises_when_no_results(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(httpx, "get", lambda *args, **kwargs: DummyResponse([]))
-
-    with pytest.raises(ValueError, match="Could not find location"):
-        get_bbox_from_place("Nowhere", width_km=10, height_km=10)
-
-
-def test_get_bbox_from_place_rejects_non_positive_dimensions() -> None:
-    with pytest.raises(ValueError, match="width_km must be greater than 0"):
-        get_bbox_from_place("Hannover", width_km=0, height_km=10)
-
-    with pytest.raises(ValueError, match="north_km must be greater than 0"):
-        get_bbox_from_place("Hannover", east_km=1, west_km=1, north_km=-1, south_km=1)
-
-
-def test_get_bbox_from_place_rejects_east_west_box_near_poles(
+def test_geocode_place_raises_for_status_on_http_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        httpx, "get", lambda *args, **kwargs: DummyResponse([{"lat": "90", "lon": "0"}])
+        httpx,
+        "get",
+        lambda *args, **kwargs: DummyResponse(
+            [], raise_error=httpx.HTTPStatusError("404", request=None, response=None)
+        ),
     )
 
-    with pytest.raises(ValueError, match="longitude degrees approach zero"):
-        get_bbox_from_place("North Pole", width_km=10, height_km=10)
+    with pytest.raises(httpx.HTTPError, match="Failed to geocode"):
+        geocode_place("Hannover")
+
+
+def test_geocode_place_raises_when_no_results(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(httpx, "get", lambda *args, **kwargs: DummyResponse([]))
+
+    with pytest.raises(ValueError, match="Could not find location"):
+        geocode_place("Nowhere Really Obscure Place Name XYZ")
+
+
+def test_geocode_place_uses_first_result(monkeypatch: pytest.MonkeyPatch) -> None:
+    """When Nominatim returns multiple results, geocode_place uses the first one."""
+    monkeypatch.setattr(
+        httpx,
+        "get",
+        lambda *args, **kwargs: DummyResponse(
+            [{"lat": "1.0", "lon": "2.0"}, {"lat": "3.0", "lon": "4.0"}]
+        ),
+    )
+
+    lat, lon = geocode_place("Ambiguous Place")
+
+    assert lat == pytest.approx(1.0)
+    assert lon == pytest.approx(2.0)

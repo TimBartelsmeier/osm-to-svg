@@ -1,14 +1,17 @@
-"""Example 1: Get bounding box for a region centered on Hannover using geocoding."""
+"""Example 1: Geocode a place name and create a bounding box around it."""
 
-from osm_to_svg import get_bbox_from_place
+from osm_to_svg import geocode_place, get_bbox_around_coordinates
 
-# Get bounding box for a 7.5km width by 7.5km height region centered on Hannover
-print("Geocoding 'Hannover, Germany' and creating bounding box...")
-print("  - Width: 7.5 km")
-print("  - Height: 7.5 km")
+# Step 1: Geocode the place name to get its coordinates
+print("Geocoding 'Hannover, Germany'...")
+lat, lon = geocode_place("Hannover, Germany")
+print(f"  Coordinates: lat={lat}, lon={lon}")
 
-hannover_bbox = get_bbox_from_place(
-    "Hannover, Germany",
+# Step 2: Compute a bounding box around those coordinates
+print("\nBuilding 7.5 km × 7.5 km bounding box...")
+hannover_bbox = get_bbox_around_coordinates(
+    lat,
+    lon,
     width_km=7.5,
     height_km=7.5,
 )
