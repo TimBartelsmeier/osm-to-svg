@@ -94,7 +94,7 @@ def test_download_from_overpass_rejects_html_response(
     monkeypatch.setattr(httpx, "stream", fake_stream)
 
     with pytest.raises(ValueError, match="returned HTML"):
-        download_from_overpass((8.0, 52.0, 8.1, 52.1), str(output))
+        download_from_overpass((52.0, 8.0, 52.1, 8.1), str(output))
 
     assert not output.exists()
 

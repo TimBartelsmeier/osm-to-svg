@@ -16,7 +16,7 @@ class PBFParser:
         """Scan all nodes in the PBF file and return the geographic bounding box.
 
         Returns:
-            Bounding box as ``(min_lon, min_lat, max_lon, max_lat)``.
+            Bounding box as ``(south_lat, west_lon, north_lat, east_lon)``.
         """
         handler = BoundsHandler()
         handler.apply_file(self.pbf_path, locations=True)

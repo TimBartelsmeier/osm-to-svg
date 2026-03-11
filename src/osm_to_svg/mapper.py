@@ -56,7 +56,7 @@ class SvgMapper:
                   The scale is accurate at the center latitude of the map bounds.
             dpi: Dots per inch for the output SVG (default: 96).
                  Standard values: 96 (web/screen), 72 (print), 300 (high-res print).
-            bounds: Optional custom bounding box as (min_lon, min_lat, max_lon, max_lat).
+            bounds: Optional custom bounding box as (south_lat, west_lon, north_lat, east_lon).
                    If not provided, bounds will be extracted from the PBF file by scanning
                      all nodes, which may include nodes outside the area of interest.
                      Passing bounds explicitly is recommended to ensure clipping and

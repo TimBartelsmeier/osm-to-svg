@@ -53,7 +53,7 @@ def get_bbox_around_coordinates(
         south_km: Distance south of the centre in kilometres.
 
     Returns:
-        Bounding box as ``(min_lon, min_lat, max_lon, max_lat)``.
+        Bounding box as ``(south_lat, west_lon, north_lat, east_lon)``.
 
     Raises:
         ValueError: If conflicting or incomplete sizing arguments are given, or
@@ -104,9 +104,9 @@ def get_bbox_around_coordinates(
     east_offset = east_km / lon_degree_km
     west_offset = west_km / lon_degree_km
 
-    min_lat = lat - south_offset
-    max_lat = lat + north_offset
-    min_lon = lon - west_offset
-    max_lon = lon + east_offset
+    south_lat = lat - south_offset
+    north_lat = lat + north_offset
+    west_lon = lon - west_offset
+    east_lon = lon + east_offset
 
-    return validate_bbox((min_lon, min_lat, max_lon, max_lat))
+    return validate_bbox((south_lat, west_lon, north_lat, east_lon))

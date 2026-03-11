@@ -77,12 +77,12 @@ def test_rejects_negative_north_km() -> None:
 
 def test_symmetric_bbox_is_centred_on_coordinates() -> None:
     lat, lon = 52.5, 9.7
-    min_lon, min_lat, max_lon, max_lat = get_bbox_around_coordinates(
+    south_lat, west_lon, north_lat, east_lon = get_bbox_around_coordinates(
         lat, lon, width_km=10, height_km=20
     )
 
-    centre_lat = (min_lat + max_lat) / 2
-    centre_lon = (min_lon + max_lon) / 2
+    centre_lat = (south_lat + north_lat) / 2
+    centre_lon = (west_lon + east_lon) / 2
 
     assert centre_lat == pytest.approx(lat, abs=1e-9)
     assert centre_lon == pytest.approx(lon, abs=1e-9)
@@ -98,55 +98,55 @@ def test_symmetric_bbox_lon_approx_values() -> None:
     expected_min_lon = 9.7 - 5 / lon_deg_km
     expected_max_lon = 9.7 + 5 / lon_deg_km
 
-    min_lon, _min_lat, max_lon, _max_lat = get_bbox_around_coordinates(
+    _south_lat, west_lon, _north_lat, east_lon = get_bbox_around_coordinates(
         52.5, 9.7, width_km=10, height_km=20
     )
 
-    assert min_lon == pytest.approx(expected_min_lon, rel=1e-6)
-    assert max_lon == pytest.approx(expected_max_lon, rel=1e-6)
+    assert west_lon == pytest.approx(expected_min_lon, rel=1e-6)
+    assert east_lon == pytest.approx(expected_max_lon, rel=1e-6)
 
 
 def test_symmetric_bbox_lat_approx_values() -> None:
     """Check computed lat offsets (invariant of longitude)."""
     # height_km=20 → half = 10 km → offset = 10/111 ≈ 0.09009
-    _min_lon, min_lat, _max_lon, max_lat = get_bbox_around_coordinates(
+    south_lat, _west_lon, north_lat, _east_lon = get_bbox_around_coordinates(
         52.5, 9.7, width_km=10, height_km=20
     )
 
-    assert min_lat == pytest.approx(52.5 - 10 / 111.0, rel=1e-4)
-    assert max_lat == pytest.approx(52.5 + 10 / 111.0, rel=1e-4)
+    assert south_lat == pytest.approx(52.5 - 10 / 111.0, rel=1e-4)
+    assert north_lat == pytest.approx(52.5 + 10 / 111.0, rel=1e-4)
 
 
 def test_asymmetric_bbox_east_west() -> None:
     """Asymmetric east/west offsets produce an off-centre bounding box."""
     lat, lon = 0.0, 0.0  # equator: lon_degree_km = 111 km/deg exactly
-    min_lon, _min_lat, max_lon, _max_lat = get_bbox_around_coordinates(
+    _south_lat, west_lon, _north_lat, east_lon = get_bbox_around_coordinates(
         lat, lon, east_km=11.1, west_km=22.2, north_km=5, south_km=5
     )
 
-    assert min_lon == pytest.approx(-22.2 / 111.0, rel=1e-4)
-    assert max_lon == pytest.approx(11.1 / 111.0, rel=1e-4)
+    assert west_lon == pytest.approx(-22.2 / 111.0, rel=1e-4)
+    assert east_lon == pytest.approx(11.1 / 111.0, rel=1e-4)
 
 
 def test_asymmetric_bbox_north_south() -> None:
     """Asymmetric north/south offsets produce an off-centre bounding box."""
     lat, lon = 0.0, 0.0
-    _min_lon, min_lat, _max_lon, max_lat = get_bbox_around_coordinates(
+    south_lat, _west_lon, north_lat, _east_lon = get_bbox_around_coordinates(
         lat, lon, width_km=10, north_km=33.3, south_km=11.1
     )
 
-    assert min_lat == pytest.approx(-11.1 / 111.0, rel=1e-4)
-    assert max_lat == pytest.approx(33.3 / 111.0, rel=1e-4)
+    assert south_lat == pytest.approx(-11.1 / 111.0, rel=1e-4)
+    assert north_lat == pytest.approx(33.3 / 111.0, rel=1e-4)
 
 
 def test_bbox_ordering() -> None:
-    """min values are always less than max values."""
-    min_lon, min_lat, max_lon, max_lat = get_bbox_around_coordinates(
+    """south/west values are always less than north/east values."""
+    south_lat, west_lon, north_lat, east_lon = get_bbox_around_coordinates(
         48.137, 11.576, width_km=15, height_km=10
     )
 
-    assert min_lon < max_lon
-    assert min_lat < max_lat
+    assert west_lon < east_lon
+    assert south_lat < north_lat
 
 
 # ---------------------------------------------------------------------------

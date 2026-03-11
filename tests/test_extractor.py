@@ -10,7 +10,7 @@ def test_extract_from_pbf_rejects_missing_source_file(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="Source PBF file not found"):
         extract_from_pbf(
             str(tmp_path / "missing.osm.pbf"),
-            (8.0, 52.0, 8.2, 52.2),
+            (52.0, 8.0, 52.2, 8.2),
             str(tmp_path / "out.osm.pbf"),
         )
 
@@ -35,7 +35,7 @@ def test_extract_from_pbf_invokes_osmium_with_expected_args(
 
     extract_from_pbf(
         str(source),
-        (8.0, 52.0, 8.2, 52.2),
+        (52.0, 8.0, 52.2, 8.2),
         str(tmp_path / "clip.osm.pbf"),
     )
 
@@ -60,7 +60,7 @@ def test_extract_from_pbf_wraps_called_process_error(
     with pytest.raises(RuntimeError, match="osmium extraction failed"):
         extract_from_pbf(
             str(source),
-            (8.0, 52.0, 8.2, 52.2),
+            (52.0, 8.0, 52.2, 8.2),
             str(tmp_path / "clip.osm.pbf"),
         )
 
@@ -80,6 +80,6 @@ def test_extract_from_pbf_wraps_missing_osmium_binary(
     with pytest.raises(RuntimeError, match="osmium-tool not found"):
         extract_from_pbf(
             str(source),
-            (8.0, 52.0, 8.2, 52.2),
+            (52.0, 8.0, 52.2, 8.2),
             str(tmp_path / "clip.osm.pbf"),
         )

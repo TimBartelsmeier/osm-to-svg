@@ -15,7 +15,7 @@ def extract_from_pbf(
 
     Args:
         source_pbf_path: Path to the source OSM PBF file.
-        bbox: Bounding box to extract as ``(min_lon, min_lat, max_lon, max_lat)``.
+        bbox: Bounding box to extract as ``(south_lat, west_lon, north_lat, east_lon)``.
         output_path: Destination path for the extracted PBF file.
 
     Raises:
@@ -23,13 +23,13 @@ def extract_from_pbf(
         ValueError: If the bounding box is invalid.
         RuntimeError: If osmium-tool is not installed or the extraction fails.
     """
-    min_lon, min_lat, max_lon, max_lat = validate_bbox(bbox)
+    south_lat, west_lon, north_lat, east_lon = validate_bbox(bbox)
 
     source_path = Path(source_pbf_path)
     if not source_path.exists():
         raise FileNotFoundError(f"Source PBF file not found: {source_pbf_path}")
 
-    bbox_str = f"{min_lon},{min_lat},{max_lon},{max_lat}"
+    bbox_str = f"{west_lon},{south_lat},{east_lon},{north_lat}"
     cmd = [
         "osmium",
         "extract",

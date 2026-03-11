@@ -12,9 +12,9 @@ SVG_NS = "http://www.w3.org/2000/svg"
 def test_render_features_returns_in_memory_element(dummy_transformer) -> None:
     renderer = SVGRenderer(dummy_transformer)
     features = [
-        Feature(geometry=[(8.0, 52.0), (8.1, 52.1)], tags={}),
+        Feature(geometry=[(52.0, 8.0), (52.1, 8.1)], tags={}),
         Feature(
-            geometry=[(8.0, 52.0), (8.1, 52.0), (8.1, 52.1), (8.0, 52.0)],
+            geometry=[(52.0, 8.0), (52.0, 8.1), (52.1, 8.1), (52.0, 8.0)],
             tags={},
             is_closed=True,
         ),
@@ -36,7 +36,7 @@ def test_render_features_skips_invalid_geometry(dummy_transformer) -> None:
     renderer = SVGRenderer(dummy_transformer)
 
     element = renderer.render_features(
-        [Feature(geometry=[(8.0, 52.0)], tags={})],
+        [Feature(geometry=[(52.0, 8.0)], tags={})],
         Style(stroke="#000", fill="none"),
         layer_id="roads",
     )
@@ -51,7 +51,7 @@ def test_render_features_sanitizes_invalid_layer_id(dummy_transformer) -> None:
     renderer = SVGRenderer(dummy_transformer)
 
     element = renderer.render_features(
-        [Feature(geometry=[(8.0, 52.0), (8.1, 52.1)], tags={})],
+        [Feature(geometry=[(52.0, 8.0), (52.1, 8.1)], tags={})],
         Style(stroke="#000", fill="none"),
         layer_id="0 highway",
     )

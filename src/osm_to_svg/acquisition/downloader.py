@@ -22,7 +22,7 @@ def download_from_overpass(
     partially written state.
 
     Args:
-        bbox: Bounding box as ``(min_lon, min_lat, max_lon, max_lat)``.
+        bbox: Bounding box as ``(south_lat, west_lon, north_lat, east_lon)``.
         output_path: Destination file path for the downloaded PBF data.
         timeout: HTTP request timeout in seconds (default: 300).
 
@@ -31,10 +31,8 @@ def download_from_overpass(
             HTML/XML instead of PBF data.
         httpx.HTTPError: If the download fails or times out.
     """
-    min_lon, min_lat, max_lon, max_lat = validate_bbox(bbox)
-    url = (
-        f"https://overpass-api.de/api/map?bbox={min_lon},{min_lat},{max_lon},{max_lat}"
-    )
+    south_lat, west_lon, north_lat, east_lon = validate_bbox(bbox)
+    url = f"https://overpass-api.de/api/map?bbox={west_lon},{south_lat},{east_lon},{north_lat}"
 
     temp_fd, temp_path = tempfile.mkstemp(suffix=".osm.pbf", prefix="overpass_")
 

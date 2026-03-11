@@ -18,12 +18,12 @@ def tiny_pbf_fixture_path() -> Path:
 def test_parser_get_bounds_from_tiny_fixture(tiny_pbf_fixture_path: Path) -> None:
     parser = PBFParser(str(tiny_pbf_fixture_path))
 
-    min_lon, min_lat, max_lon, max_lat = parser.get_bounds()
+    south_lat, west_lon, north_lat, east_lon = parser.get_bounds()
 
-    assert min_lon == pytest.approx(8.0)
-    assert min_lat == pytest.approx(52.0)
-    assert max_lon == pytest.approx(8.02)
-    assert max_lat == pytest.approx(52.015)
+    assert south_lat == pytest.approx(52.0)
+    assert west_lon == pytest.approx(8.0)
+    assert north_lat == pytest.approx(52.015)
+    assert east_lon == pytest.approx(8.02)
 
 
 def test_parser_extracts_road_features(tiny_pbf_fixture_path: Path) -> None:

@@ -113,7 +113,7 @@ class Feature:
     """Represents a geographic feature extracted from OSM data.
 
     Attributes:
-        geometry: List of (lon, lat) coordinate tuples
+        geometry: List of (lat, lon) coordinate tuples
         tags: OSM tags dictionary
         is_closed: Whether the geometry forms a closed polygon
     """

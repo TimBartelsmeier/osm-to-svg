@@ -29,6 +29,12 @@ To extract a region of interest from a larger `.osm.pbf` file, [`osmium-tool`](h
 To play around with the styling options and see the results immediately without switching files, I recommend working in a Jupyter notebook (`pixi add jupyter`).
 
 ## Usage
+
+### Coordinate conventions
+This library uses the following conventions for coordinates:
+- **Individual coordinates**: `(latitude, longitude)` — lat first.
+- **Bounding boxes**: `(south_lat, west_lon, north_lat, east_lon)` — lat/lon pairs for the SW and NE corners.
+
 > [!NOTE]
 > Most of the code examples shown in this README are also included in the [example scripts](./examples/).
 
@@ -47,14 +53,14 @@ download_from_url(
 
 extract_from_pbf(
     source_pbf_path="niedersachsen.osm.pbf",
-    bbox=(9.68, 52.34, 9.79, 52.41),  # (min_lon, min_lat, max_lon, max_lat)
+    bbox=(52.34, 9.68, 52.41, 9.79),  # (south_lat, west_lon, north_lat, east_lon)
     output_path="hannover.osm.pbf",
 )
 ```
 
 As detailed [above](#additional-helpful-packages), extraction requires `osmium-tool`.
 
-#### Geocoding
+#### Geocoding & bounding arodund coordinates
 Instead of looking the coordinates up yourself, you can use `geocode_place` to query [OSM's Nominatim search engine](https://nominatim.openstreetmap.org/) for a place's coordinates, and then use `get_bbox_around_coordinates` to compute a bounding box of the desired size around them.
 
 ```python
@@ -70,12 +76,12 @@ bbox = get_bbox_around_coordinates(
     width_km=7.5,
     height_km=7.5,
 )
-# returns (min_lon, min_lat, max_lon, max_lat)
+# returns (south_lat, west_lon, north_lat, east_lon)
 
 # You can now pass the bbox object to extract_from_pbf (described above) and/or to pass create_map (described below).
 ```
 
-`get_bbox_around_coordinates` also accept asymmetric extents: you can specify ``east_km`` and ``west_km`` instead of ``width_km``, and/or  ``north_km`` and ``south_km`` instead of ``height_km`` (see the function's docstring for the full parameter reference).
+`get_bbox_around_coordinates` also accepts asymmetric extents: you can specify ``east_km`` and ``west_km`` instead of ``width_km``, and/or  ``north_km`` and ``south_km`` instead of ``height_km`` (see the function's docstring for the full parameter reference).
 
 #### Alternative approach: Overpass API
 
@@ -85,7 +91,7 @@ Data can also be downloaded directly from the Overpass API. Note that this is of
 from osm_to_svg import download_from_overpass
 
 download_from_overpass(
-    bbox=(9.735, 52.372, 9.745, 52.378),
+    bbox=(52.372, 9.735, 52.378, 9.745),
     output_path="area.osm.pbf"
 )
 ```
@@ -98,7 +104,7 @@ Options:
 - `pbf_path` — path to the `.osm.pbf` file to read.
 - `scale` — map scale denominator (default: `100000` for scale 1:100,000, i.e. 1 km in reality equals 1 cm in the output SVG). The scale is accurate at the centre latitude of the map bounds.
 - `dpi` — dots per inch for the output SVG (default: `96`). Common values: `96` (screen), `72` (print), `300` (high-res print).
-- `bounds` — optional bounding box as `(min_lon, min_lat, max_lon, max_lat)`. It is recommended to pass this even if your PBF file is already cropped to the region of interest because some features contained in the PBF file (such as long roads) can extend out of the PBF's region. Specifying the bounding box ensures the SVG is sized correctly and cropped to the region of interest. If omitted, bounds are derived from the PBF file by scanning all nodes.
+- `bounds` — optional bounding box as `(south_lat, west_lon, north_lat, east_lon)`. It is recommended to pass this even if your PBF file is already cropped to the region of interest because some features contained in the PBF file (such as long roads) can extend out of the PBF's region. Specifying the bounding box ensures the SVG is sized correctly and cropped to the region of interest. If omitted, bounds are derived from the PBF file by scanning all nodes.
 - `background_color` — optional background fill for the SVG (e.g. `"#FFFFFF"`, `"white"`). Defaults to `None` (transparent).
 - `feature_layers` — list of `(FeatureSpec, Style)` tuples. See below for details.
 - `poi_layers` — list of `([(lat, lon), ...], PoiStyle)` tuples. See below for details.
@@ -118,7 +124,7 @@ Feature layers are styled with the `Style` class. All attributes are optional an
 #### Adding point of interests (POIs)
 `poi_layers` is a list of `([(lat, lon), ...], PoiStyle)` tuples. Each entry places the same marker SVG at every coordinate in the list using the given `PoiStyle`.
 
-Coordinates must be provided as `(latitude, longitude)` pairs (note: the opposite order from the `bounds` bounding box, which uses `(lon, lat)`).
+Coordinates must be provided as `(latitude, longitude)` pairs.
 
 POI markers are styled with the `PoiStyle` class. Required:
 - `marker_svg_path` — path to the SVG file used as the marker icon.

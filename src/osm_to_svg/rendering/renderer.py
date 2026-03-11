@@ -78,7 +78,7 @@ class SVGRenderer:
 
             svg_coords = [
                 self.transformer.latlon_to_svg(lat, lon)
-                for lon, lat in feature.geometry
+                for lat, lon in feature.geometry
             ]
 
             if feature.is_closed and len(svg_coords) >= 3:

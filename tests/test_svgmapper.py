@@ -18,7 +18,7 @@ class DummyParser:
         self.pbf_path = pbf_path
 
     def get_bounds(self) -> tuple[float, float, float, float]:
-        return (8.0, 52.0, 8.2, 52.2)
+        return (52.0, 8.0, 52.2, 8.2)
 
     def extract_features(self, spec: FeatureSpec):  # noqa: ANN001
         return []
@@ -82,7 +82,7 @@ def test_svgmapper_gets_bounds_inside_context(
     patched_svgmapper_dependencies,
 ) -> None:
     with SvgMapper(str(pbf_path)) as mapper:
-        assert mapper.get_bounds() == (8.0, 52.0, 8.2, 52.2)
+        assert mapper.get_bounds() == (52.0, 8.0, 52.2, 8.2)
         assert mapper.get_dimensions() == (200, 100)
 
 

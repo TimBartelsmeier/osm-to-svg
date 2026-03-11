@@ -16,7 +16,7 @@ marker_svg = script_dir / "poi marker.svg"
 output_svg = output_dir / "advanced.svg"
 
 # Bounding box for Hannover obtained from example_1_geocode_bbox.py
-hannover_bbox = (9.68, 52.34, 9.79, 52.41)
+hannover_bbox = (52.34, 9.68, 52.41, 9.79)
 
 # POI coordinates (latitude, longitude)
 pois = [

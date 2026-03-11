@@ -27,7 +27,7 @@ class CoordinateTransformer:
         """Initialize coordinate transformer with geographic bounds.
 
         Args:
-            bounds: Geographic bounding box as (min_lon, min_lat, max_lon, max_lat)
+            bounds: Geographic bounding box as (south_lat, west_lon, north_lat, east_lon)
             scale: Map scale denominator (default: 100000 for 1:100,000).
                   At scale 1:100,000, 1km in reality = 1cm in output.
                   The scale is accurate at the center latitude.
@@ -48,10 +48,10 @@ class CoordinateTransformer:
         )
 
         # Project bounding box corners to get projected bounds
-        min_lon, min_lat, max_lon, max_lat = self.geo_bounds
+        south_lat, west_lon, north_lat, east_lon = self.geo_bounds
 
-        min_x, min_y = self.transformer.transform(min_lon, min_lat)
-        max_x, max_y = self.transformer.transform(max_lon, max_lat)
+        min_x, min_y = self.transformer.transform(west_lon, south_lat)
+        max_x, max_y = self.transformer.transform(east_lon, north_lat)
 
         # Store projected bounds
         self.proj_bounds = (min_x, min_y, max_x, max_y)
@@ -59,7 +59,7 @@ class CoordinateTransformer:
         self.proj_height = max_y - min_y
 
         # Calculate center latitude for Mercator scale correction
-        center_lat = (min_lat + max_lat) / 2.0
+        center_lat = (south_lat + north_lat) / 2.0
         mercator_factor = math.cos(math.radians(center_lat))
 
         # Adjust projected dimensions to actual ground distance in meters

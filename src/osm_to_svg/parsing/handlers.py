@@ -12,24 +12,24 @@ class BoundsHandler(osmium.SimpleHandler):
     def __init__(self):
         """Initialize the handler with infinite sentinel bounds."""
         super().__init__()
-        self.min_lon = float("inf")
-        self.min_lat = float("inf")
-        self.max_lon = float("-inf")
-        self.max_lat = float("-inf")
+        self.south_lat = float("inf")
+        self.west_lon = float("inf")
+        self.north_lat = float("-inf")
+        self.east_lon = float("-inf")
 
     def node(self, node):
         """Update the running min/max bounds from a valid node location."""
         if node.location.valid():
-            lon = node.location.lon
             lat = node.location.lat
-            self.min_lon = min(self.min_lon, lon)
-            self.min_lat = min(self.min_lat, lat)
-            self.max_lon = max(self.max_lon, lon)
-            self.max_lat = max(self.max_lat, lat)
+            lon = node.location.lon
+            self.south_lat = min(self.south_lat, lat)
+            self.west_lon = min(self.west_lon, lon)
+            self.north_lat = max(self.north_lat, lat)
+            self.east_lon = max(self.east_lon, lon)
 
     def get_bounds(self) -> tuple[float, float, float, float]:
-        """Return the accumulated bounding box as ``(min_lon, min_lat, max_lon, max_lat)``."""
-        return (self.min_lon, self.min_lat, self.max_lon, self.max_lat)
+        """Return the accumulated bounding box as ``(south_lat, west_lon, north_lat, east_lon)``."""
+        return (self.south_lat, self.west_lon, self.north_lat, self.east_lon)
 
 
 class FeatureHandler(osmium.SimpleHandler):
@@ -45,7 +45,7 @@ class FeatureHandler(osmium.SimpleHandler):
     def node(self, node):
         """Cache valid node locations for later way geometry resolution."""
         if node.location.valid():
-            self.node_cache[node.id] = (node.location.lon, node.location.lat)
+            self.node_cache[node.id] = (node.location.lat, node.location.lon)
 
     def way(self, way):
         """Extract a way as a Feature if its tags match the spec."""
@@ -72,7 +72,7 @@ class FeatureHandler(osmium.SimpleHandler):
 
         try:
             outer_ring = list(area.outer_rings())[0]
-            geometry = [(node.lon, node.lat) for node in outer_ring]
+            geometry = [(node.lat, node.lon) for node in outer_ring]
             if len(geometry) >= 4:
                 self.features.append(
                     Feature(geometry=geometry, tags=tags, is_closed=True)
