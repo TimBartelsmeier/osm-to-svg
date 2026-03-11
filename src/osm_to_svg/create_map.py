@@ -1,5 +1,7 @@
 """Convenience utility for one-shot SVG map creation."""
 
+from tqdm import tqdm
+
 from osm_to_svg.features import FeatureSpec
 from osm_to_svg.mapper import SvgMapper
 from osm_to_svg.models import PoiStyle, Style
@@ -15,6 +17,7 @@ def create_map(
     feature_layers: list[tuple[FeatureSpec, Style]] | None = None,
     poi_layers: list[tuple[list[tuple[float, float]], PoiStyle]] | None = None,
     output_path: str,
+    show_progress: bool = False,
 ) -> None:
     """Create an SVG map using a single convenience call.
 
@@ -40,18 +43,55 @@ def create_map(
         poi_layers: POI marker instructions as
             ``[(coords, poi_style), ...]`` where coords are ``[(lat, lon), ...]``.
         output_path: Destination path for the final combined SVG.
+        show_progress: If ``True``, display two tqdm progress bars: an outer bar
+            tracking overall layer progress and an inner bar tracking the current
+            layer (indeterminate while parsing the PBF, determinate while
+            rendering features). Defaults to ``False``.
     """
-    with SvgMapper(
-        pbf_path=pbf_path,
-        scale=scale,
-        dpi=dpi,
-        bounds=bounds,
-        background_color=background_color,
-    ) as mapper:
-        for feature_spec, style in feature_layers or []:
-            mapper.render_features(feature_spec, style)
+    n_feature_layers = len(feature_layers or [])
+    n_poi_layers = len(poi_layers or [])
+    total_layers = n_feature_layers + n_poi_layers
 
-        for coords, poi_style in poi_layers or []:
-            mapper.place_poi_markers(coords=coords, poi_style=poi_style)
+    outer_bar: tqdm | None = None
+    inner_bar: tqdm | None = None
+    if show_progress:
+        outer_bar = tqdm(
+            total=total_layers, position=0, leave=True, desc="Rendering map"
+        )
+        inner_bar = tqdm(total=None, position=1, leave=False, desc="")
 
-        mapper.save(output_path)
+    try:
+        with SvgMapper(
+            pbf_path=pbf_path,
+            scale=scale,
+            dpi=dpi,
+            bounds=bounds,
+            background_color=background_color,
+        ) as mapper:
+            for i, (feature_spec, style) in enumerate(feature_layers or []):
+                if outer_bar is not None:
+                    tag_keys = ", ".join(sorted(feature_spec.tag_filters.keys()))
+                    outer_bar.set_description(
+                        f"Layer {i + 1}/{total_layers} [{tag_keys}]"
+                    )
+                mapper.render_features(feature_spec, style, _progress_bar=inner_bar)
+                if outer_bar is not None:
+                    outer_bar.update(1)
+
+            for j, (coords, poi_style) in enumerate(poi_layers or []):
+                if outer_bar is not None:
+                    outer_bar.set_description(
+                        f"Layer {n_feature_layers + j + 1}/{total_layers} [pois]"
+                    )
+                mapper.place_poi_markers(
+                    coords=coords, poi_style=poi_style, _progress_bar=inner_bar
+                )
+                if outer_bar is not None:
+                    outer_bar.update(1)
+
+            mapper.save(output_path)
+    finally:
+        if inner_bar is not None:
+            inner_bar.close()
+        if outer_bar is not None:
+            outer_bar.close()

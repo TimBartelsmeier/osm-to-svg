@@ -35,6 +35,7 @@ print("  - Local roads")
 print("  - Railways")
 print("  - POI markers")
 print("This may take some time...")
+print()
 create_map(
     pbf_path=str(hannover_pbf),
     bounds=hannover_bbox,
@@ -56,6 +57,8 @@ create_map(
         )
     ],
     output_path=str(output_svg),
+    show_progress=True,
 )
 
+print()
 print(f"Saved: {output_svg}")

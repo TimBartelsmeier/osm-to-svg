@@ -33,6 +33,7 @@ class SVGRenderer:
         features: list[Feature],
         style: Style,
         layer_id: str = "features",
+        _progress_bar=None,
     ) -> ET.Element:
         """Render a list of OSM features to an SVG ``<svg>`` element.
 
@@ -74,6 +75,8 @@ class SVGRenderer:
 
         for feature in features:
             if len(feature.geometry) < 2:
+                if _progress_bar is not None:
+                    _progress_bar.update(1)
                 continue
 
             svg_coords = [
@@ -86,6 +89,9 @@ class SVGRenderer:
             else:
                 group.add(dwg.polyline(points=svg_coords, **style_attrs))
 
+            if _progress_bar is not None:
+                _progress_bar.update(1)
+
         dwg.add(group)
         return self._drawing_to_element(dwg)
 
@@ -94,6 +100,7 @@ class SVGRenderer:
         coords: list[tuple[float, float]],
         poi_style: PoiStyle,
         layer_id: str = "pois",
+        _progress_bar=None,
     ) -> ET.Element:
         """Render POI markers at geographic coordinates and return an SVG ``<svg>`` element.
 
@@ -174,6 +181,9 @@ class SVGRenderer:
 
             marker_group.add(marker_svg)
             pois_group.add(marker_group)
+
+            if _progress_bar is not None:
+                _progress_bar.update(1)
 
         dwg.add(pois_group)
         return self._drawing_to_element(dwg)

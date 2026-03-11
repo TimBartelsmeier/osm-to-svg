@@ -29,5 +29,6 @@ create_map(
         )
     ],
     output_path=str(output_svg),
+    show_progress=True,
 )
 print(f"Saved: {output_svg}")

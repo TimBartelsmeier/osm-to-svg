@@ -116,6 +116,7 @@ class SvgMapper:
         features: FeatureSpec,
         style: Style,
         layer_id: str | None = None,
+        _progress_bar=None,
     ) -> None:
         """Render cartographic features and accumulate the layer in memory.
 
@@ -139,7 +140,17 @@ class SvgMapper:
             raise RuntimeError("SvgMapper must be used as a context manager")
 
         # Extract features from PBF
+        if _progress_bar is not None:
+            _progress_bar.set_description("Parsing PBF...")
+            _progress_bar.n = 0
+            _progress_bar.total = None
+            _progress_bar.refresh()
         osm_features = self.parser.extract_features(features)
+        if _progress_bar is not None:
+            _progress_bar.set_description("Rendering features")
+            _progress_bar.n = 0
+            _progress_bar.total = len(osm_features)
+            _progress_bar.refresh()
 
         # Determine layer ID
         if layer_id is None:
@@ -147,7 +158,9 @@ class SvgMapper:
         layer_id = f"{len(self._layers)} {layer_id}"
 
         # Render to in-memory element and accumulate layer
-        element = self.renderer.render_features(osm_features, style, layer_id)
+        element = self.renderer.render_features(
+            osm_features, style, layer_id, _progress_bar=_progress_bar
+        )
         self._layers.append(element)
 
     def place_poi_markers(
@@ -155,6 +168,7 @@ class SvgMapper:
         coords: list[tuple[float, float]],
         poi_style: PoiStyle,
         layer_id: str | None = None,
+        _progress_bar=None,
     ) -> None:
         """Place POI markers at specified geographic coordinates and accumulate the layer.
 
@@ -196,11 +210,18 @@ class SvgMapper:
             layer_id = "pois"
         poi_layer_id = f"{len(self._layers)} {layer_id}"
 
+        if _progress_bar is not None:
+            _progress_bar.set_description("Placing markers")
+            _progress_bar.n = 0
+            _progress_bar.total = len(coords)
+            _progress_bar.refresh()
+
         # Render POI markers in-memory and accumulate layer
         element = self.renderer.place_poi_markers(
             coords,
             poi_style,
             poi_layer_id,
+            _progress_bar=_progress_bar,
         )
         self._layers.append(element)
 

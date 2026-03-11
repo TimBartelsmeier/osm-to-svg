@@ -26,6 +26,7 @@ hannover_bbox = (52.34, 9.68, 52.41, 9.79)
 # Render all buildings and roads
 print("Rendering all buildings and roads.")
 print("This may take a while...")
+print()
 
 # All building types via dedicated shorthand
 all_buildings = features.BUILDINGS.ALL
@@ -42,6 +43,8 @@ create_map(
         (all_roads, Style(stroke="#000000", stroke_width=0.25)),
     ],
     output_path=str(output_svg),
+    show_progress=True,
 )
 
+print()
 print(f"Saved: {output_svg}")

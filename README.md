@@ -109,6 +109,7 @@ Options:
 - `feature_layers` — list of `(FeatureSpec, Style)` tuples. See below for details.
 - `poi_layers` — list of `([(lat, lon), ...], PoiStyle)` tuples. See below for details.
 - `output_path` — path for the final combined SVG file.
+- `show_progress` — if `True`, displays two progress bars via `tqdm`: an outer bar showing the current layer (e.g. `Layer 1/3 [highway]`), and an inner bar showing per-layer progress. The inner bar is indeterminate while the PBF file is being parsed (which is most likely the majority of the processing time per layer), then switches to a determinate feature count during SVG rendering. Defaults to `False`.
 
 #### Specifiying features (roads, forests, ...)
 `feature_layers` is a list of `(FeatureSpec, Style)` tuples. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. The available features (and how to combine them) are described [below](#available-features).

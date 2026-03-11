@@ -39,7 +39,7 @@ class DummyRenderer:
         self.transformer = transformer
         self.background_color = background_color
 
-    def render_features(self, features, style, layer_id):  # noqa: ANN001
+    def render_features(self, features, style, layer_id, _progress_bar=None):  # noqa: ANN001
         return ET.Element("svg")
 
     def place_poi_markers(
@@ -47,6 +47,7 @@ class DummyRenderer:
         coords,  # noqa: ANN001
         poi_style,  # noqa: ANN001
         layer_id="pois",  # noqa: ANN001
+        _progress_bar=None,
     ):
         return ET.Element("svg")
 
@@ -191,7 +192,7 @@ def _capture_render_layer_ids(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     original_render = DummyRenderer.render_features
     original_poi = DummyRenderer.place_poi_markers
 
-    def spy_render(self, features, style, layer_id):  # noqa: ANN001
+    def spy_render(self, features, style, layer_id, _progress_bar=None):  # noqa: ANN001
         captured.append(layer_id)
         return original_render(self, features, style, layer_id)
 
@@ -200,6 +201,7 @@ def _capture_render_layer_ids(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         coords,
         poi_style,
         layer_id="pois",
+        _progress_bar=None,
     ):
         captured.append(layer_id)
         return original_poi(
@@ -345,13 +347,16 @@ def test_create_map_uses_svgmapper_workflow(
         def __exit__(self, exc_type, exc_val, exc_tb):  # noqa: ANN001
             calls.append(("exit", None))
 
-        def render_features(self, feature_spec: FeatureSpec, style: Style) -> None:
+        def render_features(
+            self, feature_spec: FeatureSpec, style: Style, _progress_bar=None
+        ) -> None:
             calls.append(("render_features", (feature_spec, style)))
 
         def place_poi_markers(
             self,
             coords: list[tuple[float, float]],
             poi_style: PoiStyle,
+            _progress_bar=None,
         ) -> None:
             calls.append(("place_poi_markers", (coords, poi_style)))
 
@@ -431,7 +436,9 @@ def test_create_map_defaults_to_empty_layers(
         def __exit__(self, exc_type, exc_val, exc_tb):  # noqa: ANN001
             return None
 
-        def render_features(self, feature_spec: FeatureSpec, style: Style) -> None:
+        def render_features(
+            self, feature_spec: FeatureSpec, style: Style, _progress_bar=None
+        ) -> None:
             del feature_spec, style
             calls.append("render_features")
 
@@ -439,6 +446,7 @@ def test_create_map_defaults_to_empty_layers(
             self,
             coords: list[tuple[float, float]],
             poi_style: PoiStyle,
+            _progress_bar=None,
         ) -> None:
             del coords, poi_style
             calls.append("place_poi_markers")
