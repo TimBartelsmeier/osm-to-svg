@@ -1,0 +1,37 @@
+Pixi task (test-cov in dev): python -m pytest --cov=osm_to_svg --cov-report=term-missing
+........................................................................ [ 51%]
+...................................................................      [100%]
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.14.3-final-0 _______________
+
+Name                                       Stmts   Miss  Cover   Missing
+------------------------------------------------------------------------
+src\osm_to_svg\__init__.py                     8      0   100%
+src\osm_to_svg\acquisition\__init__.py         5      0   100%
+src\osm_to_svg\acquisition\bbox.py            44      0   100%
+src\osm_to_svg\acquisition\downloader.py      62      0   100%
+src\osm_to_svg\acquisition\extractor.py       16      0   100%
+src\osm_to_svg\acquisition\geocoding.py       15      0   100%
+src\osm_to_svg\create_map.py                  28      0   100%
+src\osm_to_svg\features\__init__.py            8      0   100%
+src\osm_to_svg\features\buildings.py         104      0   100%
+src\osm_to_svg\features\green_spaces.py       60      0   100%
+src\osm_to_svg\features\landuse.py            16      0   100%
+src\osm_to_svg\features\railways.py           30      0   100%
+src\osm_to_svg\features\roads.py              58      0   100%
+src\osm_to_svg\features\spec.py               36      0   100%
+src\osm_to_svg\features\water.py              79      0   100%
+src\osm_to_svg\mapper.py                      80      0   100%
+src\osm_to_svg\models.py                      35      0   100%
+src\osm_to_svg\parsing\__init__.py             3      0   100%
+src\osm_to_svg\parsing\handlers.py            57      0   100%
+src\osm_to_svg\parsing\parser.py              23      0   100%
+src\osm_to_svg\projection.py                  41      0   100%
+src\osm_to_svg\rendering\__init__.py           3      0   100%
+src\osm_to_svg\rendering\combiner.py          46      0   100%
+src\osm_to_svg\rendering\renderer.py         126      0   100%
+src\osm_to_svg\rendering\svg_utils.py         48      0   100%
+src\osm_to_svg\validation.py                  11      0   100%
+------------------------------------------------------------------------
+TOTAL                                       1042      0   100%
+139 passed in 0.85s

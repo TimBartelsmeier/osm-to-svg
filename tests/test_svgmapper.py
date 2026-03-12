@@ -476,7 +476,7 @@ def test_create_map_defaults_to_empty_layers(
     assert calls == ["save"]
 
 
-def test_create_map_show_progress_updates_and_closes_bars(
+def test_create_map_show_progress_updates_and_closes_bar(
     pbf_path: Path,
     marker_svg_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -543,18 +543,16 @@ def test_create_map_show_progress_updates_and_closes_bars(
         show_progress=True,
     )
 
-    assert len(created_bars) == 2
-    outer_bar, inner_bar = created_bars
-    assert outer_bar.kwargs["desc"] == "Rendering map"
-    assert outer_bar.updates == [1, 1]
-    assert outer_bar.descriptions == ["Layer 1/2 [highway]", "Layer 2/2 [pois]"]
-    assert outer_bar.closed is True
-    assert inner_bar.kwargs["desc"] == ""
-    assert inner_bar.closed is True
+    assert len(created_bars) == 1
+    progress_bar = created_bars[0]
+    assert progress_bar.kwargs["desc"] == "Rendering map"
+    assert progress_bar.updates == [1, 1]
+    assert progress_bar.descriptions == ["Layer 1/2", "Layer 2/2"]
+    assert progress_bar.closed is True
     assert calls[2][0] == "render_features"
-    assert calls[2][1][2] is inner_bar
+    assert calls[2][1][2] is None
     assert calls[3][0] == "place_poi_markers"
-    assert calls[3][1][2] is inner_bar
+    assert calls[3][1][2] is None
 
 
 def test_svgmapper_render_features_updates_progress_bar(
