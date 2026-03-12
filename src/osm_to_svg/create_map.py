@@ -11,7 +11,7 @@ def create_map(
     *,
     pbf_path: str,
     scale: int = 100000,
-    dpi: int = 96,
+    dpi: int = 300,
     bounds: tuple[float, float, float, float] | None = None,
     background_color: str | None = None,
     feature_layers: list[tuple[FeatureSpec, Style]] | None = None,
@@ -33,7 +33,7 @@ def create_map(
     Args:
         pbf_path: Path to the OpenStreetMap PBF file.
         scale: Map scale denominator (default: 100000 for 1:100,000). The scale is accurate at the centre latitude of the map bounds.
-        dpi: Dots per inch for the output SVG (default: 96).
+        dpi: Dots per inch for the output SVG (default: 300).
         bounds: Optional bounding box as (south_lat, west_lon, north_lat, east_lon).
             Passing this explicitly is recommended for predictable clipping and
             output dimensions.

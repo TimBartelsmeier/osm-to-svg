@@ -22,6 +22,7 @@ print("Rendering major roads...")
 create_map(
     pbf_path=str(hannover_pbf),
     bounds=hannover_bbox,
+    background_color="#FFFFFF",
     feature_layers=[
         (
             features.ROADS.MAJOR,

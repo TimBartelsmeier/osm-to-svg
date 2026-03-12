@@ -22,7 +22,7 @@ class CoordinateTransformer:
         self,
         bounds: tuple[float, float, float, float],
         scale: int = 100000,
-        dpi: int = 96,
+        dpi: int = 300,
     ):
         """Initialize coordinate transformer with geographic bounds.
 
@@ -31,7 +31,7 @@ class CoordinateTransformer:
             scale: Map scale denominator (default: 100000 for 1:100,000).
                   At scale 1:100,000, 1km in reality = 1cm in output.
                   The scale is accurate at the center latitude.
-            dpi: Dots per inch for the output SVG (default: 96)
+            dpi: Dots per inch for the output SVG (default: 300)
         """
         if scale <= 0:
             raise ValueError("scale must be greater than 0")

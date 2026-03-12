@@ -1,5 +1,4 @@
-- geocode POIs
-- background for examples
+- let AI scan the features for missing features, duplicates, consistency, etc.
 - only one progress bar - text or Jupyter
 
 Quality Control

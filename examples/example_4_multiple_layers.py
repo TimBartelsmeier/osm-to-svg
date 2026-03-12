@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from osm_to_svg import PoiStyle, Style, create_map, features
+from osm_to_svg import PoiStyle, Style, create_map, features, geocode_place
 
 # Set up directories relative to this script
 script_dir = Path(__file__).parent
@@ -18,12 +18,15 @@ output_svg = output_dir / "advanced.svg"
 # Bounding box for Hannover obtained from example_1_geocode_bbox.py
 hannover_bbox = (52.34, 9.68, 52.41, 9.79)
 
-# POI coordinates (latitude, longitude)
-pois = [
-    (52.3731, 9.7372),  # Kröpcke
-    (52.3665, 9.7353),  # Landtag
-    (52.3830, 9.7180),  # Leibniz University
+# POI names geocoded to (latitude, longitude)
+poi_places = [
+    "Kröpcke, Hannover, Germany",
+    "Landtag Niedersachsen, Hannover, Germany",
+    "Leibniz University Hannover, Germany",
 ]
+
+print("Geocoding POIs...")
+pois = [geocode_place(place) for place in poi_places]
 
 # Render multiple layers
 print("Rendering comprehensive map:")
@@ -39,6 +42,7 @@ print()
 create_map(
     pbf_path=str(hannover_pbf),
     bounds=hannover_bbox,
+    background_color="#FFFFFF",
     feature_layers=[
         (features.WATER_POLYGONS.OPEN_WATER, Style(fill="#4A90E2")),
         (features.GREEN_SPACES.FORESTS, Style(fill="#046A04")),

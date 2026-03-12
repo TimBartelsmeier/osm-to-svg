@@ -103,7 +103,7 @@ The `create_map` method is used to create SVG images from the cartographic data.
 Options:
 - `pbf_path` — path to the `.osm.pbf` file to read.
 - `scale` — map scale denominator (default: `100000` for scale 1:100,000, i.e. 1 km in reality equals 1 cm in the output SVG). The scale is accurate at the centre latitude of the map bounds.
-- `dpi` — dots per inch for the output SVG (default: `96`). Common values: `96` (screen), `72` (print), `300` (high-res print).
+- `dpi` — dots per inch for the output SVG (default: `300`). Common values: `96` (screen), `72` (print), `300` (high-res print).
 - `bounds` — optional bounding box as `(south_lat, west_lon, north_lat, east_lon)`. It is recommended to pass this even if your PBF file is already cropped to the region of interest because some features contained in the PBF file (such as long roads) can extend out of the PBF's region. Specifying the bounding box ensures the SVG is sized correctly and cropped to the region of interest. If omitted, bounds are derived from the PBF file by scanning all nodes.
 - `background_color` — optional background fill for the SVG (e.g. `"#FFFFFF"`, `"white"`). Defaults to `None` (transparent).
 - `feature_layers` — list of `(FeatureSpec, Style)` tuples. See below for details.

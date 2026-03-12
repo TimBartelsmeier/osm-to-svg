@@ -25,7 +25,7 @@ class DummyParser:
 
 
 class DummyCoordinateTransformer:
-    def __init__(self, bounds, scale: int = 100000, dpi: int = 96):  # noqa: ANN001
+    def __init__(self, bounds, scale: int = 100000, dpi: int = 300):  # noqa: ANN001
         self.geo_bounds = bounds
         self.scale = scale
         self.dpi = dpi
@@ -323,7 +323,7 @@ def test_create_map_uses_svgmapper_workflow(
             self,
             pbf_path: str,
             scale: int = 100000,
-            dpi: int = 96,
+            dpi: int = 300,
             bounds: tuple[float, float, float, float] | None = None,
             background_color: str | None = None,
         ):
@@ -424,7 +424,7 @@ def test_create_map_defaults_to_empty_layers(
             self,
             pbf_path: str,
             scale: int = 100000,
-            dpi: int = 96,
+            dpi: int = 300,
             bounds: tuple[float, float, float, float] | None = None,
             background_color: str | None = None,
         ):

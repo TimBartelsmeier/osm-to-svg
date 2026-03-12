@@ -27,7 +27,7 @@ class SvgMapper:
 
     Example:
         >>> from osm_to_svg import features
-        >>> with SvgMapper("city.osm.pbf", scale=50000, dpi=96, background_color="#FFFFFF") as mapper:
+        >>> with SvgMapper("city.osm.pbf", scale=50000, dpi=300, background_color="#FFFFFF") as mapper:
         ...     mapper.render_features(
         ...         features.ROADS.MAJOR,
         ...         Style(stroke="#FF0000", stroke_width=2.0),
@@ -43,7 +43,7 @@ class SvgMapper:
         self,
         pbf_path: str,
         scale: int = 100000,
-        dpi: int = 96,
+        dpi: int = 300,
         bounds: tuple[float, float, float, float] | None = None,
         background_color: str | None = None,
     ):
@@ -54,7 +54,7 @@ class SvgMapper:
             scale: Map scale denominator (default: 100000 for 1:100,000).
                   At this scale, 1km in reality corresponds to 1cm in the output.
                   The scale is accurate at the center latitude of the map bounds.
-            dpi: Dots per inch for the output SVG (default: 96).
+            dpi: Dots per inch for the output SVG (default: 300).
                  Standard values: 96 (web/screen), 72 (print), 300 (high-res print).
             bounds: Optional custom bounding box as (south_lat, west_lon, north_lat, east_lon).
                    If not provided, bounds will be extracted from the PBF file by scanning
