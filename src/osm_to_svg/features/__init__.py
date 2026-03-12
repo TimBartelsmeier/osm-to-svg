@@ -2,6 +2,7 @@
 
 from osm_to_svg.features.buildings import BUILDINGS
 from osm_to_svg.features.green_spaces import GREEN_SPACES
+from osm_to_svg.features.landuse import LANDUSE
 from osm_to_svg.features.railways import RAILWAYS
 from osm_to_svg.features.roads import ROADS
 from osm_to_svg.features.spec import FeatureSpec
@@ -15,4 +16,5 @@ __all__ = [
     "WATER_POLYGONS",
     "BUILDINGS",
     "GREEN_SPACES",
+    "LANDUSE",
 ]

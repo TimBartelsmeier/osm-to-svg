@@ -3,12 +3,12 @@
 from osm_to_svg.features.spec import FeatureSpec
 
 
-def _w(value: str) -> FeatureSpec:
+def _ww(value: str) -> FeatureSpec:
     """Shorthand for a single waterway= filter (linear waterways)."""
     return FeatureSpec({"waterway": [value]}, needs_areas=False)
 
 
-def _wa(*clauses: dict[str, list[str]]) -> FeatureSpec:
+def _wp(*clauses: dict[str, list[str]]) -> FeatureSpec:
     """Shorthand for a polygonal water feature using one or more tag clauses."""
     return FeatureSpec(match_clauses=list(clauses), needs_areas=True)
 
@@ -28,36 +28,43 @@ class WATERWAYS:
         mapper.render_features(features.WATERWAYS.ALL, style)
     """
 
-    RIVER = _w("river")
+    RIVER = _ww("river")
     """waterway=river: Major natural watercourse centerline; also available as a filled area in WATER_POLYGONS.RIVER."""
-    STREAM = _w("stream")
+    STREAM = _ww("stream")
     """waterway=stream: Minor natural watercourse, smaller than a river."""
-    CANAL = _w("canal")
+    CANAL = _ww("canal")
     """waterway=canal: Artificial navigable waterway centerline; also available as a filled area in WATER_POLYGONS.CANAL."""
-    DRAIN = _w("drain")
+    DRAIN = _ww("drain")
     """waterway=drain: Artificial drainage channel, typically not navigable."""
-    DITCH = _w("ditch")
+    DITCH = _ww("ditch")
     """waterway=ditch: Small artificial drainage ditch."""
+    WEIR = _ww("weir")
+    """waterway=weir: Low barrier structure across a stream or river."""
+    LOCK = _ww("lock")
+    """waterway=lock: Lock chamber segment on a navigable waterway."""
+    WATERFALL = _ww("waterfall")
+    """waterway=waterfall: Waterfall feature mapped as a linear waterway."""
 
-    ALL = RIVER | STREAM | CANAL | DRAIN | DITCH
+    ALL = RIVER | STREAM | CANAL | DRAIN | DITCH | WEIR | LOCK | WATERFALL
     """Shorthand for all supported line waterways.
 
-    OSM tags: waterway=river, stream, canal, drain, ditch.
+    OSM tags: waterway=river, stream, canal, drain, ditch, weir, lock,
+    waterfall.
     """
     FLOWING = RIVER | STREAM | CANAL
     """Shorthand for flowing waterways with a visible channel.
 
     OSM tags: waterway=river, stream, canal.
     """
-    NATURAL = RIVER | STREAM
+    NATURAL = RIVER | STREAM | WATERFALL
     """Shorthand for natural watercourse centerlines.
 
-    OSM tags: waterway=river, stream.
+    OSM tags: waterway=river, stream, waterfall.
     """
-    ARTIFICIAL = CANAL | DRAIN | DITCH
+    ARTIFICIAL = CANAL | DRAIN | DITCH | WEIR | LOCK
     """Shorthand for human-made linear waterways.
 
-    OSM tags: waterway=canal, drain, ditch.
+    OSM tags: waterway=canal, drain, ditch, weir, lock.
     """
     DRAINAGE = DRAIN | DITCH
     """Shorthand for narrow drainage-oriented waterways.
@@ -86,41 +93,41 @@ class WATER_POLYGONS:
         mapper.render_features(features.WATER_POLYGONS.OPEN_WATER, fill_style)
     """
 
-    WATER_AREA = _wa({"natural": ["water"]})
+    WATER_AREA = _wp({"natural": ["water"]})
     """natural=water: Generic open-water polygon."""
-    LAKE = _wa({"natural": ["water"], "water": ["lake"]})
+    LAKE = _wp({"natural": ["water"], "water": ["lake"]})
     """natural=water + water=lake: Lake polygon."""
-    RESERVOIR = _wa({"natural": ["water"], "water": ["reservoir"]})
+    RESERVOIR = _wp({"natural": ["water"], "water": ["reservoir"]})
     """natural=water + water=reservoir: Reservoir polygon."""
-    POND = _wa({"natural": ["water"], "water": ["pond"]})
+    POND = _wp({"natural": ["water"], "water": ["pond"]})
     """natural=water + water=pond: Pond polygon."""
-    LAGOON = _wa({"natural": ["water"], "water": ["lagoon"]})
+    LAGOON = _wp({"natural": ["water"], "water": ["lagoon"]})
     """natural=water + water=lagoon: Lagoon polygon."""
-    BASIN = _wa(
+    BASIN = _wp(
         {"landuse": ["basin"]},
         {"natural": ["water"], "water": ["basin"]},
     )
     """landuse=basin or natural=water + water=basin: Basin polygon, usually engineered."""
-    SALT_POND = _wa({"landuse": ["salt_pond"]})
+    SALT_POND = _wp({"landuse": ["salt_pond"]})
     """landuse=salt_pond: Salt evaporation pond or saline basin polygon."""
-    RIVER = _wa(
+    RIVER = _wp(
         {"waterway": ["riverbank"]},
         {"natural": ["water"], "water": ["river"]},
     )
     """waterway=riverbank or natural=water + water=river: River area polygon; the same feature is available as a centerline in WATERWAYS.RIVER."""
-    CANAL = _wa({"natural": ["water"], "water": ["canal"]})
+    CANAL = _wp({"natural": ["water"], "water": ["canal"]})
     """natural=water + water=canal: Canal area polygon; the same feature is available as a centerline in WATERWAYS.CANAL."""
-    WETLAND_TYPE = _wa({"natural": ["wetland"]})
+    WETLAND_TYPE = _wp({"natural": ["wetland"]})
     """natural=wetland: Generic wetland polygon; also matches GREEN_SPACES.WETLAND (specific OSM tag value; see WETLANDS for a shorthand group that also encompasses other wetland subtypes such as marsh, swamp, reedbed, and saltmarsh)"""
-    MARSH = _wa({"natural": ["wetland"], "wetland": ["marsh"]})
+    MARSH = _wp({"natural": ["wetland"], "wetland": ["marsh"]})
     """natural=wetland + wetland=marsh: Marsh polygon; also semantically valid as green space."""
-    SWAMP = _wa({"natural": ["wetland"], "wetland": ["swamp"]})
+    SWAMP = _wp({"natural": ["wetland"], "wetland": ["swamp"]})
     """natural=wetland + wetland=swamp: Swamp polygon; also semantically valid as green space."""
-    REEDBED = _wa({"natural": ["wetland"], "wetland": ["reedbed"]})
+    REEDBED = _wp({"natural": ["wetland"], "wetland": ["reedbed"]})
     """natural=wetland + wetland=reedbed: Reedbed polygon; also semantically valid as green space."""
-    SALTMARSH = _wa({"natural": ["wetland"], "wetland": ["saltmarsh"]})
+    SALTMARSH = _wp({"natural": ["wetland"], "wetland": ["saltmarsh"]})
     """natural=wetland + wetland=saltmarsh: Saltmarsh polygon; also semantically valid as green space."""
-    COASTLINE = _wa({"natural": ["coastline"]})
+    COASTLINE = _wp({"natural": ["coastline"]})
     """natural=coastline: Coastline or sea-edge polygon when area geometry is present."""
 
     OPEN_WATER = WATER_AREA | LAKE | RESERVOIR | POND | LAGOON | BASIN | SALT_POND

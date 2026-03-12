@@ -171,7 +171,7 @@ create_map(
 )
 ```
 
-Note: OSM is very granular in separating different types of features. For example, motorways (`features.ROADS.MOTORWAYS`) are tagged differently than the ramps leading to them (`features.ROADS.MOTORWAY_LINK`). This can be a curse and a blessing: it gives you very granular control over your maps, but if you have unexpected "gaps" in your map, you probabaly need to research what additional tags you need to include in your query. The shorthand groups included in this library are intended to provide a good starting point for common applications.
+Note: OSM is very granular in separating different types of features. For example, motorways (`features.ROADS.MOTORWAY`) are tagged differently than the ramps leading to them (`features.ROADS.MOTORWAY_LINK`). This can be a curse and a blessing: it gives you very granular control over your maps, but if you have unexpected "gaps" in your map, you probabaly need to research what additional tags you need to include in your query. The shorthand groups included in this library are intended to provide a good starting point for common applications.
 
 ### ROADS
 
@@ -196,7 +196,8 @@ OSM tag: `highway`
 | `features.ROADS.CYCLEWAY` | `highway=cycleway` | Dedicated cycling path |
 | `features.ROADS.FOOTWAY` | `highway=footway` | Designated footpath |
 | `features.ROADS.PATH` | `highway=path` | Unpaved multi-use trail |
-| `features.ROADS.PEDESTRIAN_TYPE` | `highway=pedestrian` | Pedestrianised street or plaza (specific OSM tag value; see PEDESTRIAN for a shorthand group that also encompasses other features that would commonly be counted as pedestrian paths) |
+| `features.ROADS.BRIDLEWAY` | `highway=bridleway` | Route designated for horse riders |
+| `features.ROADS.PEDESTRIAN_TAG` | `highway=pedestrian` | OSM tag value for pedestrianised streets and plazas |
 | `features.ROADS.STEPS` | `highway=steps` | Stairway connection |
 | `features.ROADS.TRACK` | `highway=track` | Agricultural or forestry track |
 | `features.ROADS.ROAD` | `highway=road` | Road of unknown classification |
@@ -208,7 +209,8 @@ Shorthands:
 | `features.ROADS.MAJOR` | `MOTORWAY` \| `MOTORWAY_LINK` \| `TRUNK` \| `TRUNK_LINK` \| `PRIMARY` \| `PRIMARY_LINK` \| `SECONDARY` \| `SECONDARY_LINK` \| `TERTIARY` \| `TERTIARY_LINK` |
 | `features.ROADS.ARTERIAL` | `MOTORWAY` \| `MOTORWAY_LINK` \| `TRUNK` \| `TRUNK_LINK` \| `PRIMARY` \| `PRIMARY_LINK` |
 | `features.ROADS.LOCAL` | `RESIDENTIAL` \| `UNCLASSIFIED` \| `SERVICE` \| `LIVING_STREET` |
-| `features.ROADS.PEDESTRIAN` | `FOOTWAY` \| `PATH` \| `PEDESTRIAN_TYPE` \| `STEPS` |
+| `features.ROADS.PEDESTRIAN` | `FOOTWAY` \| `PATH` \| `BRIDLEWAY` \| `PEDESTRIAN_TAG` \| `STEPS` |
+| `features.ROADS.ACTIVE_MOBILITY` | `CYCLEWAY` \| `FOOTWAY` \| `PATH` \| `BRIDLEWAY` \| `PEDESTRIAN_TAG` \| `STEPS` |
 
 ### RAILWAYS
 
@@ -248,15 +250,18 @@ OSM tag: `waterway`
 | `features.WATERWAYS.CANAL` | `waterway=canal` | Artificial navigable waterway centerline |
 | `features.WATERWAYS.DRAIN` | `waterway=drain` | Drainage channel centerline |
 | `features.WATERWAYS.DITCH` | `waterway=ditch` | Small drainage ditch centerline |
+| `features.WATERWAYS.WEIR` | `waterway=weir` | Low barrier structure across a stream or river |
+| `features.WATERWAYS.LOCK` | `waterway=lock` | Lock chamber segment on a navigable waterway |
+| `features.WATERWAYS.WATERFALL` | `waterway=waterfall` | Waterfall feature mapped as a linear waterway |
 
 Shorthands:
 
 | Shorthand | Composition |
 |---|---|
-| `features.WATERWAYS.ALL` | `RIVER` \| `STREAM` \| `CANAL` \| `DRAIN` \| `DITCH` |
+| `features.WATERWAYS.ALL` | `RIVER` \| `STREAM` \| `CANAL` \| `DRAIN` \| `DITCH` \| `WEIR` \| `LOCK` \| `WATERFALL` |
 | `features.WATERWAYS.FLOWING` | `RIVER` \| `STREAM` \| `CANAL` |
-| `features.WATERWAYS.NATURAL` | `RIVER` \| `STREAM` |
-| `features.WATERWAYS.ARTIFICIAL` | `CANAL` \| `DRAIN` \| `DITCH` |
+| `features.WATERWAYS.NATURAL` | `RIVER` \| `STREAM` \| `WATERFALL` |
+| `features.WATERWAYS.ARTIFICIAL` | `CANAL` \| `DRAIN` \| `DITCH` \| `WEIR` \| `LOCK` |
 | `features.WATERWAYS.DRAINAGE` | `DRAIN` \| `DITCH` |
 | `features.WATERWAYS.MAJOR` | `RIVER` \| `CANAL` |
 
@@ -291,12 +296,10 @@ Shorthands:
 | `features.WATER_POLYGONS.OPEN_WATER` | `WATER_AREA` \| `LAKE` \| `RESERVOIR` \| `POND` \| `LAGOON` \| `BASIN` \| `SALT_POND` |
 | `features.WATER_POLYGONS.FLOWING` | `RIVER` \| `CANAL` |
 | `features.WATER_POLYGONS.WETLANDS` | `WETLAND_TYPE` \| `MARSH` \| `SWAMP` \| `REEDBED` \| `SALTMARSH` |
-| `features.WATER_POLYGONS.MAJOR` | `LAKE` \| `RESERVOIR` \| `RIVER` \| `CANAL` |
 | `features.WATER_POLYGONS.NATURAL` | `WATER_AREA` \| `LAKE` \| `POND` \| `LAGOON` \| `RIVER` \| `WETLANDS` |
 | `features.WATER_POLYGONS.ARTIFICIAL` | `RESERVOIR` \| `CANAL` \| `BASIN` \| `SALT_POND` |
 | `features.WATER_POLYGONS.INLAND` | `OPEN_WATER` \| `FLOWING` \| `WETLANDS` |
 | `features.WATER_POLYGONS.MAJOR_INLAND` | `LAKE` \| `RESERVOIR` \| `RIVER` \| `CANAL` |
-| `features.WATER_POLYGONS.ALL` | `INLAND` \| `COASTLINE` |
 
 ### BUILDINGS
 
@@ -312,18 +315,19 @@ OSM tag: `building`
 | `features.BUILDINGS.APARTMENTS` | `building=apartments` | Apartment building |
 | `features.BUILDINGS.TERRACE` | `building=terrace` | Terraced houses |
 | `features.BUILDINGS.BUNGALOW` | `building=bungalow` | Single-storey house |
-| `features.BUILDINGS.RESIDENTIAL_TYPE` | `building=residential` | Generic residential building (specific OSM tag value; see RESIDENTIAL for a shorthand group that also encompasses other residential building types such as houses, detached buildings, apartments, terraces, and bungalows) |
+| `features.BUILDINGS.RESIDENTIAL_TAG` | `building=residential` | OSM tag value for generic residential buildings |
 | `features.BUILDINGS.RETAIL` | `building=retail` | Retail building |
 | `features.BUILDINGS.OFFICE` | `building=office` | Office building |
 | `features.BUILDINGS.SUPERMARKET` | `building=supermarket` | Supermarket |
 | `features.BUILDINGS.HOTEL` | `building=hotel` | Hotel |
-| `features.BUILDINGS.COMMERCIAL_TYPE` | `building=commercial` | Generic commercial building (specific OSM tag value; see COMMERCIAL for a shorthand group that also encompasses other building types used for commercial purposes such as retail, office, supermarket, and hotel buildings) |
+| `features.BUILDINGS.COMMERCIAL_TAG` | `building=commercial` | OSM tag value for generic commercial buildings |
 | `features.BUILDINGS.WAREHOUSE` | `building=warehouse` | Warehouse |
 | `features.BUILDINGS.MANUFACTURE` | `building=manufacture` | Factory or manufacturing building |
-| `features.BUILDINGS.INDUSTRIAL_TYPE` | `building=industrial` | Generic industrial building (specific OSM tag value; see INDUSTRIAL for a shorthand group that also encompasses other building types used for industrial purposes such as warehouses and manufacturing facilities) |
+| `features.BUILDINGS.INDUSTRIAL_TAG` | `building=industrial` | OSM tag value for generic industrial buildings |
 | `features.BUILDINGS.HOSPITAL` | `building=hospital` | Hospital |
 | `features.BUILDINGS.SCHOOL` | `building=school` | School |
 | `features.BUILDINGS.UNIVERSITY` | `building=university` | University building |
+| `features.BUILDINGS.DORMITORY` | `building=dormitory` | Dormitory or student residence building |
 | `features.BUILDINGS.CHURCH` | `building=church` | Church |
 | `features.BUILDINGS.CATHEDRAL` | `building=cathedral` | Cathedral |
 | `features.BUILDINGS.MOSQUE` | `building=mosque` | Mosque |
@@ -336,6 +340,11 @@ OSM tag: `building`
 | `features.BUILDINGS.GARAGES` | `building=garages` | Block of garages |
 | `features.BUILDINGS.PARKING` | `building=parking` | Parking structure |
 | `features.BUILDINGS.SHED` | `building=shed` | Shed or outbuilding |
+| `features.BUILDINGS.FARMHOUSE` | `building=farmhouse` | Main dwelling on a farm |
+| `features.BUILDINGS.BARN` | `building=barn` | Farm storage or livestock building |
+| `features.BUILDINGS.STABLE` | `building=stable` | Building for housing horses or other animals |
+| `features.BUILDINGS.SPORTS_HALL` | `building=sports_hall` | Indoor sports facility building |
+| `features.BUILDINGS.STADIUM` | `building=stadium` | Stadium structure |
 | `features.BUILDINGS.ROOF` | `building=roof` | Roof structure |
 | `features.BUILDINGS.CONSTRUCTION` | `building=construction` | Building under construction |
 
@@ -343,11 +352,13 @@ Shorthands:
 
 | Shorthand | Composition |
 |---|---|
-| `features.BUILDINGS.RESIDENTIAL` | `RESIDENTIAL_TYPE` \| `HOUSE` \| `DETACHED` \| `SEMIDETACHED_HOUSE` \| `APARTMENTS` \| `TERRACE` \| `BUNGALOW` |
-| `features.BUILDINGS.COMMERCIAL` | `COMMERCIAL_TYPE` \| `RETAIL` \| `OFFICE` \| `SUPERMARKET` \| `HOTEL` |
-| `features.BUILDINGS.INDUSTRIAL` | `INDUSTRIAL_TYPE` \| `WAREHOUSE` \| `MANUFACTURE` |
+| `features.BUILDINGS.RESIDENTIAL` | `RESIDENTIAL_TAG` \| `HOUSE` \| `DETACHED` \| `SEMIDETACHED_HOUSE` \| `APARTMENTS` \| `TERRACE` \| `BUNGALOW` |
+| `features.BUILDINGS.COMMERCIAL` | `COMMERCIAL_TAG` \| `RETAIL` \| `OFFICE` \| `SUPERMARKET` \| `HOTEL` |
+| `features.BUILDINGS.INDUSTRIAL` | `INDUSTRIAL_TAG` \| `WAREHOUSE` \| `MANUFACTURE` |
 | `features.BUILDINGS.RELIGIOUS` | `CHURCH` \| `CATHEDRAL` \| `MOSQUE` \| `TEMPLE` \| `SYNAGOGUE` |
-| `features.BUILDINGS.INSTITUTIONAL` | `HOSPITAL` \| `SCHOOL` \| `UNIVERSITY` \| `GOVERNMENT` \| `CIVIC` \| `PUBLIC` |
+| `features.BUILDINGS.INSTITUTIONAL` | `HOSPITAL` \| `SCHOOL` \| `UNIVERSITY` \| `DORMITORY` \| `GOVERNMENT` \| `CIVIC` \| `PUBLIC` |
+| `features.BUILDINGS.AGRICULTURAL` | `FARMHOUSE` \| `BARN` \| `STABLE` \| `SHED` |
+| `features.BUILDINGS.SPORTS` | `SPORTS_HALL` \| `STADIUM` |
 | `features.BUILDINGS.SINGLE_FAMILY` | `HOUSE` \| `DETACHED` \| `SEMIDETACHED_HOUSE` \| `BUNGALOW` |
 | `features.BUILDINGS.MULTI_FAMILY` | `APARTMENTS` \| `TERRACE` |
 
@@ -363,11 +374,14 @@ OSM tags: `leisure`, `natural`, `landuse`
 | `features.GREEN_SPACES.RECREATION_GROUND` | `leisure=recreation_ground` | Recreation area |
 | `features.GREEN_SPACES.COMMON` | `leisure=common` | Public common land |
 | `features.GREEN_SPACES.GOLF_COURSE` | `leisure=golf_course` | Golf course |
+| `features.GREEN_SPACES.PLAYGROUND` | `leisure=playground` | Playground or children's play area |
+| `features.GREEN_SPACES.PITCH` | `leisure=pitch` | Sports pitch or playing field |
 | `features.GREEN_SPACES.WOOD` | `natural=wood` | Natural woodland |
 | `features.GREEN_SPACES.SCRUB` | `natural=scrub` | Scrubland |
 | `features.GREEN_SPACES.GRASSLAND` | `natural=grassland` | Natural grassland |
 | `features.GREEN_SPACES.HEATH` | `natural=heath` | Heath or moorland |
 | `features.GREEN_SPACES.WETLAND` | `natural=wetland` | Wetland or marsh |
+| `features.GREEN_SPACES.BEACH` | `natural=beach` | Beach or sandy shore area |
 | `features.GREEN_SPACES.FOREST` | `landuse=forest` | Managed forest |
 | `features.GREEN_SPACES.MEADOW` | `landuse=meadow` | Meadow |
 | `features.GREEN_SPACES.GRASS` | `landuse=grass` | Managed grass area |
@@ -381,9 +395,30 @@ Shorthands:
 | Shorthand | Composition |
 |---|---|
 | `features.GREEN_SPACES.PARKS` | `PARK` \| `GARDEN` \| `RECREATION_GROUND` \| `COMMON` |
+| `features.GREEN_SPACES.RECREATION` | `PARKS` \| `PLAYGROUND` \| `PITCH` \| `GOLF_COURSE` |
 | `features.GREEN_SPACES.FORESTS` | `WOOD` \| `FOREST` |
 | `features.GREEN_SPACES.NATURAL` | `WOOD` \| `SCRUB` \| `GRASSLAND` \| `HEATH` \| `WETLAND` |
 | `features.GREEN_SPACES.PROTECTED` | `NATURE_RESERVE` \| `WETLAND` |
 | `features.GREEN_SPACES.AGRICULTURAL` | `MEADOW` \| `GRASS` \| `ORCHARD` \| `VINEYARD` \| `ALLOTMENTS` |
-| `features.GREEN_SPACES.ALL` | `PARK` \| `GARDEN` \| `NATURE_RESERVE` \| `RECREATION_GROUND` \| `COMMON` \| `GOLF_COURSE` \| `WOOD` \| `SCRUB` \| `GRASSLAND` \| `HEATH` \| `WETLAND` \| `FOREST` \| `MEADOW` \| `GRASS` \| `ORCHARD` \| `VINEYARD` \| `CEMETERY` \| `ALLOTMENTS` |
+| `features.GREEN_SPACES.ALL` | `PARK` \| `GARDEN` \| `NATURE_RESERVE` \| `RECREATION_GROUND` \| `COMMON` \| `GOLF_COURSE` \| `PLAYGROUND` \| `PITCH` \| `WOOD` \| `SCRUB` \| `GRASSLAND` \| `HEATH` \| `WETLAND` \| `BEACH` \| `FOREST` \| `MEADOW` \| `GRASS` \| `ORCHARD` \| `VINEYARD` \| `CEMETERY` \| `ALLOTMENTS` |
+
+### LANDUSE
+
+OSM tag: `landuse`
+
+`features.LANDUSE` captures core urban landuse polygons. These are area-based features and are intended for filled rendering.
+
+| Member | OSM value | Description |
+|---|---|---|
+| `features.LANDUSE.RESIDENTIAL` | `landuse=residential` | Predominantly residential landuse polygon |
+| `features.LANDUSE.COMMERCIAL` | `landuse=commercial` | Predominantly commercial landuse polygon |
+| `features.LANDUSE.INDUSTRIAL` | `landuse=industrial` | Predominantly industrial landuse polygon |
+| `features.LANDUSE.RETAIL` | `landuse=retail` | Retail-focused landuse polygon |
+
+Shorthands:
+
+| Shorthand | Composition |
+|---|---|
+| `features.LANDUSE.URBAN` | `RESIDENTIAL` \| `COMMERCIAL` \| `INDUSTRIAL` \| `RETAIL` |
+| `features.LANDUSE.ALL` | `URBAN` |
 

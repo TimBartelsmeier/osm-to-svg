@@ -41,6 +41,11 @@ def test_feature_spec_green_space_splits_by_tag_key() -> None:
     assert features.GREEN_SPACES.PARK.needs_areas is True
 
 
+def test_feature_spec_landuse_uses_area_processing() -> None:
+    assert features.LANDUSE.RESIDENTIAL.tag_filters == {"landuse": ["residential"]}
+    assert features.LANDUSE.RESIDENTIAL.needs_areas is True
+
+
 # ---------------------------------------------------------------------------
 # Shorthands
 # ---------------------------------------------------------------------------
@@ -65,6 +70,10 @@ def test_water_polygons_open_water_shorthand_uses_areas() -> None:
 
 
 def test_waterways_all_shorthand_does_not_need_areas() -> None:
+    values = features.WATERWAYS.ALL.tag_filters["waterway"]
+    assert "weir" in values
+    assert "lock" in values
+    assert "waterfall" in values
     assert features.WATERWAYS.ALL.needs_areas is False
 
 
@@ -89,10 +98,30 @@ def test_buildings_residential_shorthand_covers_subtypes() -> None:
     assert features.BUILDINGS.RESIDENTIAL.needs_areas is True
 
 
+def test_buildings_new_shorthands_include_new_members() -> None:
+    assert "farmhouse" in features.BUILDINGS.AGRICULTURAL.tag_filters["building"]
+    assert "stable" in features.BUILDINGS.AGRICULTURAL.tag_filters["building"]
+    assert "stadium" in features.BUILDINGS.SPORTS.tag_filters["building"]
+
+
 def test_green_spaces_all_shorthand_covers_all_tag_keys() -> None:
     assert "leisure" in features.GREEN_SPACES.ALL.tag_filters
     assert "natural" in features.GREEN_SPACES.ALL.tag_filters
     assert "landuse" in features.GREEN_SPACES.ALL.tag_filters
+
+
+def test_green_spaces_recreation_contains_pitch_and_playground() -> None:
+    values = features.GREEN_SPACES.RECREATION.tag_filters["leisure"]
+    assert "pitch" in values
+    assert "playground" in values
+
+
+def test_landuse_urban_covers_expected_values() -> None:
+    values = features.LANDUSE.URBAN.tag_filters["landuse"]
+    assert "residential" in values
+    assert "commercial" in values
+    assert "industrial" in values
+    assert "retail" in values
 
 
 # ---------------------------------------------------------------------------
@@ -136,12 +165,12 @@ def test_or_preserves_distinct_match_clauses() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Name collision resolution (_TYPE suffix)
+# Name collision resolution (_TAG suffix)
 # ---------------------------------------------------------------------------
 
 
-def test_pedestrian_type_is_single_value() -> None:
-    assert features.ROADS.PEDESTRIAN_TYPE.tag_filters == {"highway": ["pedestrian"]}
+def test_pedestrian_tag_is_single_value() -> None:
+    assert features.ROADS.PEDESTRIAN_TAG.tag_filters == {"highway": ["pedestrian"]}
 
 
 def test_pedestrian_shorthand_covers_multiple_values() -> None:
@@ -151,19 +180,15 @@ def test_pedestrian_shorthand_covers_multiple_values() -> None:
     assert "steps" in values
 
 
-def test_buildings_residential_type_is_single_value() -> None:
-    assert features.BUILDINGS.RESIDENTIAL_TYPE.tag_filters == {
+def test_buildings_residential_tag_is_single_value() -> None:
+    assert features.BUILDINGS.RESIDENTIAL_TAG.tag_filters == {
         "building": ["residential"]
     }
 
 
-def test_buildings_commercial_type_is_single_value() -> None:
-    assert features.BUILDINGS.COMMERCIAL_TYPE.tag_filters == {
-        "building": ["commercial"]
-    }
+def test_buildings_commercial_tag_is_single_value() -> None:
+    assert features.BUILDINGS.COMMERCIAL_TAG.tag_filters == {"building": ["commercial"]}
 
 
-def test_buildings_industrial_type_is_single_value() -> None:
-    assert features.BUILDINGS.INDUSTRIAL_TYPE.tag_filters == {
-        "building": ["industrial"]
-    }
+def test_buildings_industrial_tag_is_single_value() -> None:
+    assert features.BUILDINGS.INDUSTRIAL_TAG.tag_filters == {"building": ["industrial"]}

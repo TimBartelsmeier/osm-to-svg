@@ -35,6 +35,10 @@ class GREEN_SPACES:
     """leisure=common: Public common land available for general use."""
     GOLF_COURSE = _gs("leisure", "golf_course")
     """leisure=golf_course: Golf course."""
+    PLAYGROUND = _gs("leisure", "playground")
+    """leisure=playground: Playground or children's play area."""
+    PITCH = _gs("leisure", "pitch")
+    """leisure=pitch: Sports pitch or playing field."""
     # natural=
     WOOD = _gs("natural", "wood")
     """natural=wood: Naturally occurring woodland or forest."""
@@ -46,6 +50,8 @@ class GREEN_SPACES:
     """natural=heath: Heath or moorland."""
     WETLAND = _gs("natural", "wetland")
     """natural=wetland: Wetland or marsh area."""
+    BEACH = _gs("natural", "beach")
+    """natural=beach: Beach or sandy shore area."""
     # landuse=
     FOREST = _gs("landuse", "forest")
     """landuse=forest: Managed forest or woodland (may overlap with natural=wood)."""
@@ -67,6 +73,12 @@ class GREEN_SPACES:
     """Public recreational green spaces and commons.
 
     OSM tags: leisure=park, garden, recreation_ground, common.
+    """
+    RECREATION = PARKS | PLAYGROUND | PITCH | GOLF_COURSE
+    """Recreational green spaces and sports grounds.
+
+    OSM tags: leisure=park, garden, recreation_ground, common, playground,
+    pitch, golf_course.
     """
     FORESTS = WOOD | FOREST
     """Wooded and forested land from natural and landuse classifications.
@@ -95,11 +107,14 @@ class GREEN_SPACES:
         | RECREATION_GROUND
         | COMMON
         | GOLF_COURSE
+        | PLAYGROUND
+        | PITCH
         | WOOD
         | SCRUB
         | GRASSLAND
         | HEATH
         | WETLAND
+        | BEACH
         | FOREST
         | MEADOW
         | GRASS

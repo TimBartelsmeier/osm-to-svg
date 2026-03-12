@@ -58,8 +58,10 @@ class ROADS:
     """highway=footway: Designated footpath for pedestrians."""
     PATH = _r("path")
     """highway=path: Unpaved trail shared by pedestrians, cyclists, or horses."""
-    PEDESTRIAN_TYPE = _r("pedestrian")
-    """highway=pedestrian: Pedestrianised street or plaza (specific OSM tag value; see PEDESTRIAN for a shorthand group that also encompasses other features that would commonly be counted as pedestrian paths)"""
+    BRIDLEWAY = _r("bridleway")
+    """highway=bridleway: Route designated primarily for horse riders."""
+    PEDESTRIAN_TAG = _r("pedestrian")
+    """highway=pedestrian: OSM tag value for pedestrianised streets and plazas."""
     STEPS = _r("steps")
     """highway=steps: Stairway connection between levels."""
     TRACK = _r("track")
@@ -96,10 +98,15 @@ class ROADS:
 
     OSM tags: highway=residential, unclassified, service, living_street.
     """
-    PEDESTRIAN = FOOTWAY | PATH | PEDESTRIAN_TYPE | STEPS
-    """Shorthand for pedestrian-focused paths, walkways, and stair connections.
+    PEDESTRIAN = FOOTWAY | PATH | BRIDLEWAY | PEDESTRIAN_TAG | STEPS
+    """Shorthand for walkable and low-speed path networks.
 
-    OSM tags: highway=footway, path, pedestrian, steps.
+    OSM tags: highway=footway, path, bridleway, pedestrian, steps.
 
-    See also PEDESTRIAN_TYPE for the single highway=pedestrian tag value.
+    See also PEDESTRIAN_TAG for the single highway=pedestrian tag value.
+    """
+    ACTIVE_MOBILITY = CYCLEWAY | FOOTWAY | PATH | BRIDLEWAY | PEDESTRIAN_TAG | STEPS
+    """Shorthand for active-mobility paths and non-motorized connectors.
+
+    OSM tags: highway=cycleway, footway, path, bridleway, pedestrian, steps.
     """
