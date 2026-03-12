@@ -17,13 +17,16 @@ def test_feature_spec_has_correct_tag_filters_for_railway() -> None:
 
 
 def test_feature_spec_has_correct_tag_filters_for_linear_waterway() -> None:
-    assert features.WATER.RIVER.tag_filters == {"waterway": ["river"]}
-    assert features.WATER.RIVER.needs_areas is False
+    assert features.WATERWAYS.RIVER.tag_filters == {"waterway": ["river"]}
+    assert features.WATERWAYS.RIVER.needs_areas is False
 
 
-def test_feature_spec_water_body_uses_natural_tag_and_needs_areas() -> None:
-    assert features.WATER.WATER_AREA.tag_filters == {"natural": ["water"]}
-    assert features.WATER.WATER_AREA.needs_areas is True
+def test_feature_spec_water_polygon_uses_subtag_filter_and_needs_areas() -> None:
+    assert features.WATER_POLYGONS.LAKE.tag_filters == {
+        "natural": ["water"],
+        "water": ["lake"],
+    }
+    assert features.WATER_POLYGONS.LAKE.needs_areas is True
 
 
 def test_feature_spec_building_uses_building_tag_and_needs_areas() -> None:
@@ -56,13 +59,27 @@ def test_railways_active_shorthand_covers_all_active_types() -> None:
     assert "abandoned" not in values
 
 
-def test_waterways_bodies_shorthand_uses_natural_water_and_needs_areas() -> None:
-    assert features.WATER.BODIES.tag_filters == {"natural": ["water"]}
-    assert features.WATER.BODIES.needs_areas is True
+def test_water_polygons_open_water_shorthand_uses_areas() -> None:
+    assert "natural" in features.WATER_POLYGONS.OPEN_WATER.tag_filters
+    assert features.WATER_POLYGONS.OPEN_WATER.needs_areas is True
 
 
-def test_waterways_linear_shorthand_does_not_need_areas() -> None:
-    assert features.WATER.LINEAR.needs_areas is False
+def test_waterways_all_shorthand_does_not_need_areas() -> None:
+    assert features.WATERWAYS.ALL.needs_areas is False
+
+
+def test_water_polygons_flowing_shorthand_contains_overlap_members() -> None:
+    assert "riverbank" in features.WATER_POLYGONS.FLOWING.tag_filters["waterway"]
+    assert "canal" in features.WATER_POLYGONS.FLOWING.tag_filters["water"]
+
+
+def test_water_polygons_major_shorthand_covers_prominent_inland_features() -> None:
+    values = features.WATER_POLYGONS.MAJOR_INLAND.tag_filters
+    assert "lake" in values["water"]
+    assert "reservoir" in values["water"]
+    assert "canal" in values["water"]
+    assert "riverbank" in values["waterway"]
+    assert features.WATER_POLYGONS.MAJOR_INLAND.needs_areas is True
 
 
 def test_buildings_residential_shorthand_covers_subtypes() -> None:
@@ -90,13 +107,15 @@ def test_or_merges_tag_filters_from_two_specs() -> None:
 
 
 def test_or_merges_different_tag_keys() -> None:
-    combined = features.ROADS.MAJOR | features.WATER.BODIES
+    combined = features.ROADS.MAJOR | features.WATER_POLYGONS.OPEN_WATER
     assert "highway" in combined.tag_filters
     assert "natural" in combined.tag_filters
 
 
 def test_or_needs_areas_is_true_if_any_spec_needs_areas() -> None:
-    combined = features.ROADS.MAJOR | features.WATER.BODIES  # roads=False, bodies=True
+    combined = (
+        features.ROADS.MAJOR | features.WATER_POLYGONS.OPEN_WATER
+    )  # roads=False, polygons=True
     assert combined.needs_areas is True
 
 
@@ -109,6 +128,11 @@ def test_or_deduplicates_values_within_same_key() -> None:
     # ROADS.MAJOR already contains motorway; combining with ROADS.MOTORWAY should not duplicate
     combined = features.ROADS.MAJOR | features.ROADS.MOTORWAY
     assert combined.tag_filters["highway"].count("motorway") == 1
+
+
+def test_or_preserves_distinct_match_clauses() -> None:
+    combined = features.WATER_POLYGONS.LAKE | features.WATER_POLYGONS.RIVER
+    assert len(combined.match_clauses) == 3
 
 
 # ---------------------------------------------------------------------------

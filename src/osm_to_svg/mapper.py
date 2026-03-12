@@ -123,7 +123,7 @@ class SvgMapper:
         Args:
             features: FeatureSpec describing which OSM features to render.
                      Use namespace classes from the ``features`` module, e.g.
-                     ``features.ROADS.MAJOR`` or ``features.ROADS.MAJOR | features.WATER.BODIES``.
+                     ``features.ROADS.MAJOR`` or ``features.ROADS.MAJOR | features.WATER_POLYGONS.OPEN_WATER``.
             style: Style definition for the features
             layer_id: Optional ID for the SVG group.
                      Defaults to the joined tag filter keys (e.g. "highway").
@@ -131,7 +131,7 @@ class SvgMapper:
         Example:
             >>> from osm_to_svg import features
             >>> mapper.render_features(
-            ...     features.ROADS.MAJOR | features.WATER.BODIES,
+            ...     features.ROADS.MAJOR | features.WATER_POLYGONS.OPEN_WATER,
             ...     Style(stroke="#000000", fill="#4A90E2")
             ... )
             >>> mapper.save("combined.svg")
@@ -238,7 +238,10 @@ class SvgMapper:
 
         Example:
             >>> with SvgMapper("city.osm.pbf") as mapper:
-            ...     mapper.render_features(features.WATER.BODIES, Style(fill="#4A90E2"))
+            ...     mapper.render_features(
+            ...         features.WATER_POLYGONS.OPEN_WATER,
+            ...         Style(fill="#4A90E2")
+            ...     )
             ...     mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000000"))
             ...     mapper.save("city_map.svg")
         """

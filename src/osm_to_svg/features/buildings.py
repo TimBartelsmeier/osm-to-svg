@@ -15,7 +15,7 @@ class BUILDINGS:
     are represented as closed polygons in OSM.
 
     Note: RESIDENTIAL_TYPE, COMMERCIAL_TYPE, and INDUSTRIAL_TYPE refer to the
-    single OSM tag values ``building=residential``, ``building=commercial``, and
+    specific OSM tag values ``building=residential``, ``building=commercial``, and
     ``building=industrial`` respectively. The shorthand names RESIDENTIAL,
     COMMERCIAL, and INDUSTRIAL cover broader groups of related building subtypes.
 
@@ -43,7 +43,7 @@ class BUILDINGS:
     BUNGALOW = _b("bungalow")
     """building=bungalow: Single-storey house."""
     RESIDENTIAL_TYPE = _b("residential")
-    """building=residential: Generic residential building (single tag value; see RESIDENTIAL for the group shorthand)."""
+    """building=residential: Generic residential building (specific OSM tag value; see RESIDENTIAL for a shorthand group that also encompasses other residential building types such as houses, detached buildings, apartments, terraces, and bungalows)"""
     RETAIL = _b("retail")
     """building=retail: Building used for retail trade."""
     OFFICE = _b("office")
@@ -53,13 +53,13 @@ class BUILDINGS:
     HOTEL = _b("hotel")
     """building=hotel: Hotel building."""
     COMMERCIAL_TYPE = _b("commercial")
-    """building=commercial: Generic commercial building (single tag value; see COMMERCIAL for the group shorthand)."""
+    """building=commercial: Generic commercial building (specific OSM tag value; see COMMERCIAL for a shorthand group that also encompasses other building types used for commercial purposes such as retail, office, supermarket, and hotel buildings)"""
     WAREHOUSE = _b("warehouse")
     """building=warehouse: Large storage building."""
     MANUFACTURE = _b("manufacture")
     """building=manufacture: Manufacturing or factory building."""
     INDUSTRIAL_TYPE = _b("industrial")
-    """building=industrial: Generic industrial building (single tag value; see INDUSTRIAL for the group shorthand)."""
+    """building=industrial: Generic industrial building (specific OSM tag value; see INDUSTRIAL for a shorthand group that also encompasses other building types used for industrial purposes such as warehouses and manufacturing facilities)"""
     HOSPITAL = _b("hospital")
     """building=hospital: Hospital or medical facility building."""
     SCHOOL = _b("school")

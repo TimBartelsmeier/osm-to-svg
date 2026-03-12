@@ -39,7 +39,7 @@ class FeatureHandler(osmium.SimpleHandler):
         """Initialize the handler with the feature specification to match against."""
         super().__init__()
         self.features: list[Feature] = []
-        self.tag_filters = spec.tag_filters
+        self.match_clauses = spec.match_clauses
         self.node_cache: dict[int, tuple[float, float]] = {}
 
     def node(self, node):
@@ -81,8 +81,11 @@ class FeatureHandler(osmium.SimpleHandler):
             pass
 
     def _matches_filter(self, tags: dict[str, str]) -> bool:
-        """Return True if any tag key/value pair in tags satisfies the spec filters."""
-        for tag_key, valid_values in self.tag_filters.items():
-            if tag_key in tags and tags[tag_key] in valid_values:
+        """Return True if tags satisfy at least one configured match clause."""
+        for clause in self.match_clauses:
+            if all(
+                tags.get(tag_key) in valid_values
+                for tag_key, valid_values in clause.items()
+            ):
                 return True
         return False

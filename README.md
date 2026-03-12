@@ -142,7 +142,7 @@ Optional:
 See [examples/example_4_multiple_layers.py](examples/example_4_multiple_layers.py) for an example script that includes multiple layers and POI markers.
 
 ## Available features
-All features are accessed through the `features` subpackage. Individual types match a single OSM tag value, for example, `osm_to_svg.features.ROADS.MOTORWAY` or `osm_to_svg.features.WATER.CANAL`. Multiple features can be combined with the `|` operator: `features.ROADS.MOTORWAY | features.WATER.CANAL` will create a new `FeatureSpec` object that, when passed to `create_map`, will result in motorways _and_ canals being plotted. There are also a lot of pre-defined unions ("shorthands") for typical use cases, for example, `features.ROADS.MAJOR` encompasses all major link roads, but no residential roads.
+All features are accessed through the `features` subpackage. Individual types match one or more OSM tag constraints, for example, `osm_to_svg.features.ROADS.MOTORWAY`, `osm_to_svg.features.WATERWAYS.CANAL`, or `osm_to_svg.features.WATER_POLYGONS.LAKE`. Multiple features can be combined with the `|` operator: `features.ROADS.MOTORWAY | features.WATERWAYS.CANAL` will create a new `FeatureSpec` object that, when passed to `create_map`, will result in motorways _and_ canal centerlines being plotted. There are also a lot of pre-defined unions ("shorthands") for typical use cases, for example, `features.ROADS.MAJOR` encompasses all major link roads, but no residential roads.
 
 ```python
 from osm_to_svg import Style, create_map, features
@@ -166,7 +166,7 @@ create_map(
 # Ad-hoc combination
 create_map(
     pbf_path="hannover.osm.pbf",
-    feature_layers=[(features.ROADS.MAJOR | features.WATER.BODIES, style)],
+    feature_layers=[(features.ROADS.MAJOR | features.WATER_POLYGONS.OPEN_WATER, style)],
     output_path="roads_and_water.svg",
 )
 ```
@@ -196,7 +196,7 @@ OSM tag: `highway`
 | `features.ROADS.CYCLEWAY` | `highway=cycleway` | Dedicated cycling path |
 | `features.ROADS.FOOTWAY` | `highway=footway` | Designated footpath |
 | `features.ROADS.PATH` | `highway=path` | Unpaved multi-use trail |
-| `features.ROADS.PEDESTRIAN_TYPE` | `highway=pedestrian` | Pedestrianised street (single value; see `PEDESTRIAN` shorthand) |
+| `features.ROADS.PEDESTRIAN_TYPE` | `highway=pedestrian` | Pedestrianised street or plaza (specific OSM tag value; see PEDESTRIAN for a shorthand group that also encompasses other features that would commonly be counted as pedestrian paths) |
 | `features.ROADS.STEPS` | `highway=steps` | Stairway connection |
 | `features.ROADS.TRACK` | `highway=track` | Agricultural or forestry track |
 | `features.ROADS.ROAD` | `highway=road` | Road of unknown classification |
@@ -235,32 +235,68 @@ Shorthands:
 | `features.RAILWAYS.URBAN_TRANSIT` | `LIGHT_RAIL` \| `SUBWAY` \| `TRAM` \| `MONORAIL` |
 | `features.RAILWAYS.INACTIVE` | `ABANDONED` \| `DISUSED` \| `PRESERVED` |
 
-### WATER
+### WATERWAYS
 
-OSM tags: `waterway`, `natural`
+OSM tag: `waterway`
+
+`features.WATERWAYS` is for linear centerlines that should normally be stroked, not filled. Use this namespace for river and canal lines. Rivers and canals intentionally overlap with `features.WATER_POLYGONS` because some OSM data also represents them as area geometries.
 
 | Member | OSM value | Description |
 |---|---|---|
-| `features.WATER.RIVER` | `waterway=river` | Major natural watercourse (line) |
-| `features.WATER.STREAM` | `waterway=stream` | Minor watercourse (line) |
-| `features.WATER.CANAL` | `waterway=canal` | Artificial navigable waterway (line) |
-| `features.WATER.DRAIN` | `waterway=drain` | Drainage channel (line) |
-| `features.WATER.DITCH` | `waterway=ditch` | Small drainage ditch (line) |
-| `features.WATER.WATER_AREA` | `natural=water` | Generic water area polygon |
-| `features.WATER.LAKE` | `natural=water` | Lake (same spec as `WATER_AREA`; OSM `water=lake` sub-type not filterable) |
-| `features.WATER.RESERVOIR` | `natural=water` | Reservoir (same spec as `WATER_AREA`) |
-| `features.WATER.POND` | `natural=water` | Pond (same spec as `WATER_AREA`) |
-| `features.WATER.COASTLINE` | `natural=coastline` | Ocean/sea coastline area |
+| `features.WATERWAYS.RIVER` | `waterway=river` | Major natural watercourse centerline |
+| `features.WATERWAYS.STREAM` | `waterway=stream` | Minor natural watercourse centerline |
+| `features.WATERWAYS.CANAL` | `waterway=canal` | Artificial navigable waterway centerline |
+| `features.WATERWAYS.DRAIN` | `waterway=drain` | Drainage channel centerline |
+| `features.WATERWAYS.DITCH` | `waterway=ditch` | Small drainage ditch centerline |
 
 Shorthands:
 
 | Shorthand | Composition |
 |---|---|
-| `features.WATER.LINEAR` | `RIVER` \| `STREAM` \| `CANAL` \| `DRAIN` \| `DITCH` |
-| `features.WATER.BODIES` | `WATER_AREA` |
-| `features.WATER.NATURAL` | `RIVER` \| `STREAM` \| `WATER_AREA` |
-| `features.WATER.ARTIFICIAL` | `CANAL` \| `DRAIN` \| `DITCH` \| `WATER_AREA` |
-| `features.WATER.MAJOR` | `RIVER` \| `CANAL` |
+| `features.WATERWAYS.ALL` | `RIVER` \| `STREAM` \| `CANAL` \| `DRAIN` \| `DITCH` |
+| `features.WATERWAYS.FLOWING` | `RIVER` \| `STREAM` \| `CANAL` |
+| `features.WATERWAYS.NATURAL` | `RIVER` \| `STREAM` |
+| `features.WATERWAYS.ARTIFICIAL` | `CANAL` \| `DRAIN` \| `DITCH` |
+| `features.WATERWAYS.DRAINAGE` | `DRAIN` \| `DITCH` |
+| `features.WATERWAYS.MAJOR` | `RIVER` \| `CANAL` |
+
+### WATER_POLYGONS
+
+OSM tags: `natural`, `water`, `wetland`, `landuse`, `waterway`
+
+`features.WATER_POLYGONS` is for fill-safe area features. Use it for lakes, riverbanks, canal basins, wetlands, and similar polygonal water features. Some members overlap intentionally with `features.WATERWAYS`: `RIVER` and `CANAL` target filled area geometries here, while the same names under `features.WATERWAYS` target centerlines.
+
+| Member | OSM value | Description |
+|---|---|---|
+| `features.WATER_POLYGONS.WATER_AREA` | `natural=water` | Generic open-water polygon |
+| `features.WATER_POLYGONS.LAKE` | `natural=water` + `water=lake` | Lake polygon |
+| `features.WATER_POLYGONS.RESERVOIR` | `natural=water` + `water=reservoir` | Reservoir polygon |
+| `features.WATER_POLYGONS.POND` | `natural=water` + `water=pond` | Pond polygon |
+| `features.WATER_POLYGONS.LAGOON` | `natural=water` + `water=lagoon` | Lagoon polygon |
+| `features.WATER_POLYGONS.BASIN` | `landuse=basin` or `natural=water` + `water=basin` | Basin polygon |
+| `features.WATER_POLYGONS.SALT_POND` | `landuse=salt_pond` | Salt pond polygon |
+| `features.WATER_POLYGONS.RIVER` | `waterway=riverbank` or `natural=water` + `water=river` | River area polygon; overlaps with `WATERWAYS.RIVER` |
+| `features.WATER_POLYGONS.CANAL` | `natural=water` + `water=canal` | Canal area polygon; overlaps with `WATERWAYS.CANAL` |
+| `features.WATER_POLYGONS.WETLAND_TYPE` | `natural=wetland` | Generic wetland polygon; also matches `GREEN_SPACES.WETLAND` (specific OSM tag value; see WETLANDS for a shorthand group that also encompasses other wetland subtypes such as marsh, swamp, reedbed, and saltmarsh) |
+| `features.WATER_POLYGONS.MARSH` | `natural=wetland` + `wetland=marsh` | Marsh polygon |
+| `features.WATER_POLYGONS.SWAMP` | `natural=wetland` + `wetland=swamp` | Swamp polygon |
+| `features.WATER_POLYGONS.REEDBED` | `natural=wetland` + `wetland=reedbed` | Reedbed polygon |
+| `features.WATER_POLYGONS.SALTMARSH` | `natural=wetland` + `wetland=saltmarsh` | Saltmarsh polygon |
+| `features.WATER_POLYGONS.COASTLINE` | `natural=coastline` | Coastline or sea-edge polygon |
+
+Shorthands:
+
+| Shorthand | Composition |
+|---|---|
+| `features.WATER_POLYGONS.OPEN_WATER` | `WATER_AREA` \| `LAKE` \| `RESERVOIR` \| `POND` \| `LAGOON` \| `BASIN` \| `SALT_POND` |
+| `features.WATER_POLYGONS.FLOWING` | `RIVER` \| `CANAL` |
+| `features.WATER_POLYGONS.WETLANDS` | `WETLAND_TYPE` \| `MARSH` \| `SWAMP` \| `REEDBED` \| `SALTMARSH` |
+| `features.WATER_POLYGONS.MAJOR` | `LAKE` \| `RESERVOIR` \| `RIVER` \| `CANAL` |
+| `features.WATER_POLYGONS.NATURAL` | `WATER_AREA` \| `LAKE` \| `POND` \| `LAGOON` \| `RIVER` \| `WETLANDS` |
+| `features.WATER_POLYGONS.ARTIFICIAL` | `RESERVOIR` \| `CANAL` \| `BASIN` \| `SALT_POND` |
+| `features.WATER_POLYGONS.INLAND` | `OPEN_WATER` \| `FLOWING` \| `WETLANDS` |
+| `features.WATER_POLYGONS.MAJOR_INLAND` | `LAKE` \| `RESERVOIR` \| `RIVER` \| `CANAL` |
+| `features.WATER_POLYGONS.ALL` | `INLAND` \| `COASTLINE` |
 
 ### BUILDINGS
 
@@ -276,15 +312,15 @@ OSM tag: `building`
 | `features.BUILDINGS.APARTMENTS` | `building=apartments` | Apartment building |
 | `features.BUILDINGS.TERRACE` | `building=terrace` | Terraced houses |
 | `features.BUILDINGS.BUNGALOW` | `building=bungalow` | Single-storey house |
-| `features.BUILDINGS.RESIDENTIAL_TYPE` | `building=residential` | Generic residential (single value; see `RESIDENTIAL` shorthand) |
+| `features.BUILDINGS.RESIDENTIAL_TYPE` | `building=residential` | Generic residential building (specific OSM tag value; see RESIDENTIAL for a shorthand group that also encompasses other residential building types such as houses, detached buildings, apartments, terraces, and bungalows) |
 | `features.BUILDINGS.RETAIL` | `building=retail` | Retail building |
 | `features.BUILDINGS.OFFICE` | `building=office` | Office building |
 | `features.BUILDINGS.SUPERMARKET` | `building=supermarket` | Supermarket |
 | `features.BUILDINGS.HOTEL` | `building=hotel` | Hotel |
-| `features.BUILDINGS.COMMERCIAL_TYPE` | `building=commercial` | Generic commercial (single value; see `COMMERCIAL` shorthand) |
+| `features.BUILDINGS.COMMERCIAL_TYPE` | `building=commercial` | Generic commercial building (specific OSM tag value; see COMMERCIAL for a shorthand group that also encompasses other building types used for commercial purposes such as retail, office, supermarket, and hotel buildings) |
 | `features.BUILDINGS.WAREHOUSE` | `building=warehouse` | Warehouse |
 | `features.BUILDINGS.MANUFACTURE` | `building=manufacture` | Factory or manufacturing building |
-| `features.BUILDINGS.INDUSTRIAL_TYPE` | `building=industrial` | Generic industrial (single value; see `INDUSTRIAL` shorthand) |
+| `features.BUILDINGS.INDUSTRIAL_TYPE` | `building=industrial` | Generic industrial building (specific OSM tag value; see INDUSTRIAL for a shorthand group that also encompasses other building types used for industrial purposes such as warehouses and manufacturing facilities) |
 | `features.BUILDINGS.HOSPITAL` | `building=hospital` | Hospital |
 | `features.BUILDINGS.SCHOOL` | `building=school` | School |
 | `features.BUILDINGS.UNIVERSITY` | `building=university` | University building |

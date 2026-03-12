@@ -59,7 +59,7 @@ class ROADS:
     PATH = _r("path")
     """highway=path: Unpaved trail shared by pedestrians, cyclists, or horses."""
     PEDESTRIAN_TYPE = _r("pedestrian")
-    """highway=pedestrian: Pedestrianised street or plaza (single tag value; see PEDESTRIAN for the group shorthand)."""
+    """highway=pedestrian: Pedestrianised street or plaza (specific OSM tag value; see PEDESTRIAN for a shorthand group that also encompasses other features that would commonly be counted as pedestrian paths)"""
     STEPS = _r("steps")
     """highway=steps: Stairway connection between levels."""
     TRACK = _r("track")

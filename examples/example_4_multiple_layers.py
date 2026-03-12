@@ -40,7 +40,7 @@ create_map(
     pbf_path=str(hannover_pbf),
     bounds=hannover_bbox,
     feature_layers=[
-        (features.WATER.BODIES, Style(fill="#4A90E2")),
+        (features.WATER_POLYGONS.OPEN_WATER, Style(fill="#4A90E2")),
         (features.GREEN_SPACES.FORESTS, Style(fill="#046A04")),
         (features.GREEN_SPACES.PARKS, Style(fill="#1FC21F")),
         (features.ROADS.MAJOR, Style(stroke="#000000", stroke_width=1)),

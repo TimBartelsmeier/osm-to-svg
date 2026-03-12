@@ -1,4 +1,4 @@
-"""Water feature catalog (OSM waterway= and natural=)."""
+"""Water feature catalog split into polygon fills and linear waterways."""
 
 from osm_to_svg.features.spec import FeatureSpec
 
@@ -8,73 +8,135 @@ def _w(value: str) -> FeatureSpec:
     return FeatureSpec({"waterway": [value]}, needs_areas=False)
 
 
-def _wb(natural_value: str) -> FeatureSpec:
-    """Shorthand for a water body via natural= tag (areas)."""
-    return FeatureSpec({"natural": [natural_value]}, needs_areas=True)
+def _wa(*clauses: dict[str, list[str]]) -> FeatureSpec:
+    """Shorthand for a polygonal water feature using one or more tag clauses."""
+    return FeatureSpec(match_clauses=list(clauses), needs_areas=True)
 
 
-class WATER:
-    """Waterway and water body features.
+class WATERWAYS:
+    """Linear centerline waterways extracted from waterway-tagged OSM ways.
 
-    Linear waterways (RIVER, STREAM, ...) use way geometry (needs_areas=False).
-    Water bodies (WATER_AREA, LAKE, ...) use area/polygon geometry (needs_areas=True).
-
-    Note: LAKE, RESERVOIR, and POND all map to natural=water with identical
-    filters. OSM stores these as secondary ``water=`` sub-types, which are not
-    AND-filtered here. They are separate named specs for discoverability but
-    functionally equivalent; use WATER_AREA or BODIES for generic rendering.
+    These specs are intended for stroked rendering of river, stream, canal, and
+    drainage centerlines. They target open ways and keep ``needs_areas=False``.
+    Some real-world features, notably rivers and canals, also appear in
+    ``WATER_POLYGONS`` so they can be rendered as filled area geometries when OSM
+    provides polygonal water features.
 
     Usage::
 
         from osm_to_svg import features
-        mapper.render_features(features.WATER.LINEAR | features.WATER.BODIES, style)
+        mapper.render_features(features.WATERWAYS.ALL, style)
     """
 
-    # ---- individual types ----
     RIVER = _w("river")
-    """waterway=river: Major natural watercourse."""
+    """waterway=river: Major natural watercourse centerline; also available as a filled area in WATER_POLYGONS.RIVER."""
     STREAM = _w("stream")
     """waterway=stream: Minor natural watercourse, smaller than a river."""
     CANAL = _w("canal")
-    """waterway=canal: Artificial navigable waterway."""
+    """waterway=canal: Artificial navigable waterway centerline; also available as a filled area in WATER_POLYGONS.CANAL."""
     DRAIN = _w("drain")
     """waterway=drain: Artificial drainage channel, typically not navigable."""
     DITCH = _w("ditch")
     """waterway=ditch: Small artificial drainage ditch."""
-    WATER_AREA = _wb("water")
-    """natural=water: Generic standing water area. The water= sub-type (lake, pond, reservoir) is not filterable here."""
-    LAKE = _wb("water")
-    """natural=water (+ water=lake): Lake; the water= sub-type is not filterable here - equivalent to WATER_AREA."""
-    RESERVOIR = _wb("water")
-    """natural=water (+ water=reservoir): Artificial water reservoir; the water= sub-type is not filterable here - equivalent to WATER_AREA."""
-    POND = _wb("water")
-    """natural=water (+ water=pond): Small pond; the water= sub-type is not filterable here - equivalent to WATER_AREA."""
-    COASTLINE = _wb("coastline")
-    """natural=coastline: Ocean/sea coastline boundary rendered as an area."""
 
-    # ---- shorthands ----
-    LINEAR = RIVER | STREAM | CANAL | DRAIN | DITCH
-    """Shorthand for flowing and channelized waterways rendered as line features.
+    ALL = RIVER | STREAM | CANAL | DRAIN | DITCH
+    """Shorthand for all supported line waterways.
 
     OSM tags: waterway=river, stream, canal, drain, ditch.
     """
-    BODIES = WATER_AREA
-    """Shorthand for standing inland water areas represented as polygons.
+    FLOWING = RIVER | STREAM | CANAL
+    """Shorthand for flowing waterways with a visible channel.
 
-    OSM tags: natural=water.
+    OSM tags: waterway=river, stream, canal.
     """
-    NATURAL = RIVER | STREAM | WATER_AREA
-    """Shorthand for natural watercourses and standing natural water areas.
+    NATURAL = RIVER | STREAM
+    """Shorthand for natural watercourse centerlines.
 
-    OSM tags: waterway=river, stream; natural=water.
+    OSM tags: waterway=river, stream.
     """
-    ARTIFICIAL = CANAL | DRAIN | DITCH | WATER_AREA
-    """Shorthand for human-made channels together with standing water areas.
+    ARTIFICIAL = CANAL | DRAIN | DITCH
+    """Shorthand for human-made linear waterways.
 
-    OSM tags: waterway=canal, drain, ditch; natural=water.
+    OSM tags: waterway=canal, drain, ditch.
+    """
+    DRAINAGE = DRAIN | DITCH
+    """Shorthand for narrow drainage-oriented waterways.
+
+    OSM tags: waterway=drain, ditch.
     """
     MAJOR = RIVER | CANAL
-    """Shorthand for major navigable waterways rendered as line features.
+    """Shorthand for the most map-prominent linear waterways.
 
     OSM tags: waterway=river, canal.
     """
+
+
+class WATER_POLYGONS:
+    """Fill-safe water polygons extracted from area or closed-way OSM features.
+
+    These specs are intended for filled rendering of lakes, riverbanks, canal
+    basins, wetlands, and other polygonal water features. They enable
+    ``needs_areas=True`` so multipolygons are indexed during parsing. Rivers and
+    canals intentionally overlap with ``WATERWAYS``: use this namespace when you
+    want their area geometry, and ``WATERWAYS`` when you want their centerlines.
+
+    Usage::
+
+        from osm_to_svg import features
+        mapper.render_features(features.WATER_POLYGONS.OPEN_WATER, fill_style)
+    """
+
+    WATER_AREA = _wa({"natural": ["water"]})
+    """natural=water: Generic open-water polygon."""
+    LAKE = _wa({"natural": ["water"], "water": ["lake"]})
+    """natural=water + water=lake: Lake polygon."""
+    RESERVOIR = _wa({"natural": ["water"], "water": ["reservoir"]})
+    """natural=water + water=reservoir: Reservoir polygon."""
+    POND = _wa({"natural": ["water"], "water": ["pond"]})
+    """natural=water + water=pond: Pond polygon."""
+    LAGOON = _wa({"natural": ["water"], "water": ["lagoon"]})
+    """natural=water + water=lagoon: Lagoon polygon."""
+    BASIN = _wa(
+        {"landuse": ["basin"]},
+        {"natural": ["water"], "water": ["basin"]},
+    )
+    """landuse=basin or natural=water + water=basin: Basin polygon, usually engineered."""
+    SALT_POND = _wa({"landuse": ["salt_pond"]})
+    """landuse=salt_pond: Salt evaporation pond or saline basin polygon."""
+    RIVER = _wa(
+        {"waterway": ["riverbank"]},
+        {"natural": ["water"], "water": ["river"]},
+    )
+    """waterway=riverbank or natural=water + water=river: River area polygon; the same feature is available as a centerline in WATERWAYS.RIVER."""
+    CANAL = _wa({"natural": ["water"], "water": ["canal"]})
+    """natural=water + water=canal: Canal area polygon; the same feature is available as a centerline in WATERWAYS.CANAL."""
+    WETLAND_TYPE = _wa({"natural": ["wetland"]})
+    """natural=wetland: Generic wetland polygon; also matches GREEN_SPACES.WETLAND (specific OSM tag value; see WETLANDS for a shorthand group that also encompasses other wetland subtypes such as marsh, swamp, reedbed, and saltmarsh)"""
+    MARSH = _wa({"natural": ["wetland"], "wetland": ["marsh"]})
+    """natural=wetland + wetland=marsh: Marsh polygon; also semantically valid as green space."""
+    SWAMP = _wa({"natural": ["wetland"], "wetland": ["swamp"]})
+    """natural=wetland + wetland=swamp: Swamp polygon; also semantically valid as green space."""
+    REEDBED = _wa({"natural": ["wetland"], "wetland": ["reedbed"]})
+    """natural=wetland + wetland=reedbed: Reedbed polygon; also semantically valid as green space."""
+    SALTMARSH = _wa({"natural": ["wetland"], "wetland": ["saltmarsh"]})
+    """natural=wetland + wetland=saltmarsh: Saltmarsh polygon; also semantically valid as green space."""
+    COASTLINE = _wa({"natural": ["coastline"]})
+    """natural=coastline: Coastline or sea-edge polygon when area geometry is present."""
+
+    OPEN_WATER = WATER_AREA | LAKE | RESERVOIR | POND | LAGOON | BASIN | SALT_POND
+    """Shorthand for lakes, reservoirs, ponds, lagoons, and other standing open-water polygons."""
+    FLOWING = RIVER | CANAL
+    """Shorthand for polygonal rivers and canals.
+
+    These overlap with WATERWAYS for centerline rendering.
+    """
+    WETLANDS = WETLAND_TYPE | MARSH | SWAMP | REEDBED | SALTMARSH
+    """Shorthand for wetland and marsh-like polygons."""
+    INLAND = OPEN_WATER | FLOWING | WETLANDS
+    """Shorthand for inland water polygons, excluding coastline-only geometry."""
+    MAJOR_INLAND = LAKE | RESERVOIR | RIVER | CANAL
+    """Shorthand for major inland water polygons such as lakes, reservoirs, rivers, and canals."""
+    NATURAL = WATER_AREA | LAKE | POND | LAGOON | RIVER | WETLANDS
+    """Shorthand for naturally occurring water and wetland polygons."""
+    ARTIFICIAL = RESERVOIR | CANAL | BASIN | SALT_POND
+    """Shorthand for engineered or strongly human-shaped water polygons."""

@@ -1,3 +1,7 @@
+- geocode POIs
+- background for examples
+- only one progress bar - text or Jupyter
+
 Quality Control
 ---------------
 - Check overpass functionality - (code broken or was it just overloaded everytime I checked?)
