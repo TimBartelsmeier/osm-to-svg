@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 
 import httpx
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from osm_to_svg.validation import validate_bbox
 
