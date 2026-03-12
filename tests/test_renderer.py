@@ -112,6 +112,14 @@ def test_place_poi_markers_supports_height_meters(
     assert element is not None
 
 
+class ProgressSpy:
+    def __init__(self) -> None:
+        self.updates: list[int] = []
+
+    def update(self, value: int) -> None:
+        self.updates.append(value)
+
+
 def test_place_poi_markers_sanitizes_invalid_layer_id(
     dummy_transformer,
     marker_svg_path: Path,
@@ -126,6 +134,35 @@ def test_place_poi_markers_sanitizes_invalid_layer_id(
 
     sanitized_group = element.find(f"{{{SVG_NS}}}g[@id='layer-0-pois']")
     assert sanitized_group is not None
+
+
+def test_renderer_updates_progress_bar_for_features_and_pois(
+    dummy_transformer,
+    marker_svg_path: Path,
+) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+
+    feature_progress = ProgressSpy()
+    poi_progress = ProgressSpy()
+
+    feature_element = renderer.render_features(
+        [
+            Feature(geometry=[(52.0, 8.0)], tags={}),
+            Feature(geometry=[(52.0, 8.0), (52.1, 8.1)], tags={}),
+        ],
+        Style(stroke="#000", fill="none"),
+        _progress_bar=feature_progress,
+    )
+    poi_element = renderer.place_poi_markers(
+        coords=[(52.0, 8.0), (52.1, 8.1)],
+        poi_style=PoiStyle(marker_svg_path=str(marker_svg_path), scale=1.0),
+        _progress_bar=poi_progress,
+    )
+
+    assert feature_element is not None
+    assert poi_element is not None
+    assert feature_progress.updates == [1, 1]
+    assert poi_progress.updates == [1, 1]
 
 
 def test_sanitize_svg_id_uses_prefix_for_empty_or_invalid_values(

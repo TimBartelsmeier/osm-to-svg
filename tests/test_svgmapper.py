@@ -52,6 +52,20 @@ class DummyRenderer:
         return ET.Element("svg")
 
 
+class ProgressSpy:
+    def __init__(self) -> None:
+        self.descriptions: list[str] = []
+        self.n = -1
+        self.total = -1
+        self.refresh_calls = 0
+
+    def set_description(self, value: str) -> None:
+        self.descriptions.append(value)
+
+    def refresh(self) -> None:
+        self.refresh_calls += 1
+
+
 @pytest.fixture
 def pbf_path(tmp_path: Path) -> Path:
     file_path = tmp_path / "sample.osm.pbf"
@@ -460,3 +474,156 @@ def test_create_map_defaults_to_empty_layers(
     create_map(pbf_path=str(pbf_path), output_path="empty.svg")
 
     assert calls == ["save"]
+
+
+def test_create_map_show_progress_updates_and_closes_bars(
+    pbf_path: Path,
+    marker_svg_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, object]] = []
+    created_bars: list[ProgressSpy] = []
+
+    class FakeTqdm(ProgressSpy):
+        def __init__(self, *args, **kwargs):  # noqa: ANN002, ANN003
+            super().__init__()
+            self.args = args
+            self.kwargs = kwargs
+            self.updates: list[int] = []
+            self.closed = False
+            created_bars.append(self)
+
+        def update(self, value: int) -> None:
+            self.updates.append(value)
+
+        def close(self) -> None:
+            self.closed = True
+
+    class SpyMapper:
+        def __init__(self, **kwargs):  # noqa: ANN003
+            calls.append(("init", kwargs))
+
+        def __enter__(self):
+            calls.append(("enter", None))
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):  # noqa: ANN001
+            calls.append(("exit", None))
+            return None
+
+        def render_features(
+            self, feature_spec: FeatureSpec, style: Style, _progress_bar=None
+        ) -> None:
+            calls.append(("render_features", (feature_spec, style, _progress_bar)))
+
+        def place_poi_markers(
+            self,
+            coords: list[tuple[float, float]],
+            poi_style: PoiStyle,
+            _progress_bar=None,
+        ) -> None:
+            calls.append(("place_poi_markers", (coords, poi_style, _progress_bar)))
+
+        def save(self, output_path: str) -> None:
+            calls.append(("save", output_path))
+
+    monkeypatch.setattr(create_map_module, "SvgMapper", SpyMapper)
+    monkeypatch.setattr(create_map_module, "tqdm", FakeTqdm)
+
+    create_map(
+        pbf_path=str(pbf_path),
+        feature_layers=[(features.ROADS.MAJOR, Style(stroke="#000000"))],
+        poi_layers=[
+            (
+                [(52.0, 8.0)],
+                PoiStyle(marker_svg_path=str(marker_svg_path), scale=1.0),
+            )
+        ],
+        output_path="progress.svg",
+        show_progress=True,
+    )
+
+    assert len(created_bars) == 2
+    outer_bar, inner_bar = created_bars
+    assert outer_bar.kwargs["desc"] == "Rendering map"
+    assert outer_bar.updates == [1, 1]
+    assert outer_bar.descriptions == ["Layer 1/2 [highway]", "Layer 2/2 [pois]"]
+    assert outer_bar.closed is True
+    assert inner_bar.kwargs["desc"] == ""
+    assert inner_bar.closed is True
+    assert calls[2][0] == "render_features"
+    assert calls[2][1][2] is inner_bar
+    assert calls[3][0] == "place_poi_markers"
+    assert calls[3][1][2] is inner_bar
+
+
+def test_svgmapper_render_features_updates_progress_bar(
+    pbf_path: Path,
+    patched_svgmapper_dependencies,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def spy_render_features(self, features, style, layer_id, _progress_bar=None):  # noqa: ANN001
+        captured["features"] = features
+        captured["style"] = style
+        captured["layer_id"] = layer_id
+        captured["progress_bar"] = _progress_bar
+        return ET.Element("svg")
+
+    monkeypatch.setattr(DummyRenderer, "render_features", spy_render_features)
+    progress = ProgressSpy()
+
+    with SvgMapper(str(pbf_path)) as mapper:
+        mapper.render_features(
+            features.ROADS.MAJOR,
+            Style(stroke="#000"),
+            _progress_bar=progress,
+        )
+
+    assert progress.descriptions == ["Parsing PBF...", "Rendering features"]
+    assert progress.n == 0
+    assert progress.total == 0
+    assert progress.refresh_calls == 2
+    assert captured["layer_id"] == "0 highway"
+    assert captured["progress_bar"] is progress
+
+
+def test_svgmapper_place_poi_updates_progress_bar(
+    pbf_path: Path,
+    marker_svg_path: Path,
+    patched_svgmapper_dependencies,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def spy_place_poi_markers(
+        self,
+        coords,
+        poi_style,
+        layer_id="pois",
+        _progress_bar=None,
+    ):  # noqa: ANN001
+        captured["coords"] = coords
+        captured["poi_style"] = poi_style
+        captured["layer_id"] = layer_id
+        captured["progress_bar"] = _progress_bar
+        return ET.Element("svg")
+
+    monkeypatch.setattr(DummyRenderer, "place_poi_markers", spy_place_poi_markers)
+    progress = ProgressSpy()
+    coords = [(52.0, 8.0), (52.1, 8.1)]
+
+    with SvgMapper(str(pbf_path)) as mapper:
+        mapper.place_poi_markers(
+            coords=coords,
+            poi_style=PoiStyle(marker_svg_path=str(marker_svg_path), scale=1.0),
+            _progress_bar=progress,
+        )
+
+    assert progress.descriptions == ["Placing markers"]
+    assert progress.n == 0
+    assert progress.total == len(coords)
+    assert progress.refresh_calls == 1
+    assert captured["layer_id"] == "0 pois"
+    assert captured["progress_bar"] is progress
