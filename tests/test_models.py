@@ -1,4 +1,33 @@
-from osm_to_svg.models import Style
+import pytest
+
+from osm_to_svg.features import FeatureSpec
+from osm_to_svg.models import FeatureLayer, OsmObjectId, Style
+
+
+def test_osm_object_id_is_typed_and_stringifiable() -> None:
+    object_id = OsmObjectId("relation", 123)
+
+    assert str(object_id) == "relation/123"
+
+
+def test_feature_layer_accepts_one_limit() -> None:
+    layer = FeatureLayer(
+        FeatureSpec(tag_filters={"leisure": ["park"]}),
+        Style(fill="green"),
+        bbox=(52.0, 9.0, 52.1, 9.1),
+    )
+
+    assert layer.bbox == (52.0, 9.0, 52.1, 9.1)
+
+
+def test_feature_layer_rejects_both_limits() -> None:
+    with pytest.raises(ValueError, match="either bbox or object_ids"):
+        FeatureLayer(
+            FeatureSpec(tag_filters={"leisure": ["park"]}),
+            Style(fill="green"),
+            bbox=(52.0, 9.0, 52.1, 9.1),
+            object_ids={OsmObjectId("way", 123)},
+        )
 
 
 def test_style_to_svg_attrs_defaults() -> None:

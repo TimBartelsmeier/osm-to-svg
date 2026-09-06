@@ -1,7 +1,8 @@
 import httpx
 import pytest
 
-from osm_to_svg.acquisition.geocoding import geocode_place
+from osm_to_svg.acquisition.geocoding import geocode_osm_object, geocode_place
+from osm_to_svg.models import OsmObjectId
 
 
 class DummyResponse:
@@ -30,6 +31,33 @@ def test_geocode_place_returns_lat_lon(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert lat == pytest.approx(52.3759)
     assert lon == pytest.approx(9.7320)
+
+
+def test_geocode_osm_object_returns_typed_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        httpx,
+        "get",
+        lambda *args, **kwargs: DummyResponse(
+            [{"lat": "52.0", "lon": "9.0", "osm_type": "relation", "osm_id": 123}]
+        ),
+    )
+
+    assert geocode_osm_object("Herrenhaeuser Gaerten") == OsmObjectId("relation", 123)
+
+
+def test_geocode_osm_object_rejects_missing_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        httpx,
+        "get",
+        lambda *args, **kwargs: DummyResponse([{"lat": "52.0", "lon": "9.0"}]),
+    )
+
+    with pytest.raises(ValueError, match="no valid OSM object identity"):
+        geocode_osm_object("Unknown object")
 
 
 def test_geocode_place_forwards_custom_timeout(monkeypatch: pytest.MonkeyPatch) -> None:

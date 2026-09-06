@@ -5,13 +5,14 @@ from osm_to_svg.acquisition import (
     download_from_overpass,
     download_from_url,
     extract_from_pbf,
+    geocode_osm_object,
     geocode_place,
     get_bbox_around_coordinates,
 )
 from osm_to_svg.create_map import create_map
 from osm_to_svg.features import FeatureSpec
 from osm_to_svg.mapper import SvgMapper
-from osm_to_svg.models import PoiStyle, Style
+from osm_to_svg.models import FeatureLayer, OsmObjectId, PoiStyle, Style
 
 __version__ = "0.1.0"
 
@@ -21,6 +22,8 @@ __all__ = [
     "create_map",
     "Style",
     "PoiStyle",
+    "FeatureLayer",
+    "OsmObjectId",
     # Feature API
     "features",
     "FeatureSpec",
@@ -30,5 +33,6 @@ __all__ = [
     "extract_from_pbf",
     # Geocoding / bbox helpers
     "geocode_place",
+    "geocode_osm_object",
     "get_bbox_around_coordinates",
 ]

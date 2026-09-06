@@ -4,7 +4,9 @@ from tqdm.auto import tqdm
 
 from osm_to_svg.features import FeatureSpec
 from osm_to_svg.mapper import SvgMapper
-from osm_to_svg.models import PoiStyle, Style
+from osm_to_svg.models import FeatureLayer, PoiStyle, Style
+
+FeatureLayerInput = FeatureLayer | tuple[FeatureSpec, Style]
 
 
 def create_map(
@@ -14,7 +16,7 @@ def create_map(
     dpi: int = 300,
     bounds: tuple[float, float, float, float] | None = None,
     background_color: str | None = None,
-    feature_layers: list[tuple[FeatureSpec, Style]] | None = None,
+    feature_layers: list[FeatureLayerInput] | None = None,
     poi_layers: list[tuple[list[tuple[float, float]], PoiStyle]] | None = None,
     output_path: str,
     show_progress: bool = False,
@@ -63,10 +65,14 @@ def create_map(
             bounds=bounds,
             background_color=background_color,
         ) as mapper:
-            for i, (feature_spec, style) in enumerate(feature_layers or []):
+            for i, layer in enumerate(feature_layers or []):
                 if progress_bar is not None:
                     progress_bar.set_description(f"Layer {i + 1}/{total_layers}")
-                mapper.render_features(feature_spec, style, _progress_bar=None)
+                if isinstance(layer, FeatureLayer):
+                    mapper.render_layer(layer, _progress_bar=None)
+                else:
+                    feature_spec, style = layer
+                    mapper.render_features(feature_spec, style, _progress_bar=None)
                 if progress_bar is not None:
                     progress_bar.update(1)
 

@@ -4,7 +4,31 @@ import pytest
 
 from osm_to_svg import features
 from osm_to_svg.features import FeatureSpec
+from osm_to_svg.models import Feature, OsmObjectId
 from osm_to_svg.parsing import FeatureHandler, PBFParser
+from osm_to_svg.parsing.parser import _geometry_intersects_bbox
+
+
+def test_geometry_intersects_bbox_includes_crossing_and_containment() -> None:
+    bbox = (52.0, 8.0, 52.01, 8.01)
+
+    assert _geometry_intersects_bbox([(51.99, 8.005), (52.02, 8.005)], bbox)
+    assert _geometry_intersects_bbox(
+        [(51.9, 7.9), (51.9, 8.1), (52.1, 8.1), (52.1, 7.9), (51.9, 7.9)],
+        bbox,
+    )
+    assert not _geometry_intersects_bbox([(51.9, 7.9), (51.9, 7.99)], bbox)
+
+
+def test_parser_limit_matches_typed_object_ids() -> None:
+    feature = Feature(
+        geometry=[(52.0, 8.0), (52.01, 8.01)],
+        tags={"highway": "primary"},
+        object_id=OsmObjectId("way", 123),
+    )
+
+    assert PBFParser._matches_limit(feature, None, {OsmObjectId("way", 123)})
+    assert not PBFParser._matches_limit(feature, None, {OsmObjectId("relation", 123)})
 
 
 @pytest.fixture

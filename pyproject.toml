@@ -44,6 +44,7 @@ example-2 = "python examples/example_2_download_extract_pbf.py"
 example-3 = "python examples/example_3_basic_usage.py"
 example-4 = "python examples/example_4_multiple_layers.py"
 example-5 = "python examples/example_5_all_buildings_roads.py"
+example-6 = "python examples/example_6_layer_with_sub_bbox.py"
 example-overpass = "python examples/example_overpass.py"
 
 [tool.pixi.environments]

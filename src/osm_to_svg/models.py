@@ -1,9 +1,12 @@
 """Data models for styling and feature representation."""
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, Field, model_validator
+
+if TYPE_CHECKING:
+    from osm_to_svg.features import FeatureSpec
 
 MarkerAnchor = Literal[
     "top",
@@ -16,6 +19,22 @@ MarkerAnchor = Literal[
     "top-left",
     "center",
 ]
+OsmObjectType = Literal["node", "way", "relation"]
+
+
+@dataclass(frozen=True)
+class OsmObjectId:
+    """Typed identity of an OpenStreetMap object."""
+
+    object_type: OsmObjectType
+    object_id: int
+
+    def __post_init__(self) -> None:
+        if self.object_id <= 0:
+            raise ValueError("OSM object ID must be greater than 0")
+
+    def __str__(self) -> str:
+        return f"{self.object_type}/{self.object_id}"
 
 
 class Style(BaseModel):
@@ -121,3 +140,27 @@ class Feature:
     geometry: list[tuple[float, float]]
     tags: dict[str, str]
     is_closed: bool = False
+    object_id: OsmObjectId | None = None
+
+
+@dataclass
+class FeatureLayer:
+    """A styled feature specification with an optional selection limit."""
+
+    features: "FeatureSpec"
+    style: Style
+    layer_id: str | None = None
+    bbox: tuple[float, float, float, float] | None = None
+    object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None = None
+
+    def __post_init__(self) -> None:
+        from osm_to_svg.validation import validate_bbox
+
+        if self.bbox is not None:
+            self.bbox = validate_bbox(self.bbox)
+        if self.bbox is not None and self.object_ids is not None:
+            raise ValueError("Specify either bbox or object_ids, not both")
+        if self.object_ids is not None:
+            self.object_ids = frozenset(self.object_ids)
+            if not self.object_ids:
+                raise ValueError("object_ids must not be empty")

@@ -83,6 +83,14 @@ bbox = get_bbox_around_coordinates(
 
 `get_bbox_around_coordinates` also accepts asymmetric extents: you can specify ``east_km`` and ``west_km`` instead of ``width_km``, and/or  ``north_km`` and ``south_km`` instead of ``height_km`` (see the function's docstring for the full parameter reference).
 
+To resolve a named OSM object directly, use `geocode_osm_object`. It returns a typed `OsmObjectId` containing the OSM element type (`node`, `way`, or `relation`) and numeric ID.
+
+```python
+from osm_to_svg import geocode_osm_object
+
+herrenhaeuser_gaerten = geocode_osm_object("Herrenhäuser Gärten, Hannover")
+```
+
 #### Alternative approach: Overpass API
 
 Data can also be downloaded directly from the Overpass API. Note that this is often overloaded, may time out, applies rate limiting, and only supports small bounding boxes.
@@ -112,7 +120,35 @@ Options:
 - `show_progress` — if `True`, displays a progress bar via `tqdm` showing which layer is currently being processed (e.g. `Layer 1/3`). Defaults to `False`.
 
 #### Specifiying features (roads, forests, ...)
-`feature_layers` is a list of `(FeatureSpec, Style)` tuples. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. The available features (and how to combine them) are described [below](#available-features).
+`feature_layers` is normally a list of `(FeatureSpec, Style)` tuples. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. To limit a layer, use `FeatureLayer` with either a `bbox` or a set of typed `object_ids`. The available features (and how to combine them) are described [below](#available-features).
+
+```python
+from osm_to_svg import FeatureLayer, OsmObjectId, Style, create_map, features
+
+style = Style(fill="#77AA55", stroke="#336633")
+
+# Keep only category features intersecting this bbox. Boundary contact counts.
+parks_in_area = FeatureLayer(
+    features.GREEN_SPACES.PARK,
+    style,
+    bbox=(52.37, 9.70, 52.40, 9.76),
+)
+
+# Or select exact OSM objects. IDs are typed because node/way/relation IDs overlap.
+named_garden = FeatureLayer(
+    features.GREEN_SPACES.PARK,
+    style,
+    object_ids={OsmObjectId("relation", 123456)},
+)
+
+create_map(
+    pbf_path="hannover.osm.pbf",
+    feature_layers=[parks_in_area, named_garden],
+    output_path="parks.svg",
+)
+```
+
+`FeatureLayer` accepts exactly one limit: `bbox` or `object_ids`. A bbox is a spatial filter and can include multiple objects. An OSM object ID is an exact identity; `geocode_osm_object` uses the first Nominatim result, so use a specific query and verify the returned result when names are ambiguous. The map-level `bounds` still controls SVG dimensions and clipping; it is not a layer filter.
 
 Feature layers are styled with the `Style` class. All attributes are optional and default to no stroke and no fill (i.e. invisible). Options:
 - `stroke` — stroke colour as a CSS colour string (e.g. `"#000000"`, `"red"`). Use `"none"` for no stroke (default: `"none"`).

@@ -1,7 +1,7 @@
 """PBF parser facade."""
 
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import Feature
+from osm_to_svg.models import Feature, OsmObjectId
 from osm_to_svg.parsing.handlers import BoundsHandler, FeatureHandler
 
 
@@ -22,7 +22,13 @@ class PBFParser:
         handler.apply_file(self.pbf_path, locations=True)
         return handler.get_bounds()
 
-    def extract_features(self, spec: FeatureSpec) -> list[Feature]:
+    def extract_features(
+        self,
+        spec: FeatureSpec,
+        *,
+        bbox: tuple[float, float, float, float] | None = None,
+        object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None = None,
+    ) -> list[Feature]:
         """Extract OSM features matching the given spec from the PBF file.
 
         Deduplicates the results so each unique geometry appears only once.
@@ -35,6 +41,9 @@ class PBFParser:
         Returns:
             List of unique :class:`~osm_to_svg.models.Feature` objects.
         """
+        if bbox is not None and object_ids is not None:
+            raise ValueError("Specify either bbox or object_ids, not both")
+
         handler = FeatureHandler(spec)
         handler.apply_file(self.pbf_path, locations=True)
 
@@ -52,8 +61,92 @@ class PBFParser:
                 tuple(sorted(feature.tags.items())),
                 feature.is_closed,
             )
-            if key not in seen:
+            if key not in seen and self._matches_limit(feature, bbox, object_ids):
                 seen.add(key)
                 unique_features.append(feature)
 
         return unique_features
+
+    @staticmethod
+    def _matches_limit(
+        feature: Feature,
+        bbox: tuple[float, float, float, float] | None,
+        object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None,
+    ) -> bool:
+        if object_ids is not None:
+            return feature.object_id in object_ids
+        if bbox is None:
+            return True
+        return _geometry_intersects_bbox(feature.geometry, bbox)
+
+
+def _geometry_intersects_bbox(
+    geometry: list[tuple[float, float]],
+    bbox: tuple[float, float, float, float],
+) -> bool:
+    south, west, north, east = bbox
+
+    def inside(point: tuple[float, float]) -> bool:
+        lat, lon = point
+        return south <= lat <= north and west <= lon <= east
+
+    if any(inside(point) for point in geometry):
+        return True
+
+    edges = list(zip(geometry, geometry[1:]))
+    if len(geometry) > 2 and geometry[0] != geometry[-1]:
+        edges.append((geometry[-1], geometry[0]))
+
+    for start, end in edges:
+        if _segments_intersect_bbox(start, end, bbox):
+            return True
+
+    return bool(
+        geometry
+        and geometry[0] == geometry[-1]
+        and _point_in_polygon((south, west), geometry)
+    )
+
+
+def _segments_intersect_bbox(
+    start: tuple[float, float],
+    end: tuple[float, float],
+    bbox: tuple[float, float, float, float],
+) -> bool:
+    south, west, north, east = bbox
+
+    def orientation(
+        a: tuple[float, float], b: tuple[float, float], c: tuple[float, float]
+    ) -> float:
+        return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+
+    def intersects(
+        a: tuple[float, float],
+        b: tuple[float, float],
+        c: tuple[float, float],
+        d: tuple[float, float],
+    ) -> bool:
+        first = orientation(a, b, c) * orientation(a, b, d)
+        second = orientation(c, d, a) * orientation(c, d, b)
+        return first <= 0 and second <= 0
+
+    rectangle = [(south, west), (south, east), (north, east), (north, west)]
+    return any(
+        intersects(start, end, corner, rectangle[(index + 1) % 4])
+        for index, corner in enumerate(rectangle)
+    )
+
+
+def _point_in_polygon(
+    point: tuple[float, float], polygon: list[tuple[float, float]]
+) -> bool:
+    lat, lon = point
+    inside = False
+    for start, end in zip(polygon, polygon[1:]):
+        if (start[1] > lon) != (end[1] > lon):
+            crossing_lat = (end[0] - start[0]) * (lon - start[1]) / (
+                end[1] - start[1]
+            ) + start[0]
+            if lat < crossing_lat:
+                inside = not inside
+    return inside

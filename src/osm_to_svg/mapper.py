@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import PoiStyle, Style
+from osm_to_svg.models import FeatureLayer, OsmObjectId, PoiStyle, Style
 from osm_to_svg.parsing import PBFParser
 from osm_to_svg.projection import CoordinateTransformer
 from osm_to_svg.rendering.combiner import combine_elements
@@ -117,6 +117,8 @@ class SvgMapper:
         style: Style,
         layer_id: str | None = None,
         _progress_bar=None,
+        bbox: tuple[float, float, float, float] | None = None,
+        object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None = None,
     ) -> None:
         """Render cartographic features and accumulate the layer in memory.
 
@@ -145,7 +147,12 @@ class SvgMapper:
             _progress_bar.n = 0
             _progress_bar.total = None
             _progress_bar.refresh()
-        osm_features = self.parser.extract_features(features)
+        if bbox is None and object_ids is None:
+            osm_features = self.parser.extract_features(features)
+        else:
+            osm_features = self.parser.extract_features(
+                features, bbox=bbox, object_ids=object_ids
+            )
         if _progress_bar is not None:
             _progress_bar.set_description("Rendering features")
             _progress_bar.n = 0
@@ -162,6 +169,17 @@ class SvgMapper:
             osm_features, style, layer_id, _progress_bar=_progress_bar
         )
         self._layers.append(element)
+
+    def render_layer(self, layer: FeatureLayer, _progress_bar=None) -> None:
+        """Render a configured feature layer."""
+        self.render_features(
+            layer.features,
+            layer.style,
+            layer_id=layer.layer_id,
+            _progress_bar=_progress_bar,
+            bbox=layer.bbox,
+            object_ids=layer.object_ids,
+        )
 
     def place_poi_markers(
         self,
