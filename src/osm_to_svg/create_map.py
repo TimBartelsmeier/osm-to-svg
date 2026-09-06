@@ -3,7 +3,7 @@
 from tqdm.auto import tqdm
 
 from osm_to_svg.mapper import SvgMapper
-from osm_to_svg.models import FeatureLayer, PoiStyle
+from osm_to_svg.models import BoundingBox, FeatureLayer, PoiStyle
 
 
 def create_map(
@@ -11,7 +11,7 @@ def create_map(
     pbf_path: str,
     scale: int = 100000,
     dpi: int = 300,
-    bounds: tuple[float, float, float, float] | None = None,
+    bounds: BoundingBox | None = None,
     background_color: str | None = None,
     feature_layers: list[FeatureLayer] | None = None,
     poi_layers: list[tuple[list[tuple[float, float]], PoiStyle]] | None = None,

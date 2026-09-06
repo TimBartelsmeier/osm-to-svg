@@ -1,5 +1,6 @@
 import pytest
 
+from osm_to_svg.models import BoundingBox
 from osm_to_svg.validation import validate_bbox
 
 
@@ -18,7 +19,7 @@ def test_validate_bbox_accepts_valid_values() -> None:
     ],
 )
 def test_validate_bbox_rejects_invalid_ranges(
-    bbox: tuple[float, float, float, float],
+    bbox: BoundingBox,
     error_fragment: str,
 ) -> None:
     with pytest.raises(ValueError, match=error_fragment):

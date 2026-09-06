@@ -119,7 +119,7 @@ Options:
 - `show_progress` — if `True`, displays a progress bar via `tqdm` showing which layer is currently being processed (e.g. `Layer 1/3`). Defaults to `False`.
 
 #### Specifiying features (roads, forests, ...)
-`feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer` with either a `bbox` or a set of typed `object_ids` to limit a layer. The available features (and how to combine them) are described [below](#available-features).
+`feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer` with either `bboxes` or a set of typed `object_ids` to limit a layer. The available features (and how to combine them) are described [below](#available-features).
 
 ```python
 from osm_to_svg import FeatureLayer, OsmObjectId, Style, create_map, features
@@ -130,7 +130,7 @@ style = Style(fill="#77AA55", stroke="#336633")
 parks_in_area = FeatureLayer(
     features.GREEN_SPACES.PARK,
     style,
-    bbox=(52.37, 9.70, 52.40, 9.76),
+    bboxes=[(52.37, 9.70, 52.40, 9.76)],
 )
 
 # Or select exact OSM objects. IDs are typed because node/way/relation IDs overlap.
@@ -147,7 +147,7 @@ create_map(
 )
 ```
 
-`FeatureLayer` accepts exactly one limit: `bbox` or `object_ids`. A bbox is a spatial filter and can include multiple objects. An OSM object ID is an exact identity; `geocode_osm_object` uses the first Nominatim result, so use a specific query and verify the returned result when names are ambiguous. The map-level `bounds` still controls SVG dimensions and clipping; it is not a layer filter.
+`FeatureLayer` accepts exactly one limit: `bboxes` or `object_ids`. `bboxes` is a list of spatial filters; a feature matching any box is included. An OSM object ID is an exact identity; `geocode_osm_object` uses the first Nominatim result, so use a specific query and verify the returned result when names are ambiguous. The map-level `bounds` still controls SVG dimensions and clipping; it is not a layer filter.
 
 Feature layers are styled with the `Style` class. All attributes are optional and default to no stroke and no fill (i.e. invisible). Options:
 - `stroke` — stroke colour as a CSS colour string (e.g. `"#000000"`, `"red"`). Use `"none"` for no stroke (default: `"none"`).

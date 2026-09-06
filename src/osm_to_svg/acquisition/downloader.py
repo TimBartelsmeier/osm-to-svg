@@ -7,11 +7,12 @@ from pathlib import Path
 import httpx
 from tqdm.auto import tqdm
 
+from osm_to_svg.models import BoundingBox
 from osm_to_svg.validation import validate_bbox
 
 
 def download_from_overpass(
-    bbox: tuple[float, float, float, float],
+    bbox: BoundingBox,
     output_path: str,
     timeout: int = 300,
 ) -> None:

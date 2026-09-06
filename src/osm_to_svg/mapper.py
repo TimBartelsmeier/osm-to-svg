@@ -1,10 +1,11 @@
 """Main SvgMapper class for the library."""
 
 import xml.etree.ElementTree as ET
+from collections.abc import Sequence
 from pathlib import Path
 
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import FeatureLayer, OsmObjectId, PoiStyle, Style
+from osm_to_svg.models import BoundingBox, FeatureLayer, OsmObjectId, PoiStyle, Style
 from osm_to_svg.parsing import PBFParser
 from osm_to_svg.projection import CoordinateTransformer
 from osm_to_svg.rendering.combiner import combine_elements
@@ -44,7 +45,7 @@ class SvgMapper:
         pbf_path: str,
         scale: int = 100000,
         dpi: int = 300,
-        bounds: tuple[float, float, float, float] | None = None,
+        bounds: BoundingBox | None = None,
         background_color: str | None = None,
     ):
         """Initialize SvgMapper with a PBF file.
@@ -117,7 +118,7 @@ class SvgMapper:
         style: Style,
         layer_id: str | None = None,
         _progress_bar=None,
-        bbox: tuple[float, float, float, float] | None = None,
+        bboxes: Sequence[BoundingBox] | None = None,
         object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None = None,
     ) -> None:
         """Render cartographic features and accumulate the layer in memory.
@@ -147,11 +148,11 @@ class SvgMapper:
             _progress_bar.n = 0
             _progress_bar.total = None
             _progress_bar.refresh()
-        if bbox is None and object_ids is None:
+        if bboxes is None and object_ids is None:
             osm_features = self.parser.extract_features(features)
         else:
             osm_features = self.parser.extract_features(
-                features, bbox=bbox, object_ids=object_ids
+                features, bboxes=bboxes, object_ids=object_ids
             )
         if _progress_bar is not None:
             _progress_bar.set_description("Rendering features")
@@ -177,7 +178,7 @@ class SvgMapper:
             layer.style,
             layer_id=layer.layer_id,
             _progress_bar=_progress_bar,
-            bbox=layer.bbox,
+            bboxes=layer.bboxes,
             object_ids=layer.object_ids,
         )
 
@@ -271,7 +272,7 @@ class SvgMapper:
 
         combine_elements(self._layers, output_path, self.background_color)
 
-    def get_bounds(self) -> tuple[float, float, float, float]:
+    def get_bounds(self) -> BoundingBox:
         """Get the geographic bounds of the PBF file.
 
         Returns:

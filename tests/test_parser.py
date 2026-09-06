@@ -31,6 +31,19 @@ def test_parser_limit_matches_typed_object_ids() -> None:
     assert not PBFParser._matches_limit(feature, None, {OsmObjectId("relation", 123)})
 
 
+def test_parser_limit_matches_any_of_multiple_bboxes() -> None:
+    feature = Feature(
+        geometry=[(53.0, 10.0), (53.01, 10.01)],
+        tags={"highway": "primary"},
+    )
+
+    assert PBFParser._matches_limit(
+        feature,
+        [(52.0, 8.0, 52.01, 8.01), (53.0, 10.0, 53.01, 10.01)],
+        None,
+    )
+
+
 @pytest.fixture
 def tiny_pbf_fixture_path() -> Path:
     fixture = Path(__file__).parent / "fixtures" / "tiny.osm.pbf"

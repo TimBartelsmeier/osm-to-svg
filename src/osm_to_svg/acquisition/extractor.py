@@ -3,12 +3,13 @@
 import subprocess
 from pathlib import Path
 
+from osm_to_svg.models import BoundingBox
 from osm_to_svg.validation import validate_bbox
 
 
 def extract_from_pbf(
     source_pbf_path: str,
-    bbox: tuple[float, float, float, float],
+    bbox: BoundingBox,
     output_path: str,
 ) -> None:
     """Extract a bounding-box region from a PBF file using osmium-tool.

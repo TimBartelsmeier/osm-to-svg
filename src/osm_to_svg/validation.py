@@ -1,9 +1,11 @@
 """Shared validation helpers for geographic inputs."""
 
+from osm_to_svg.models import BoundingBox
+
 
 def validate_bbox(
-    bbox: tuple[float, float, float, float],
-) -> tuple[float, float, float, float]:
+    bbox: BoundingBox,
+) -> BoundingBox:
     """Validate and normalize a geographic bounding box.
 
     Args:

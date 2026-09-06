@@ -3,7 +3,7 @@
 import osmium
 
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import Feature, OsmObjectId
+from osm_to_svg.models import BoundingBox, Feature, OsmObjectId
 
 
 class BoundsHandler(osmium.SimpleHandler):
@@ -27,7 +27,7 @@ class BoundsHandler(osmium.SimpleHandler):
             self.north_lat = max(self.north_lat, lat)
             self.east_lon = max(self.east_lon, lon)
 
-    def get_bounds(self) -> tuple[float, float, float, float]:
+    def get_bounds(self) -> BoundingBox:
         """Return the accumulated bounding box as ``(south_lat, west_lon, north_lat, east_lon)``."""
         return (self.south_lat, self.west_lon, self.north_lat, self.east_lon)
 

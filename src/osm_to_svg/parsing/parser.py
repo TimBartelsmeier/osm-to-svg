@@ -1,7 +1,9 @@
 """PBF parser facade."""
 
+from collections.abc import Sequence
+
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import Feature, OsmObjectId
+from osm_to_svg.models import BoundingBox, Feature, OsmObjectId
 from osm_to_svg.parsing.handlers import BoundsHandler, FeatureHandler
 
 
@@ -12,7 +14,7 @@ class PBFParser:
         """Initialize the parser with the path to a PBF file."""
         self.pbf_path = pbf_path
 
-    def get_bounds(self) -> tuple[float, float, float, float]:
+    def get_bounds(self) -> BoundingBox:
         """Scan all nodes in the PBF file and return the geographic bounding box.
 
         Returns:
@@ -26,7 +28,7 @@ class PBFParser:
         self,
         spec: FeatureSpec,
         *,
-        bbox: tuple[float, float, float, float] | None = None,
+        bboxes: Sequence[BoundingBox] | None = None,
         object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None = None,
     ) -> list[Feature]:
         """Extract OSM features matching the given spec from the PBF file.
@@ -41,8 +43,8 @@ class PBFParser:
         Returns:
             List of unique :class:`~osm_to_svg.models.Feature` objects.
         """
-        if bbox is not None and object_ids is not None:
-            raise ValueError("Specify either bbox or object_ids, not both")
+        if bboxes is not None and object_ids is not None:
+            raise ValueError("Specify either bboxes or object_ids, not both")
 
         handler = FeatureHandler(spec)
         handler.apply_file(self.pbf_path, locations=True)
@@ -61,7 +63,7 @@ class PBFParser:
                 tuple(sorted(feature.tags.items())),
                 feature.is_closed,
             )
-            if key not in seen and self._matches_limit(feature, bbox, object_ids):
+            if key not in seen and self._matches_limit(feature, bboxes, object_ids):
                 seen.add(key)
                 unique_features.append(feature)
 
@@ -70,19 +72,19 @@ class PBFParser:
     @staticmethod
     def _matches_limit(
         feature: Feature,
-        bbox: tuple[float, float, float, float] | None,
+        bboxes: Sequence[BoundingBox] | None,
         object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None,
     ) -> bool:
         if object_ids is not None:
             return feature.object_id in object_ids
-        if bbox is None:
+        if bboxes is None:
             return True
-        return _geometry_intersects_bbox(feature.geometry, bbox)
+        return any(_geometry_intersects_bbox(feature.geometry, bbox) for bbox in bboxes)
 
 
 def _geometry_intersects_bbox(
     geometry: list[tuple[float, float]],
-    bbox: tuple[float, float, float, float],
+    bbox: BoundingBox,
 ) -> bool:
     south, west, north, east = bbox
 
@@ -111,7 +113,7 @@ def _geometry_intersects_bbox(
 def _segments_intersect_bbox(
     start: tuple[float, float],
     end: tuple[float, float],
-    bbox: tuple[float, float, float, float],
+    bbox: BoundingBox,
 ) -> bool:
     south, west, north, east = bbox
 

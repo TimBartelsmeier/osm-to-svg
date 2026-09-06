@@ -2,6 +2,7 @@
 
 import math
 
+from osm_to_svg.models import BoundingBox
 from osm_to_svg.validation import validate_bbox
 
 
@@ -32,7 +33,7 @@ def get_bbox_around_coordinates(
     height_km: float | None = None,
     north_km: float | None = None,
     south_km: float | None = None,
-) -> tuple[float, float, float, float]:
+) -> BoundingBox:
     """Compute a bounding box of the requested size centred on the given coordinates.
 
     Exactly one horizontal sizing method must be supplied: either ``width_km``

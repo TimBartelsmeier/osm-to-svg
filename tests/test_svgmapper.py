@@ -10,14 +10,14 @@ from osm_to_svg import features
 from osm_to_svg.create_map import create_map
 from osm_to_svg.features import FeatureSpec
 from osm_to_svg.mapper import SvgMapper
-from osm_to_svg.models import FeatureLayer, PoiStyle, Style
+from osm_to_svg.models import BoundingBox, FeatureLayer, PoiStyle, Style
 
 
 class DummyParser:
     def __init__(self, pbf_path: str):
         self.pbf_path = pbf_path
 
-    def get_bounds(self) -> tuple[float, float, float, float]:
+    def get_bounds(self) -> BoundingBox:
         return (52.0, 8.0, 52.2, 8.2)
 
     def extract_features(self, spec: FeatureSpec):  # noqa: ANN001
@@ -338,7 +338,7 @@ def test_create_map_uses_svgmapper_workflow(
             pbf_path: str,
             scale: int = 100000,
             dpi: int = 300,
-            bounds: tuple[float, float, float, float] | None = None,
+            bounds: BoundingBox | None = None,
             background_color: str | None = None,
         ):
             calls.append(
@@ -442,7 +442,7 @@ def test_create_map_defaults_to_empty_layers(
             pbf_path: str,
             scale: int = 100000,
             dpi: int = 300,
-            bounds: tuple[float, float, float, float] | None = None,
+            bounds: BoundingBox | None = None,
             background_color: str | None = None,
         ):
             del pbf_path, scale, dpi, bounds, background_color

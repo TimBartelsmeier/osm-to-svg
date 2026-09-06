@@ -4,6 +4,7 @@ import math
 
 from pyproj import Transformer
 
+from osm_to_svg.models import BoundingBox
 from osm_to_svg.validation import validate_bbox
 
 
@@ -20,7 +21,7 @@ class CoordinateTransformer:
 
     def __init__(
         self,
-        bounds: tuple[float, float, float, float],
+        bounds: BoundingBox,
         scale: int = 100000,
         dpi: int = 300,
     ):

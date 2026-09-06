@@ -83,7 +83,7 @@ create_map(
         FeatureLayer(
             features=feature_parks,
             style=Style(fill="#0A9C0A"),
-            bbox=herrenhäuser_gärten_bbox,
+            bboxes=[herrenhäuser_gärten_bbox],
         ),
     ],
     output_path=str(script_dir / "sub bbox.svg"),

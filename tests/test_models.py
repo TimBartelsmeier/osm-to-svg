@@ -10,22 +10,32 @@ def test_osm_object_id_is_typed_and_stringifiable() -> None:
     assert str(object_id) == "relation/123"
 
 
-def test_feature_layer_accepts_one_limit() -> None:
+def test_feature_layer_accepts_bboxes() -> None:
     layer = FeatureLayer(
         FeatureSpec(tag_filters={"leisure": ["park"]}),
         Style(fill="green"),
-        bbox=(52.0, 9.0, 52.1, 9.1),
+        bboxes=[(52.0, 9.0, 52.1, 9.1)],
     )
 
-    assert layer.bbox == (52.0, 9.0, 52.1, 9.1)
+    assert layer.bboxes == ((52.0, 9.0, 52.1, 9.1),)
+
+
+def test_feature_layer_accepts_multiple_bboxes() -> None:
+    layer = FeatureLayer(
+        FeatureSpec(tag_filters={"leisure": ["park"]}),
+        Style(fill="green"),
+        bboxes=[(52.0, 9.0, 52.1, 9.1), (53.0, 10.0, 53.1, 10.1)],
+    )
+
+    assert layer.bboxes == ((52.0, 9.0, 52.1, 9.1), (53.0, 10.0, 53.1, 10.1))
 
 
 def test_feature_layer_rejects_both_limits() -> None:
-    with pytest.raises(ValueError, match="either bbox or object_ids"):
+    with pytest.raises(ValueError, match="either bboxes or object_ids"):
         FeatureLayer(
             FeatureSpec(tag_filters={"leisure": ["park"]}),
             Style(fill="green"),
-            bbox=(52.0, 9.0, 52.1, 9.1),
+            bboxes=[(52.0, 9.0, 52.1, 9.1)],
             object_ids={OsmObjectId("way", 123)},
         )
 
