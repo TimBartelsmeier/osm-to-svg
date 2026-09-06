@@ -2,7 +2,7 @@
 
 A Python library for generating SVG maps from OpenStreetMap data. It allows creating SVG files that contain styled layers for roads, waterways, bodies of water, railways, buildings and green spaces; as well as placing POI markers.
 
-If you have any questions or improvement/feature ideas, feel free to contact me :) 
+If you have any questions or improvement/feature ideas, feel free to contact me :)
 
 > [!WARNING]
 > This project was programmed with AI tools. I have tested the functionality and, at least for my application, everything works as expected and without unintended side-effects. However, I have only given a cursory inspection to the generated code itself and I accept no liability for it.
@@ -60,7 +60,9 @@ extract_from_pbf(
 As detailed [above](#additional-helpful-packages), extraction requires `osmium-tool`.
 
 #### Geocoding & bounding arodund coordinates
-Instead of looking the coordinates up yourself, you can use `geocode_place` to query [OSM's Nominatim search engine](https://nominatim.openstreetmap.org/) for a place's coordinates, and then use `get_bbox_around_coordinates` to compute a bounding box of the desired size around them.
+Instead of looking the coordinates up yourself, you can use `geocode_coordinates` to query [OSM's Nominatim search engine](https://nominatim.openstreetmap.org/) for a place's coordinates, and then use `get_bbox_around_coordinates` to compute a bounding box of the desired size around them.
+
+Note that the first Nominatim result is returned, so use a specific query and verify the returned result when names are ambiguous.
 
 ```python
 from osm_to_svg import geocode_place, get_bbox_around_coordinates
@@ -82,7 +84,7 @@ bbox = get_bbox_around_coordinates(
 
 `get_bbox_around_coordinates` also accepts asymmetric extents: you can specify ``east_km`` and ``west_km`` instead of ``width_km``, and/or  ``north_km`` and ``south_km`` instead of ``height_km`` (see the function's docstring for the full parameter reference).
 
-To resolve a named OSM object directly, use `geocode_osm_object`. It returns a typed `OsmObjectId` containing the OSM element type (`node`, `way`, or `relation`) and numeric ID.
+To resolve a named OSM object directly (to pass to `FeatureLayer`'s `object_ids`), use `geocode_osm_object`. It returns a typed `OsmObjectId` containing the OSM element type (`node`, `way`, or `relation`) and numeric ID.
 
 ```python
 from osm_to_svg import geocode_osm_object
@@ -106,7 +108,6 @@ download_from_overpass(
 ### Creating maps
 The `create_map` method is used to create SVG images from the cartographic data.
 
-
 Options:
 - `pbf_path` — path to the `.osm.pbf` file to read.
 - `scale` — map scale denominator (default: `100000` for scale 1:100,000, i.e. 1 km in reality equals 1 cm in the output SVG). The scale is accurate at the centre latitude of the map bounds.
@@ -119,21 +120,28 @@ Options:
 - `show_progress` — if `True`, displays a progress bar via `tqdm` showing which layer is currently being processed (e.g. `Layer 1/3`). Defaults to `False`.
 
 #### Specifiying features (roads, forests, ...)
-`feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer` with either `bboxes` or a set of typed `object_ids` to limit a layer. The available features (and how to combine them) are described [below](#available-features).
+`feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer` with either `bboxes` or a set of typed `object_ids` to limit a layer to a certain region (see [examples/example_6_layer_with_sub_bbox/example_6_layer_with_sub_bbox.py](Example 6)). The available features (and how to combine them) are described [below](#available-features).
 
 ```python
 from osm_to_svg import FeatureLayer, OsmObjectId, Style, create_map, features
 
-style = Style(fill="#77AA55", stroke="#336633")
+road_style = Style(stroke="#000000", stroke_width=2.0)
+park_style = Style(fill="#5eab2b")
 
-# Keep only category features intersecting this bbox. Boundary contact counts.
+# Plot feature(s) for the entire bounding box 
+all_roads = FeatureLayer(
+    features.ROADS.ALL,
+    style,
+)
+
+# Or plot them for a subset of bounding boxes only
 parks_in_area = FeatureLayer(
     features.GREEN_SPACES.PARK,
     style,
     bboxes=[(52.37, 9.70, 52.40, 9.76)],
 )
 
-# Or select exact OSM objects. IDs are typed because node/way/relation IDs overlap.
+# Or select exact OSM objects to plot.
 named_garden = FeatureLayer(
     features.GREEN_SPACES.PARK,
     style,
@@ -147,7 +155,7 @@ create_map(
 )
 ```
 
-`FeatureLayer` accepts exactly one limit: `bboxes` or `object_ids`. `bboxes` is a list of spatial filters; a feature matching any box is included. An OSM object ID is an exact identity; `geocode_osm_object` uses the first Nominatim result, so use a specific query and verify the returned result when names are ambiguous. The map-level `bounds` still controls SVG dimensions and clipping; it is not a layer filter.
+When neither `bboxes` nor `object_ids` is specified, the feature(s) defined in the `FeatureLayer` will be plotted in the defined style for the entire bounding box. With `bboxes` or `object_ids`, it is possible to limit this to a subset: `bboxes` is a list of rectangular sub-bounding-boxes. `object_ids` is a list of OSM object ID to plot. [Geocoding](#geocoding--bounding-arodund-coordinates) is really useful here.
 
 Feature layers are styled with the `Style` class. All attributes are optional and default to no stroke and no fill (i.e. invisible). Options:
 - `stroke` — stroke colour as a CSS colour string (e.g. `"#000000"`, `"red"`). Use `"none"` for no stroke (default: `"none"`).
@@ -158,9 +166,9 @@ Feature layers are styled with the `Style` class. All attributes are optional an
 - `fill_opacity` — fill-only opacity, `0.0`–`1.0` (default: `None` = inherits `opacity`).
 
 #### Adding point of interests (POIs)
-`poi_layers` is a list of `([(lat, lon), ...], PoiStyle)` tuples. Each entry places the same marker SVG at every coordinate in the list using the given `PoiStyle`.
+`poi_layers` is a list of `([(lat, lon), ...], PoiStyle)` tuples. Each entry places the marker SVG at every coordinate in the list using the given `PoiStyle`.
 
-Coordinates must be provided as `(latitude, longitude)` pairs.
+Coordinates must be provided as `(latitude, longitude)` pairs. [Geocoding](#geocoding--bounding-arodund-coordinates) is very helpful here.
 
 POI markers are styled with the `PoiStyle` class. Required:
 - `marker_svg_path` — path to the SVG file used as the marker icon.
@@ -223,7 +231,7 @@ Note: OSM is very granular in separating different types of features. For exampl
 OSM tag: `highway`
 
 | Member | OSM value | Description |
-|---|---|---|
+| --- | --- | --- |
 | `features.ROADS.MOTORWAY` | `highway=motorway` | High-capacity divided motorway |
 | `features.ROADS.MOTORWAY_LINK` | `highway=motorway_link` | Motorway ramp |
 | `features.ROADS.TRUNK` | `highway=trunk` | High-importance road below motorway standard |
@@ -250,7 +258,7 @@ OSM tag: `highway`
 Shorthands:
 
 | Shorthand | Composition |
-|---|---|
+| --- | --- |
 | `features.ROADS.MAJOR` | `MOTORWAY` \| `MOTORWAY_LINK` \| `TRUNK` \| `TRUNK_LINK` \| `PRIMARY` \| `PRIMARY_LINK` \| `SECONDARY` \| `SECONDARY_LINK` \| `TERTIARY` \| `TERTIARY_LINK` |
 | `features.ROADS.ARTERIAL` | `MOTORWAY` \| `MOTORWAY_LINK` \| `TRUNK` \| `TRUNK_LINK` \| `PRIMARY` \| `PRIMARY_LINK` |
 | `features.ROADS.LOCAL` | `RESIDENTIAL` \| `UNCLASSIFIED` \| `SERVICE` \| `LIVING_STREET` |
@@ -262,7 +270,7 @@ Shorthands:
 OSM tag: `railway`
 
 | Member | OSM value | Description |
-|---|---|---|
+| --- | --- | --- |
 | `features.RAILWAYS.RAIL` | `railway=rail` | Standard-gauge heavy rail |
 | `features.RAILWAYS.LIGHT_RAIL` | `railway=light_rail` | Light rail and commuter rail |
 | `features.RAILWAYS.SUBWAY` | `railway=subway` | Underground metro |
@@ -277,7 +285,7 @@ OSM tag: `railway`
 Shorthands:
 
 | Shorthand | Composition |
-|---|---|
+| --- | --- |
 | `features.RAILWAYS.ACTIVE` | `RAIL` \| `LIGHT_RAIL` \| `SUBWAY` \| `TRAM` \| `MONORAIL` \| `FUNICULAR` \| `NARROW_GAUGE` |
 | `features.RAILWAYS.URBAN_TRANSIT` | `LIGHT_RAIL` \| `SUBWAY` \| `TRAM` \| `MONORAIL` |
 | `features.RAILWAYS.INACTIVE` | `ABANDONED` \| `DISUSED` \| `PRESERVED` |
@@ -289,7 +297,7 @@ OSM tag: `waterway`
 `features.WATERWAYS` is for linear centerlines that should normally be stroked, not filled. Use this namespace for river and canal lines. Rivers and canals intentionally overlap with `features.WATER_POLYGONS` because some OSM data also represents them as area geometries.
 
 | Member | OSM value | Description |
-|---|---|---|
+| --- | --- | --- |
 | `features.WATERWAYS.RIVER` | `waterway=river` | Major natural watercourse centerline |
 | `features.WATERWAYS.STREAM` | `waterway=stream` | Minor natural watercourse centerline |
 | `features.WATERWAYS.CANAL` | `waterway=canal` | Artificial navigable waterway centerline |
@@ -302,7 +310,7 @@ OSM tag: `waterway`
 Shorthands:
 
 | Shorthand | Composition |
-|---|---|
+| --- | --- |
 | `features.WATERWAYS.ALL` | `RIVER` \| `STREAM` \| `CANAL` \| `DRAIN` \| `DITCH` \| `WEIR` \| `LOCK` \| `WATERFALL` |
 | `features.WATERWAYS.FLOWING` | `RIVER` \| `STREAM` \| `CANAL` |
 | `features.WATERWAYS.NATURAL` | `RIVER` \| `STREAM` \| `WATERFALL` |
@@ -317,7 +325,7 @@ OSM tags: `natural`, `water`, `wetland`, `landuse`, `waterway`
 `features.WATER_POLYGONS` is for fill-safe area features. Use it for lakes, riverbanks, canal basins, wetlands, and similar polygonal water features. Some members overlap intentionally with `features.WATERWAYS`: `RIVER` and `CANAL` target filled area geometries here, while the same names under `features.WATERWAYS` target centerlines.
 
 | Member | OSM value | Description |
-|---|---|---|
+| --- | --- | --- |
 | `features.WATER_POLYGONS.WATER_AREA` | `natural=water` | Generic open-water polygon |
 | `features.WATER_POLYGONS.LAKE` | `natural=water` + `water=lake` | Lake polygon |
 | `features.WATER_POLYGONS.RESERVOIR` | `natural=water` + `water=reservoir` | Reservoir polygon |
@@ -337,7 +345,7 @@ OSM tags: `natural`, `water`, `wetland`, `landuse`, `waterway`
 Shorthands:
 
 | Shorthand | Composition |
-|---|---|
+| --- | --- |
 | `features.WATER_POLYGONS.OPEN_WATER` | `WATER_AREA` \| `LAKE` \| `RESERVOIR` \| `POND` \| `LAGOON` \| `BASIN` \| `SALT_POND` |
 | `features.WATER_POLYGONS.FLOWING` | `RIVER` \| `CANAL` |
 | `features.WATER_POLYGONS.WETLANDS` | `WETLAND_TYPE` \| `MARSH` \| `SWAMP` \| `REEDBED` \| `SALTMARSH` |
@@ -351,7 +359,7 @@ Shorthands:
 OSM tag: `building`
 
 | Member | OSM value | Description |
-|---|---|---|
+| --- | --- | --- |
 | `features.BUILDINGS.YES` | `building=yes` | Generic unclassified building |
 | `features.BUILDINGS.BUILDING` | `building=building` | Explicitly tagged building |
 | `features.BUILDINGS.HOUSE` | `building=house` | Single-family house |
@@ -396,7 +404,7 @@ OSM tag: `building`
 Shorthands:
 
 | Shorthand | Composition |
-|---|---|
+| --- | --- |
 | `features.BUILDINGS.RESIDENTIAL` | `RESIDENTIAL_TAG` \| `HOUSE` \| `DETACHED` \| `SEMIDETACHED_HOUSE` \| `APARTMENTS` \| `TERRACE` \| `BUNGALOW` |
 | `features.BUILDINGS.COMMERCIAL` | `COMMERCIAL_TAG` \| `RETAIL` \| `OFFICE` \| `SUPERMARKET` \| `HOTEL` |
 | `features.BUILDINGS.INDUSTRIAL` | `INDUSTRIAL_TAG` \| `WAREHOUSE` \| `MANUFACTURE` |
@@ -412,7 +420,7 @@ Shorthands:
 OSM tags: `leisure`, `natural`, `landuse`
 
 | Member | OSM tag | Description |
-|---|---|---|
+| --- | --- | --- |
 | `features.GREEN_SPACES.PARK` | `leisure=park` | Public park |
 | `features.GREEN_SPACES.GARDEN` | `leisure=garden` | Public or private garden |
 | `features.GREEN_SPACES.NATURE_RESERVE` | `leisure=nature_reserve` | Protected nature reserve |
@@ -438,7 +446,7 @@ OSM tags: `leisure`, `natural`, `landuse`
 Shorthands:
 
 | Shorthand | Composition |
-|---|---|
+| --- | --- |
 | `features.GREEN_SPACES.PARKS` | `PARK` \| `GARDEN` \| `RECREATION_GROUND` \| `COMMON` |
 | `features.GREEN_SPACES.RECREATION` | `PARKS` \| `PLAYGROUND` \| `PITCH` \| `GOLF_COURSE` |
 | `features.GREEN_SPACES.FORESTS` | `WOOD` \| `FOREST` |
@@ -454,7 +462,7 @@ OSM tag: `landuse`
 `features.LANDUSE` captures core urban landuse polygons. These are area-based features and are intended for filled rendering.
 
 | Member | OSM value | Description |
-|---|---|---|
+| --- | --- | --- |
 | `features.LANDUSE.RESIDENTIAL` | `landuse=residential` | Predominantly residential landuse polygon |
 | `features.LANDUSE.COMMERCIAL` | `landuse=commercial` | Predominantly commercial landuse polygon |
 | `features.LANDUSE.INDUSTRIAL` | `landuse=industrial` | Predominantly industrial landuse polygon |
@@ -463,7 +471,6 @@ OSM tag: `landuse`
 Shorthands:
 
 | Shorthand | Composition |
-|---|---|
+| --- | --- |
 | `features.LANDUSE.URBAN` | `RESIDENTIAL` \| `COMMERCIAL` \| `INDUSTRIAL` \| `RETAIL` |
 | `features.LANDUSE.ALL` | `URBAN` |
-
