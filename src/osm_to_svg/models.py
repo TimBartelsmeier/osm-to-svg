@@ -1,5 +1,6 @@
 """Data models for styling and feature representation."""
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
@@ -151,7 +152,7 @@ class FeatureLayer:
     style: Style
     layer_id: str | None = None
     bbox: tuple[float, float, float, float] | None = None
-    object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None = None
+    object_ids: Iterable[OsmObjectId] | None = None
 
     def __post_init__(self) -> None:
         from osm_to_svg.validation import validate_bbox
