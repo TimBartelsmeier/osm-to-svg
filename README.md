@@ -174,7 +174,15 @@ Optional:
 - `anchor` — which point of the marker SVG is aligned to the POI coordinate. Accepted values: `"center"` (default), `"top"`, `"top-right"`, `"right"`, `"bottom-right"`, `"bottom"`, `"bottom-left"`, `"left"`, `"top-left"`. Use `"bottom"` for a classic pin-style marker where the tip points to the location.
 
 #### Full example
-See [examples/example_4_multiple_layers.py](examples/example_4_multiple_layers.py) for an example script that includes multiple layers and POI markers.
+See [examples/example_4_multiple_layers/example_4_multiple_layers.py](examples/example_4_multiple_layers/example_4_multiple_layers.py) for an example script that includes multiple layers and POI markers.
+
+Examples 3 through 6 use `examples/osmdata/hannover.osm.pbf`. Run example 2 first to download and extract this file:
+
+```bash
+pixi run example-2
+```
+
+Those examples check for the file and explain this prerequisite if it is missing. Example 2 keeps both downloaded PBF files in `examples/osmdata`.
 
 ## Available features
 All features are accessed through the `features` subpackage. Individual types match one or more OSM tag constraints, for example, `osm_to_svg.features.ROADS.MOTORWAY`, `osm_to_svg.features.WATERWAYS.CANAL`, or `osm_to_svg.features.WATER_POLYGONS.LAKE`. Multiple features can be combined with the `|` operator: `features.ROADS.MOTORWAY | features.WATERWAYS.CANAL` will create a new `FeatureSpec` object that, when passed to `create_map`, will result in motorways _and_ canal centerlines being plotted. There are also a lot of pre-defined unions ("shorthands") for typical use cases, for example, `features.ROADS.MAJOR` encompasses all major link roads, but no residential roads.
