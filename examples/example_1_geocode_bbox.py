@@ -1,10 +1,10 @@
 """Example 1: Geocode a place name and create a bounding box around it."""
 
-from osm_to_svg import geocode_place, get_bbox_around_coordinates
+from osm_to_svg import geocode_coordinates, get_bbox_around_coordinates
 
 # Step 1: Geocode the place name to get its coordinates
 print("Geocoding 'Hannover, Germany'...")
-lat, lon = geocode_place("Hannover, Germany")
+lat, lon = geocode_coordinates("Hannover, Germany")
 print(f"  Coordinates: lat={lat}, lon={lon}")
 
 # Step 2: Compute a bounding box around those coordinates

@@ -8,7 +8,7 @@ from osm_to_svg import (
     Style,
     create_map,
     features,
-    geocode_place,
+    geocode_coordinates,
 )
 
 # Set up directories relative to this script
@@ -38,7 +38,7 @@ poi_places = [
 ]
 
 print("Geocoding POIs...")
-pois = [geocode_place(place) for place in poi_places]
+pois = [geocode_coordinates(place) for place in poi_places]
 
 # Render multiple layers
 print("Rendering comprehensive map:")

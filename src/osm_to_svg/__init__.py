@@ -5,8 +5,8 @@ from osm_to_svg.acquisition import (
     download_from_overpass,
     download_from_url,
     extract_from_pbf,
+    geocode_coordinates,
     geocode_osm_object,
-    geocode_place,
     get_bbox_around_coordinates,
 )
 from osm_to_svg.create_map import create_map
@@ -32,7 +32,7 @@ __all__ = [
     "download_from_url",
     "extract_from_pbf",
     # Geocoding / bbox helpers
-    "geocode_place",
+    "geocode_coordinates",
     "geocode_osm_object",
     "get_bbox_around_coordinates",
 ]

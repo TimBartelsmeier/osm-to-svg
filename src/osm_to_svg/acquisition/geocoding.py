@@ -28,7 +28,7 @@ def _geocode_result(place_name: str, timeout: int) -> dict[str, object]:
     return results[0]
 
 
-def geocode_place(
+def geocode_coordinates(
     place_name: str,
     *,
     timeout: int = 30,

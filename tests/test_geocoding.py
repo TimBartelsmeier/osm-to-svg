@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from osm_to_svg.acquisition.geocoding import geocode_osm_object, geocode_place
+from osm_to_svg.acquisition.geocoding import geocode_coordinates, geocode_osm_object
 from osm_to_svg.models import OsmObjectId
 
 
@@ -27,7 +27,7 @@ def test_geocode_place_returns_lat_lon(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(httpx, "get", fake_get)
 
-    lat, lon = geocode_place("Hannover, Germany")
+    lat, lon = geocode_coordinates("Hannover, Germany")
 
     assert lat == pytest.approx(52.3759)
     assert lon == pytest.approx(9.7320)
@@ -69,7 +69,7 @@ def test_geocode_place_forwards_custom_timeout(monkeypatch: pytest.MonkeyPatch) 
 
     monkeypatch.setattr(httpx, "get", fake_get)
 
-    geocode_place("Hannover", timeout=60)
+    geocode_coordinates("Hannover", timeout=60)
 
     assert captured["timeout"] == 60
 
@@ -81,7 +81,7 @@ def test_geocode_place_wraps_http_errors(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(httpx, "get", fake_get)
 
     with pytest.raises(httpx.HTTPError, match="Failed to geocode"):
-        geocode_place("Hannover")
+        geocode_coordinates("Hannover")
 
 
 def test_geocode_place_raises_for_status_on_http_error(
@@ -96,14 +96,14 @@ def test_geocode_place_raises_for_status_on_http_error(
     )
 
     with pytest.raises(httpx.HTTPError, match="Failed to geocode"):
-        geocode_place("Hannover")
+        geocode_coordinates("Hannover")
 
 
 def test_geocode_place_raises_when_no_results(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(httpx, "get", lambda *args, **kwargs: DummyResponse([]))
 
     with pytest.raises(ValueError, match="Could not find location"):
-        geocode_place("Nowhere Really Obscure Place Name XYZ")
+        geocode_coordinates("Nowhere Really Obscure Place Name XYZ")
 
 
 def test_geocode_place_uses_first_result(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -116,7 +116,7 @@ def test_geocode_place_uses_first_result(monkeypatch: pytest.MonkeyPatch) -> Non
         ),
     )
 
-    lat, lon = geocode_place("Ambiguous Place")
+    lat, lon = geocode_coordinates("Ambiguous Place")
 
     assert lat == pytest.approx(1.0)
     assert lon == pytest.approx(2.0)

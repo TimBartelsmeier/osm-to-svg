@@ -14,23 +14,17 @@ from osm_to_svg import (
     create_map,
     features,
     geocode_coordinates,
-    geocode_osm_object,
     get_bbox_around_coordinates,
 )
 
 # Set up directories relative to this script
 script_dir = Path(__file__).parent
-osmdata_dir = script_dir.parent / "osmdata"
+osmdata_dir = script_dir / "osmdata"
+output_dir = script_dir / "output"
+output_dir.mkdir(exist_ok=True)
 
 # File paths
 hannover_pbf = osmdata_dir / "hannover.osm.pbf"
-
-if not hannover_pbf.is_file():
-    print(
-        f"Missing required data file: {hannover_pbf}. "
-        "Run example 2 first: pixi run example-2"
-    )
-    raise SystemExit(1)
 
 # Bounding box for Hannover obtained from example_1_geocode_bbox.py
 hannover_bbox = (52.34, 9.68, 52.41, 9.79)
@@ -45,10 +39,7 @@ herrenhäuser_gärten_bbox = get_bbox_around_coordinates(
     height_km=0.5,
 )
 
-großer_garten_id = geocode_osm_object("Großer Garten, Hannover")
-berggarten_id = geocode_osm_object("Berggarten, Hannover")
-
-print("Rendering major roads and all parks for the full bbox ...")
+print("Rendering parks and major roads, full bbox each ...")
 create_map(
     pbf_path=str(hannover_pbf),
     bounds=hannover_bbox,
@@ -63,14 +54,12 @@ create_map(
             style=Style(fill="#0A9C0A"),
         ),
     ],
-    output_path=str(script_dir / "everything.svg"),
+    output_path=str(output_dir / "sub_bbox disabled.svg"),
     show_progress=True,
 )
 
 print()
-print(
-    "Rendering major roads for the full bbox, and parks for a sub-bbox around the Großer Garten..."
-)
+print("Rendering major roads for full bbox and parks for a sub-bbox ...")
 create_map(
     pbf_path=str(hannover_pbf),
     bounds=hannover_bbox,
@@ -86,29 +75,6 @@ create_map(
             bbox=herrenhäuser_gärten_bbox,
         ),
     ],
-    output_path=str(script_dir / "sub bbox.svg"),
-    show_progress=True,
-)
-
-print()
-print(
-    "Rendering major roads for the full bbox, and render Großer Garten and Berggarten by their OSM object IDs ..."
-)
-create_map(
-    pbf_path=str(hannover_pbf),
-    bounds=hannover_bbox,
-    background_color="#FFFFFF",
-    feature_layers=[
-        FeatureLayer(
-            features=features.ROADS.MAJOR,
-            style=Style(stroke="#000000", stroke_width=2.0),
-        ),
-        FeatureLayer(
-            features=feature_parks,
-            style=Style(fill="#0A9C0A"),
-            object_ids={großer_garten_id, berggarten_id},
-        ),
-    ],
-    output_path=str(script_dir / "object ids.svg"),
+    output_path=str(output_dir / "sub_bbox enabled.svg"),
     show_progress=True,
 )
