@@ -2,11 +2,8 @@
 
 from tqdm.auto import tqdm
 
-from osm_to_svg.features import FeatureSpec
 from osm_to_svg.mapper import SvgMapper
-from osm_to_svg.models import FeatureLayer, PoiStyle, Style
-
-FeatureLayerInput = FeatureLayer | tuple[FeatureSpec, Style]
+from osm_to_svg.models import FeatureLayer, PoiStyle
 
 
 def create_map(
@@ -16,7 +13,7 @@ def create_map(
     dpi: int = 300,
     bounds: tuple[float, float, float, float] | None = None,
     background_color: str | None = None,
-    feature_layers: list[FeatureLayerInput] | None = None,
+    feature_layers: list[FeatureLayer] | None = None,
     poi_layers: list[tuple[list[tuple[float, float]], PoiStyle]] | None = None,
     output_path: str,
     show_progress: bool = False,
@@ -40,8 +37,8 @@ def create_map(
             Passing this explicitly is recommended for predictable clipping and
             output dimensions.
         background_color: Optional SVG background color.
-        feature_layers: Feature render instructions as
-            ``[(feature_spec, style), ...]``.
+        feature_layers: Feature render instructions as a list of
+            :class:`~osm_to_svg.models.FeatureLayer` objects.
         poi_layers: POI marker instructions as
             ``[(coords, poi_style), ...]`` where coords are ``[(lat, lon), ...]``.
         output_path: Destination path for the final combined SVG.
@@ -68,11 +65,9 @@ def create_map(
             for i, layer in enumerate(feature_layers or []):
                 if progress_bar is not None:
                     progress_bar.set_description(f"Layer {i + 1}/{total_layers}")
-                if isinstance(layer, FeatureLayer):
-                    mapper.render_layer(layer, _progress_bar=None)
-                else:
-                    feature_spec, style = layer
-                    mapper.render_features(feature_spec, style, _progress_bar=None)
+                if not isinstance(layer, FeatureLayer):
+                    raise TypeError("feature_layers must contain FeatureLayer objects")
+                mapper.render_layer(layer, _progress_bar=None)
                 if progress_bar is not None:
                     progress_bar.update(1)
 

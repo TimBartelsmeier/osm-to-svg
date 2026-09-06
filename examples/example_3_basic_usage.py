@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from osm_to_svg import Style, create_map, features
+from osm_to_svg import FeatureLayer, Style, create_map, features
 
 # Set up directories relative to this script
 script_dir = Path(__file__).parent
@@ -24,7 +24,7 @@ create_map(
     bounds=hannover_bbox,
     background_color="#FFFFFF",
     feature_layers=[
-        (
+        FeatureLayer(
             features.ROADS.MAJOR,
             Style(stroke="#000000", stroke_width=2.0),
         )

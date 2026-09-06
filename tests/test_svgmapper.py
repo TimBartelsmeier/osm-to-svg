@@ -10,7 +10,7 @@ from osm_to_svg import features
 from osm_to_svg.create_map import create_map
 from osm_to_svg.features import FeatureSpec
 from osm_to_svg.mapper import SvgMapper
-from osm_to_svg.models import PoiStyle, Style
+from osm_to_svg.models import FeatureLayer, PoiStyle, Style
 
 
 class DummyParser:
@@ -366,6 +366,9 @@ def test_create_map_uses_svgmapper_workflow(
         ) -> None:
             calls.append(("render_features", (feature_spec, style)))
 
+        def render_layer(self, layer: FeatureLayer, _progress_bar=None) -> None:
+            calls.append(("render_features", layer))
+
         def place_poi_markers(
             self,
             coords: list[tuple[float, float]],
@@ -380,8 +383,8 @@ def test_create_map_uses_svgmapper_workflow(
     monkeypatch.setattr(create_map_module, "SvgMapper", SpyMapper)
 
     feature_layers = [
-        (features.WATER_POLYGONS.OPEN_WATER, Style(fill="#4A90E2")),
-        (features.ROADS.MAJOR, Style(stroke="#000000", stroke_width=1.0)),
+        FeatureLayer(features.WATER_POLYGONS.OPEN_WATER, Style(fill="#4A90E2")),
+        FeatureLayer(features.ROADS.MAJOR, Style(stroke="#000000", stroke_width=1.0)),
     ]
     poi_layers = [
         (
@@ -516,6 +519,11 @@ def test_create_map_show_progress_updates_and_closes_bar(
         ) -> None:
             calls.append(("render_features", (feature_spec, style, _progress_bar)))
 
+        def render_layer(self, layer: FeatureLayer, _progress_bar=None) -> None:
+            calls.append(
+                ("render_features", (layer.features, layer.style, _progress_bar))
+            )
+
         def place_poi_markers(
             self,
             coords: list[tuple[float, float]],
@@ -532,7 +540,7 @@ def test_create_map_show_progress_updates_and_closes_bar(
 
     create_map(
         pbf_path=str(pbf_path),
-        feature_layers=[(features.ROADS.MAJOR, Style(stroke="#000000"))],
+        feature_layers=[FeatureLayer(features.ROADS.MAJOR, Style(stroke="#000000"))],
         poi_layers=[
             (
                 [(52.0, 8.0)],

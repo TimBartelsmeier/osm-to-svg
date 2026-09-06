@@ -113,13 +113,13 @@ Options:
 - `dpi` — dots per inch for the output SVG (default: `300`). Common values: `96` (screen), `72` (print), `300` (high-res print).
 - `bounds` — optional bounding box as `(south_lat, west_lon, north_lat, east_lon)`. It is recommended to pass this even if your PBF file is already cropped to the region of interest because some features contained in the PBF file (such as long roads) can extend out of the PBF's region. Specifying the bounding box ensures the SVG is sized correctly and cropped to the region of interest. If omitted, bounds are derived from the PBF file by scanning all nodes.
 - `background_color` — optional background fill for the SVG (e.g. `"#FFFFFF"`, `"white"`). Defaults to `None` (transparent).
-- `feature_layers` — list of `(FeatureSpec, Style)` tuples. See below for details.
+- `feature_layers` — list of `FeatureLayer` objects. See below for details.
 - `poi_layers` — list of `([(lat, lon), ...], PoiStyle)` tuples. See below for details.
 - `output_path` — path for the final combined SVG file.
 - `show_progress` — if `True`, displays a progress bar via `tqdm` showing which layer is currently being processed (e.g. `Layer 1/3`). Defaults to `False`.
 
 #### Specifiying features (roads, forests, ...)
-`feature_layers` is normally a list of `(FeatureSpec, Style)` tuples. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. To limit a layer, use `FeatureLayer` with either a `bbox` or a set of typed `object_ids`. The available features (and how to combine them) are described [below](#available-features).
+`feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer` with either a `bbox` or a set of typed `object_ids` to limit a layer. The available features (and how to combine them) are described [below](#available-features).
 
 ```python
 from osm_to_svg import FeatureLayer, OsmObjectId, Style, create_map, features
@@ -180,28 +180,30 @@ See [examples/example_4_multiple_layers.py](examples/example_4_multiple_layers.p
 All features are accessed through the `features` subpackage. Individual types match one or more OSM tag constraints, for example, `osm_to_svg.features.ROADS.MOTORWAY`, `osm_to_svg.features.WATERWAYS.CANAL`, or `osm_to_svg.features.WATER_POLYGONS.LAKE`. Multiple features can be combined with the `|` operator: `features.ROADS.MOTORWAY | features.WATERWAYS.CANAL` will create a new `FeatureSpec` object that, when passed to `create_map`, will result in motorways _and_ canal centerlines being plotted. There are also a lot of pre-defined unions ("shorthands") for typical use cases, for example, `features.ROADS.MAJOR` encompasses all major link roads, but no residential roads.
 
 ```python
-from osm_to_svg import Style, create_map, features
+from osm_to_svg import FeatureLayer, Style, create_map, features
 
 style = Style(stroke="#000000")
 
 # Individual type
 create_map(
     pbf_path="hannover.osm.pbf",
-    feature_layers=[(features.ROADS.MOTORWAY, style)],
+    feature_layers=[FeatureLayer(features.ROADS.MOTORWAY, style)],
     output_path="motorway.svg",
 )
 
 # Shorthand
 create_map(
     pbf_path="hannover.osm.pbf",
-    feature_layers=[(features.ROADS.MAJOR, style)],
+    feature_layers=[FeatureLayer(features.ROADS.MAJOR, style)],
     output_path="major_roads.svg",
 )
 
 # Ad-hoc combination
 create_map(
     pbf_path="hannover.osm.pbf",
-    feature_layers=[(features.ROADS.MAJOR | features.WATER_POLYGONS.OPEN_WATER, style)],
+    feature_layers=[
+        FeatureLayer(features.ROADS.MAJOR | features.WATER_POLYGONS.OPEN_WATER, style)
+    ],
     output_path="roads_and_water.svg",
 )
 ```

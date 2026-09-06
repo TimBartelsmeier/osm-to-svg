@@ -8,7 +8,7 @@ Consider using a smaller bounding box or specific subtypes for production use.
 
 from pathlib import Path
 
-from osm_to_svg import Style, create_map, features
+from osm_to_svg import FeatureLayer, Style, create_map, features
 
 # Set up directories relative to this script
 script_dir = Path(__file__).parent
@@ -39,8 +39,8 @@ create_map(
     bounds=hannover_bbox,
     background_color="#FFFFFF",
     feature_layers=[
-        (all_buildings, Style(fill="#925000")),
-        (all_roads, Style(stroke="#000000", stroke_width=0.25)),
+        FeatureLayer(all_buildings, Style(fill="#925000")),
+        FeatureLayer(all_roads, Style(stroke="#000000", stroke_width=0.25)),
     ],
     output_path=str(output_svg),
     show_progress=True,

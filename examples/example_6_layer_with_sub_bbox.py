@@ -1,4 +1,4 @@
-"""Example 5: Render all buildings and all roads.
+"""Example 6: Limit individual feature layers with a sub-bounding box.
 
 Note: This example renders ALL building and road types in the bounding box,
 which can result in very large SVG files (potentially 10+ MB) depending on

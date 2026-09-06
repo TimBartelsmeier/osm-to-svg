@@ -2,7 +2,14 @@
 
 from pathlib import Path
 
-from osm_to_svg import PoiStyle, Style, create_map, features, geocode_place
+from osm_to_svg import (
+    FeatureLayer,
+    PoiStyle,
+    Style,
+    create_map,
+    features,
+    geocode_place,
+)
 
 # Set up directories relative to this script
 script_dir = Path(__file__).parent
@@ -44,12 +51,14 @@ create_map(
     bounds=hannover_bbox,
     background_color="#FFFFFF",
     feature_layers=[
-        (features.WATER_POLYGONS.OPEN_WATER, Style(fill="#4A90E2")),
-        (features.GREEN_SPACES.FORESTS, Style(fill="#046A04")),
-        (features.GREEN_SPACES.PARKS, Style(fill="#1FC21F")),
-        (features.ROADS.MAJOR, Style(stroke="#000000", stroke_width=1)),
-        (features.ROADS.LOCAL, Style(stroke="#5E5E5E", stroke_width=0.5)),
-        (features.RAILWAYS.ACTIVE, Style(stroke="#FF8C00", stroke_width=0.2)),
+        FeatureLayer(features.WATER_POLYGONS.OPEN_WATER, Style(fill="#4A90E2")),
+        FeatureLayer(features.GREEN_SPACES.FORESTS, Style(fill="#046A04")),
+        FeatureLayer(features.GREEN_SPACES.PARKS, Style(fill="#1FC21F")),
+        FeatureLayer(features.ROADS.MAJOR, Style(stroke="#000000", stroke_width=1)),
+        FeatureLayer(features.ROADS.LOCAL, Style(stroke="#5E5E5E", stroke_width=0.5)),
+        FeatureLayer(
+            features.RAILWAYS.ACTIVE, Style(stroke="#FF8C00", stroke_width=0.2)
+        ),
     ],
     poi_layers=[
         (
