@@ -9,10 +9,10 @@ If you have any questions or improvement/feature ideas, feel free to contact me 
 
 ## Installation
 
-This library is currently not published to PyPI, conda-forge, or similar. You can install it directly from this repo with your favorite package manager that supports installing from git (for example, `pip` or `pixi`). I recommend [`pixi`](https://pixi.prefix.dev/latest/) because it allows managing packages and tools from pypi, conda repos like conda-forge, and from git (like this package) simultaneously.
+This library is currently not published to PyPI, conda-forge, or similar. You can install it directly from this repo with your favorite package manager that supports installing from git (for example, `pip` or `pixi`). I recommend [`pixi`](https://pixi.prefix.dev/latest/) because it allows managing packages and tools from PyPI, conda repos like conda-forge, and from git (like this package) simultaneously.
 
 With `pixi`, you'd do something like this:
-1. [Install pixi on you system](https://pixi.prefix.dev/latest/installation)
+1. [Install pixi on your system](https://pixi.prefix.dev/latest/installation)
 2. Create a new directory for your project.
 3. Open a terminal in the directory and run `pixi init`
 4. Run `pixi add python`
@@ -40,7 +40,7 @@ This library uses the following conventions for coordinates:
 ### Obtaining OSM data
 To create maps, you need an `osm.pbf` file that contains the OSM data from your region of interest (ROI). The file _can_ include a larger region than what you are interested in, but this will result in longer processing times and larger files because the entire region contained in the PBF file is rendered into the SVG - if you later pass a bounding box to `create_map`, the SVG is simply cropped to that region. Therefore, you should make sure that the PBF file you use for plotting only contains the region you actually want to plot.
 
-The most reliable way to obtain an `osm.pbf` file of your ROI is to download a pre-built file from an online hoster. For example, [Geofabrik](https://download.geofabrik.de/) offers files that contain entire continents, countries, or subdivisions of countries. (To reduce the processing time, you should select the smallest division you can find that still encompasses your entire ROI.) You can then use this libraries `extract_from_pbf` method to extract a PBF file containing only your ROI.
+The most reliable way to obtain an `osm.pbf` file of your ROI is to download a pre-built file from an online hoster. For example, [Geofabrik](https://download.geofabrik.de/) offers files that contain entire continents, countries, or subdivisions of countries. (To reduce the processing time, you should select the smallest division you can find that still encompasses your entire ROI.) You can then use this library's `extract_from_pbf` method to extract a PBF file containing only your ROI.
 
 ```python
 from osm_to_svg import download_from_url, extract_from_pbf
@@ -59,16 +59,16 @@ extract_from_pbf(
 
 As detailed [above](#additional-helpful-packages), extraction requires `osmium-tool`.
 
-#### Geocoding & bounding arodund coordinates
+#### Geocoding & bounding around coordinates
 Instead of looking the coordinates up yourself, you can use `geocode_coordinates` to query [OSM's Nominatim search engine](https://nominatim.openstreetmap.org/) for a place's coordinates, and then use `get_bbox_around_coordinates` to compute a bounding box of the desired size around them.
 
 Note that the first Nominatim result is returned, so use a specific query and verify the returned result when names are ambiguous.
 
 ```python
-from osm_to_svg import geocode_place, get_bbox_around_coordinates
+from osm_to_svg import geocode_coordinates, get_bbox_around_coordinates
 
 # Step 1 – resolve the place name to coordinates
-lat, lon = geocode_place("Hannover, Germany")
+lat, lon = geocode_coordinates("Hannover, Germany")
 
 # Step 2 – build a bounding box around those coordinates
 bbox = get_bbox_around_coordinates(
@@ -130,8 +130,8 @@ Options:
 - `output_path` — path for the final combined SVG file.
 - `show_progress` — if `True`, displays a progress bar via `tqdm` showing which layer is currently being processed (e.g. `Layer 1/3`). Defaults to `False`.
 
-#### Specifiying features (roads, forests, ...)
-`feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer` with `areas`, `object_ids`, or both to limit a layer to a region and/or exact OSM objects (see [examples/example_6_layer_with_sub_bbox/example_6_layer_with_sub_bbox.py](Example 6)). The available features (and how to combine them) are described [below](#available-features).
+#### Specifying features (roads, forests, ...)
+`feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer` with `areas`, `object_ids`, or both to limit a layer to a region and/or exact OSM objects (see [Example 6](./examples/example_6_layer_with_sub_bbox/example_6_layer_with_sub_bbox.py)). The available features (and how to combine them) are described [below](#available-features).
 
 ```python
 from osm_to_svg import FeatureLayer, OsmObjectId, Style, create_map, features
@@ -142,20 +142,20 @@ park_style = Style(fill="#5eab2b")
 # Plot feature(s) for the entire bounding box 
 all_roads = FeatureLayer(
     features.ROADS.ALL,
-    style,
+    road_style,
 )
 
 # Or plot them for a subset of bounding boxes only
 parks_in_area = FeatureLayer(
     features.GREEN_SPACES.PARK,
-    style,
+    park_style,
     areas=[[(52.37, 9.70), (52.37, 9.76), (52.40, 9.76), (52.40, 9.70)]],
 )
 
 # Or select exact OSM objects to plot.
 named_garden = FeatureLayer(
     features.GREEN_SPACES.PARK,
-    style,
+    park_style,
     object_ids={OsmObjectId("relation", 123456)},
 )
 
@@ -179,7 +179,7 @@ Feature layers are styled with the `Style` class. All attributes are optional an
 #### Adding point of interests (POIs)
 `poi_layers` is a list of `([(lat, lon), ...], PoiStyle)` tuples. Each entry places the marker SVG at every coordinate in the list using the given `PoiStyle`.
 
-Coordinates must be provided as `(latitude, longitude)` pairs. [Geocoding](#geocoding--bounding-arodund-coordinates) is very helpful here.
+Coordinates must be provided as `(latitude, longitude)` pairs. [Geocoding](#geocoding--bounding-around-coordinates) is very helpful here.
 
 POI markers are styled with the `PoiStyle` class. Required:
 - `marker_svg_path` — path to the SVG file used as the marker icon.
@@ -191,6 +191,8 @@ Exactly one of the following sizing methods must also be provided (specifying ze
 
 Optional:
 - `anchor` — which point of the marker SVG is aligned to the POI coordinate. Accepted values: `"center"` (default), `"top"`, `"top-right"`, `"right"`, `"bottom-right"`, `"bottom"`, `"bottom-left"`, `"left"`, `"top-left"`. Use `"bottom"` for a classic pin-style marker where the tip points to the location.
+
+Marker files should use the SVG shape elements supported by the renderer: `circle`, `rect`, `path`, `line`, `polyline`, `polygon`, `ellipse`, and nested `g` groups. Dimensions may use `px`, `pt`, `mm`, `cm`, or `in`; a valid `viewBox` supplies fallback dimensions when width or height is absent.
 
 #### Full example
 See [examples/example_4_multiple_layers/example_4_multiple_layers.py](examples/example_4_multiple_layers/example_4_multiple_layers.py) for an example script that includes multiple layers and POI markers.

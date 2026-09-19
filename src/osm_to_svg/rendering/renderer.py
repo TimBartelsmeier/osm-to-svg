@@ -119,8 +119,13 @@ class SVGRenderer:
         marker_tree = ET.parse(poi_style.marker_svg_path)
         marker_root = marker_tree.getroot()
 
-        marker_width = self._parse_svg_dimension(marker_root.get("width", "24"))
-        marker_height = self._parse_svg_dimension(marker_root.get("height", "24"))
+        viewbox = self._parse_viewbox(marker_root.get("viewBox"))
+        marker_width = self._parse_svg_dimension(
+            marker_root.get("width", "24"), fallback=viewbox[2] if viewbox else 24.0
+        )
+        marker_height = self._parse_svg_dimension(
+            marker_root.get("height", "24"), fallback=viewbox[3] if viewbox else 24.0
+        )
 
         if width_meters is not None:
             pixels_per_meter_x, _ = self.transformer.meters_to_pixels()
@@ -223,9 +228,23 @@ class SVGRenderer:
         svg_string = dwg.tostring()
         return ET.fromstring(svg_string)
 
-    def _parse_svg_dimension(self, value: str | float) -> float:
+    def _parse_svg_dimension(self, value: str | float, fallback: float = 24.0) -> float:
         """Delegate to :func:`~osm_to_svg.rendering.svg_utils.parse_svg_dimension`."""
-        return parse_svg_dimension(value)
+        return parse_svg_dimension(value, fallback=fallback)
+
+    def _parse_viewbox(
+        self, value: str | None
+    ) -> tuple[float, float, float, float] | None:
+        """Parse an SVG viewBox, returning ``None`` for missing or invalid values."""
+        if value is None:
+            return None
+        try:
+            parts = [float(part) for part in re.split(r"[ ,]+", value.strip())]
+        except ValueError:
+            return None
+        if len(parts) != 4 or parts[2] <= 0 or parts[3] <= 0:
+            return None
+        return tuple(parts)  # type: ignore[return-value]
 
     def _sanitize_svg_id(self, value: str, prefix: str = "id") -> str:
         """Return a valid SVG id by replacing non-alphanumeric characters with hyphens."""

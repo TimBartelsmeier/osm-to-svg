@@ -1,5 +1,6 @@
 """SVG file combiner for layering multiple SVG files."""
 
+import copy
 import xml.etree.ElementTree as ET
 
 
@@ -70,7 +71,12 @@ def _append_layer_from_source(
 
     for child in source_root:
         tag_name = child.tag.split("}")[-1]
-        if tag_name in ["title", "desc", "metadata", "defs"]:
+        if tag_name == "defs":
+            combined_defs = combined_root.find(f"{{{svg_ns}}}defs")
+            if combined_defs is not None:
+                combined_defs.extend(copy.deepcopy(definition) for definition in child)
+            continue
+        if tag_name in ["title", "desc", "metadata"]:
             continue
         layer_group.append(child)
 

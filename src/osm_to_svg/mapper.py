@@ -285,7 +285,7 @@ class SvgMapper:
         """Get the geographic bounds of the PBF file.
 
         Returns:
-            Tuple of (min_lon, min_lat, max_lon, max_lat)
+            Tuple of (south_lat, west_lon, north_lat, east_lon)
         """
         if self.parser is None or self.transformer is None:
             raise RuntimeError("SvgMapper must be used as a context manager")

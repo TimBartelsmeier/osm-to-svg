@@ -16,7 +16,12 @@ hannover_center_pbf = script_dir / "hannover_center_overpass.osm.pbf"
 # Small bounding box centered on Hannover center
 # Overpass API has limitations - keep the area small
 # Using a smaller area than the standard bbox from example_1_geocode_bbox.py
-hannover_center_bbox = (52.372, 9.735, 52.378, 9.745)
+hannover_center_bbox = [
+    (52.372, 9.735),
+    (52.372, 9.745),
+    (52.378, 9.745),
+    (52.378, 9.735),
+]
 
 # Download from Overpass API
 print("Downloading hannover_center_overpass.osm.pbf from Overpass API...")

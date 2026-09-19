@@ -1,5 +1,6 @@
 """Utility helpers for working with SVG marker fragments."""
 
+import re
 import xml.etree.ElementTree as ET
 from typing import Any
 
@@ -9,15 +10,17 @@ __all__ = ["copy_svg_element", "parse_svg_dimension"]
 
 
 def parse_svg_dimension(value: str | float, fallback: float = 24.0) -> float:
-    """Parse an SVG dimension value (for example "24px" or "1.5pt") to float."""
+    """Parse an SVG dimension into CSS pixels, using ``fallback`` for unsupported units."""
     if isinstance(value, (int, float)):
         return float(value)
 
-    normalized = str(value).replace("px", "").replace("pt", "").strip()
-    try:
-        return float(normalized)
-    except ValueError:
+    match = re.fullmatch(r"\s*([+-]?\d*\.?\d+)(px|pt|mm|cm|in)?\s*", str(value))
+    if match is None:
         return fallback
+    number = float(match.group(1))
+    unit = match.group(2) or "px"
+    factors = {"px": 1.0, "pt": 96 / 72, "mm": 96 / 25.4, "cm": 96 / 2.54, "in": 96}
+    return number * factors[unit]
 
 
 def copy_svg_element(element: ET.Element, parent: Any, dwg: svgwrite.Drawing) -> None:

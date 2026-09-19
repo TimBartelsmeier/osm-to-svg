@@ -64,6 +64,21 @@ def test_geocode_osm_object_rejects_missing_identity(
         geocode_osm_object("Unknown object")
 
 
+def test_geocode_osm_object_rejects_non_numeric_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        httpx,
+        "get",
+        lambda *args, **kwargs: DummyResponse(
+            [{"osm_type": "way", "osm_id": "not-a-number"}]
+        ),
+    )
+
+    with pytest.raises(ValueError, match="no valid OSM object identity"):
+        geocode_osm_object("Invalid object")
+
+
 def test_geocode_place_forwards_custom_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     captured = {}
 
@@ -199,6 +214,36 @@ def test_get_polygon_from_osm_id_rejects_holes(
     )
 
     with pytest.raises(ValueError, match="holes"):
+        get_polygon_from_osm_id(OsmObjectId("way", 123))
+
+
+@pytest.mark.parametrize(
+    ("coordinates", "error", "message"),
+    [
+        ("invalid", TypeError, "invalid polygon coordinates"),
+        ([[8.0]], ValueError, "invalid polygon coordinates"),
+        (
+            [[8.0, 52.0], [8.1, 52.1], [8.0, 52.1], [8.1, 52.0]],
+            ValueError,
+            "invalid polygon geometry",
+        ),
+    ],
+)
+def test_get_polygon_from_osm_id_rejects_invalid_ring_data(
+    monkeypatch: pytest.MonkeyPatch,
+    coordinates,
+    error: type[Exception],
+    message: str,
+) -> None:
+    monkeypatch.setattr(
+        httpx,
+        "get",
+        lambda *args, **kwargs: DummyResponse(
+            {"geometry": {"type": "Polygon", "coordinates": [coordinates]}}
+        ),
+    )
+
+    with pytest.raises(error, match=message):
         get_polygon_from_osm_id(OsmObjectId("way", 123))
 
 

@@ -45,11 +45,18 @@ def validate_bbox(
             raise ValueError("bbox coordinates must be real numbers") from error
         if not finite:
             raise ValueError("bbox coordinates must be finite")
-        if not -90 <= latitude <= 90:
+        if not -90 < latitude < 90:
             raise ValueError(f"Invalid latitude value: {latitude}")
         if not -180 <= longitude <= 180:
             raise ValueError(f"Invalid longitude value: {longitude}")
         normalized.append((latitude, longitude))
+
+    if (
+        max(longitude for _, longitude in normalized)
+        - min(longitude for _, longitude in normalized)
+        > 180
+    ):
+        raise ValueError("bbox polygons crossing the antimeridian are not supported")
 
     if _has_self_intersection(normalized):
         raise ValueError("bbox must not self-intersect")

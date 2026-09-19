@@ -8,6 +8,13 @@ def test_osm_object_id_is_typed_and_stringifiable() -> None:
     assert str(object_id) == "relation/123"
 
 
+def test_osm_object_id_rejects_non_positive_values() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="greater than 0"):
+        OsmObjectId("way", 0)
+
+
 def test_feature_layer_accepts_areas() -> None:
     bbox = ((52.0, 9.0), (52.0, 9.1), (52.1, 9.1), (52.1, 9.0))
     layer = FeatureLayer(
@@ -17,6 +24,16 @@ def test_feature_layer_accepts_areas() -> None:
     )
 
     assert layer.areas == ((*bbox, bbox[0]),)
+
+
+def test_feature_layer_rejects_empty_limits() -> None:
+    import pytest
+
+    spec = FeatureSpec(tag_filters={"leisure": ["park"]})
+    with pytest.raises(ValueError, match="areas must not be empty"):
+        FeatureLayer(spec, Style(), areas=[])
+    with pytest.raises(ValueError, match="object_ids must not be empty"):
+        FeatureLayer(spec, Style(), object_ids=[])
 
 
 def test_feature_layer_accepts_multiple_areas() -> None:

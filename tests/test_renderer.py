@@ -32,6 +32,15 @@ def test_render_features_returns_in_memory_element(dummy_transformer) -> None:
     assert any(group.attrib.get("id") == "roads" for group in groups)
 
 
+def test_parse_viewbox_returns_valid_dimensions(dummy_transformer) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+
+    assert renderer._parse_viewbox("0 0 32 16") == (0.0, 0.0, 32.0, 16.0)
+    assert renderer._parse_viewbox("0 0 0 16") is None
+    assert renderer._parse_viewbox(None) is None
+    assert renderer._parse_viewbox("invalid") is None
+
+
 def test_render_features_skips_invalid_geometry(dummy_transformer) -> None:
     renderer = SVGRenderer(dummy_transformer)
 
@@ -212,7 +221,7 @@ def test_parse_dimension_handles_number_and_invalid_string(dummy_transformer) ->
     renderer = SVGRenderer(dummy_transformer)
     assert renderer._parse_svg_dimension("12px") == 12.0
     assert renderer._parse_dimension(12) == 12.0
-    assert renderer._parse_dimension("15pt") == 15.0
+    assert renderer._parse_dimension("15pt") == 20.0
     assert renderer._parse_dimension("invalid") == 24.0
 
 

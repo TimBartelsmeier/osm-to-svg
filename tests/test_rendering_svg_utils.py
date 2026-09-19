@@ -13,6 +13,13 @@ def test_parse_svg_dimension_uses_fallback_for_invalid_values() -> None:
     assert parse_svg_dimension("bad", fallback=42.0) == 42.0
 
 
+def test_parse_svg_dimension_converts_common_units() -> None:
+    assert parse_svg_dimension("25.4mm") == 96.0
+    assert parse_svg_dimension("2.54cm") == 96.0
+    assert parse_svg_dimension("1in") == 96.0
+    assert parse_svg_dimension("72pt") == 96.0
+
+
 def test_parse_points_handles_short_and_invalid_tokens() -> None:
     assert _parse_points("") == []
     assert _parse_points("1") == []

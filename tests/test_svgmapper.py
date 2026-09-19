@@ -20,7 +20,7 @@ class DummyParser:
     def get_bounds(self) -> BoundingBox:
         return (52.0, 8.0, 52.2, 8.2)
 
-    def extract_features(self, spec: FeatureSpec):  # noqa: ANN001
+    def extract_features(self, spec: FeatureSpec, *, areas=None, object_ids=None):  # noqa: ANN001
         return []
 
 
@@ -106,6 +106,27 @@ def test_svgmapper_gets_bounds_inside_context(
     with SvgMapper(str(pbf_path)) as mapper:
         assert mapper.get_bounds() == (52.0, 8.0, 52.2, 8.2)
         assert mapper.get_dimensions() == (200, 100)
+
+
+def test_svgmapper_forwards_limited_layers(
+    pbf_path: Path,
+    patched_svgmapper_dependencies,
+) -> None:
+    area = ((52.0, 8.0), (52.0, 8.1), (52.1, 8.1), (52.1, 8.0))
+
+    with SvgMapper(str(pbf_path)) as mapper:
+        mapper.render_features(
+            features.ROADS.MAJOR,
+            Style(stroke="#000"),
+            areas=[area],
+        )
+        mapper.render_layer(
+            FeatureLayer(
+                features.ROADS.MAJOR,
+                Style(stroke="#000"),
+                areas=[area],
+            )
+        )
 
 
 def test_save_uses_accumulated_in_memory_layers(
@@ -484,6 +505,30 @@ def test_create_map_defaults_to_empty_layers(
     create_map(pbf_path=str(pbf_path), output_path="empty.svg")
 
     assert calls == ["save"]
+
+
+def test_create_map_rejects_non_feature_layers(
+    pbf_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class SpyMapper:
+        def __init__(self, **kwargs):  # noqa: ANN003
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):  # noqa: ANN001
+            return None
+
+    monkeypatch.setattr(create_map_module, "SvgMapper", SpyMapper)
+
+    with pytest.raises(TypeError, match="FeatureLayer"):
+        create_map(
+            pbf_path=str(pbf_path),
+            feature_layers=[object()],
+            output_path="invalid.svg",
+        )
 
 
 def test_create_map_show_progress_updates_and_closes_bar(

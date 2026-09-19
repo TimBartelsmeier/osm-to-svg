@@ -29,6 +29,8 @@ class BoundsHandler(osmium.SimpleHandler):
 
     def get_bounds(self) -> BoundingBox:
         """Return the accumulated bounding box as ``(south_lat, west_lon, north_lat, east_lon)``."""
+        if self.south_lat == float("inf"):
+            raise ValueError("PBF file contains no valid node locations")
         return (self.south_lat, self.west_lon, self.north_lat, self.east_lon)
 
 
@@ -81,12 +83,13 @@ class FeatureHandler(osmium.SimpleHandler):
             return
 
         try:
-            outer_ring = next(iter(area.outer_rings()))
-            geometry = [(node.lat, node.lon) for node in outer_ring]
-            if len(geometry) >= 4:
-                is_relation = getattr(area, "is_relation", lambda: False)()
-                object_type = "relation" if is_relation else "way"
-                original_id = getattr(area, "orig_id", lambda: 0)()
+            is_relation = getattr(area, "is_relation", lambda: False)()
+            object_type = "relation" if is_relation else "way"
+            original_id = getattr(area, "orig_id", lambda: 0)()
+            for outer_ring in area.outer_rings():
+                geometry = [(node.lat, node.lon) for node in outer_ring]
+                if len(geometry) < 4:
+                    continue
                 self.features.append(
                     Feature(
                         geometry=geometry,
@@ -97,7 +100,7 @@ class FeatureHandler(osmium.SimpleHandler):
                         else None,
                     )
                 )
-        except (RuntimeError, StopIteration):
+        except RuntimeError:
             pass
 
     def _matches_filter(self, tags: dict[str, str]) -> bool:

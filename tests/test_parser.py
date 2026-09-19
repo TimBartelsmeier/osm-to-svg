@@ -4,8 +4,8 @@ import pytest
 
 from osm_to_svg import features
 from osm_to_svg.models import Feature, OsmObjectId
-from osm_to_svg.parsing import FeatureHandler, PBFParser
-from osm_to_svg.parsing.parser import _geometry_intersects_bbox
+from osm_to_svg.parsing import BoundsHandler, FeatureHandler, PBFParser
+from osm_to_svg.parsing.parser import _geometry_intersects_bbox, _segments_intersect
 
 
 def test_geometry_intersects_bbox_includes_crossing_and_containment() -> None:
@@ -37,6 +37,35 @@ def test_geometry_intersects_concave_polygon_and_includes_boundary() -> None:
     assert _geometry_intersects_bbox([(52.01, 8.01), (52.01, 8.01)], polygon)
     assert _geometry_intersects_bbox([(52.0, 8.01), (51.99, 8.01)], polygon)
     assert not _geometry_intersects_bbox([(51.9, 7.9), (51.91, 7.91)], polygon)
+
+
+def test_geometry_intersection_covers_open_and_containing_closed_paths() -> None:
+    bbox = ((0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0))
+
+    assert not _geometry_intersects_bbox([(2.0, 2.0), (3.0, 3.0), (4.0, 4.0)], bbox)
+    assert _geometry_intersects_bbox(
+        [(-1.0, -1.0), (-1.0, 2.0), (2.0, 2.0), (2.0, -1.0), (-1.0, -1.0)],
+        bbox,
+    )
+
+
+def test_geometry_intersection_covers_collinear_endpoint_case() -> None:
+    bbox = ((0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0))
+
+    assert _geometry_intersects_bbox([(1.0, 0.0), (0.0, 0.0)], bbox)
+
+
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [
+        (((0.0, 0.0), (0.0, 2.0)), ((0.0, 1.0), (1.0, 1.0))),
+        (((0.0, 0.0), (0.0, 2.0)), ((1.0, 1.0), (0.0, 1.0))),
+        (((0.0, 1.0), (1.0, 1.0)), ((0.0, 0.0), (0.0, 2.0))),
+        (((1.0, 1.0), (0.0, 1.0)), ((0.0, 0.0), (0.0, 2.0))),
+    ],
+)
+def test_segments_intersect_handles_each_collinear_endpoint_case(first, second) -> None:
+    assert _segments_intersect(*first, *second)
 
 
 def test_parser_limit_matches_typed_object_ids() -> None:
@@ -192,7 +221,49 @@ def test_feature_handler_area_extraction_and_error_handling() -> None:
     assert handler.features[0].is_closed is True
 
     handler.area(DummyArea({"building": "yes"}, []))
+    handler.area(
+        DummyArea(
+            {"building": "yes"},
+            [[DummyNode(8.0, 52.0), DummyNode(8.01, 52.0), DummyNode(8.0, 52.01)]],
+        )
+    )
     handler.area(DummyArea({"building": "yes"}, RuntimeError("bad geometry")))
+
+
+def test_feature_handler_preserves_all_outer_rings() -> None:
+    class DummyNode:
+        def __init__(self, lon: float, lat: float):
+            self.lon = lon
+            self.lat = lat
+
+    class DummyArea:
+        tags = [type("Tag", (), {"k": "building", "v": "yes"})]
+
+        def outer_rings(self):
+            return [
+                [
+                    DummyNode(8.0, 52.0),
+                    DummyNode(8.01, 52.0),
+                    DummyNode(8.01, 52.01),
+                    DummyNode(8.0, 52.0),
+                ],
+                [
+                    DummyNode(8.02, 52.0),
+                    DummyNode(8.03, 52.0),
+                    DummyNode(8.03, 52.01),
+                    DummyNode(8.02, 52.0),
+                ],
+            ]
+
+    handler = FeatureHandler(features.BUILDINGS.YES)
+    handler.area(DummyArea())
+
+    assert len(handler.features) == 2
+
+
+def test_bounds_handler_rejects_files_without_valid_nodes() -> None:
+    with pytest.raises(ValueError, match="no valid node locations"):
+        BoundsHandler().get_bounds()
 
 
 def test_feature_handler_way_skips_invalid_geometry() -> None:
