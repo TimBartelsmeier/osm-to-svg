@@ -19,6 +19,12 @@ def test_geometry_intersects_bbox_includes_crossing_and_containment() -> None:
     assert not _geometry_intersects_bbox([(51.9, 7.9), (51.9, 7.99)], bbox)
 
 
+def test_geometry_intersects_bbox_rejects_disjoint_collinear_segment() -> None:
+    bbox = ((0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0))
+
+    assert not _geometry_intersects_bbox([(0.0, 10.0), (0.0, 11.0)], bbox)
+
+
 def test_geometry_intersects_concave_polygon_and_includes_boundary() -> None:
     polygon = (
         (52.0, 8.0),

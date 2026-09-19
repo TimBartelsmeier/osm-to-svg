@@ -54,7 +54,7 @@ def get_bbox_around_coordinates(
         south_km: Distance south of the centre in kilometres.
 
     Returns:
-        Bounding box as ``(south_lat, west_lon, north_lat, east_lon)``.
+        Closed polygon as ``(latitude, longitude)`` vertices.
 
     Raises:
         ValueError: If conflicting or incomplete sizing arguments are given, or

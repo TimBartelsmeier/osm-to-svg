@@ -16,7 +16,7 @@ def extract_from_pbf(
 
     Args:
         source_pbf_path: Path to the source OSM PBF file.
-        bbox: Bounding box to extract as ``(south_lat, west_lon, north_lat, east_lon)``.
+        bbox: Polygon vertices; its rectangular envelope is extracted.
         output_path: Destination path for the extracted PBF file.
 
     Raises:

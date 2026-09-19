@@ -39,7 +39,11 @@ def validate_bbox(
                 "bbox vertices must contain exactly latitude and longitude"
             )
         latitude, longitude = vertex
-        if not (math.isfinite(latitude) and math.isfinite(longitude)):
+        try:
+            finite = math.isfinite(latitude) and math.isfinite(longitude)
+        except TypeError as error:
+            raise ValueError("bbox coordinates must be real numbers") from error
+        if not finite:
             raise ValueError("bbox coordinates must be finite")
         if not -90 <= latitude <= 90:
             raise ValueError(f"Invalid latitude value: {latitude}")

@@ -128,17 +128,33 @@ def _segments_intersect(
     ) -> float:
         return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
 
-    def intersects(
+    def on_segment(
         a: tuple[float, float],
         b: tuple[float, float],
-        c: tuple[float, float],
-        d: tuple[float, float],
+        point: tuple[float, float],
     ) -> bool:
-        first = orientation(a, b, c) * orientation(a, b, d)
-        second = orientation(c, d, a) * orientation(c, d, b)
-        return first <= 0 and second <= 0
+        return min(a[0], b[0]) <= point[0] <= max(a[0], b[0]) and min(
+            a[1], b[1]
+        ) <= point[1] <= max(a[1], b[1])
 
-    return intersects(start, end, other_start, other_end)
+    orientations = (
+        orientation(start, end, other_start),
+        orientation(start, end, other_end),
+        orientation(other_start, other_end, start),
+        orientation(other_start, other_end, end),
+    )
+    if orientations[0] == 0 and on_segment(start, end, other_start):
+        return True
+    if orientations[1] == 0 and on_segment(start, end, other_end):
+        return True
+    if orientations[2] == 0 and on_segment(other_start, other_end, start):
+        return True
+    if orientations[3] == 0 and on_segment(other_start, other_end, end):
+        return True
+
+    return (orientations[0] > 0) != (orientations[1] > 0) and (orientations[2] > 0) != (
+        orientations[3] > 0
+    )
 
 
 def _point_in_polygon(

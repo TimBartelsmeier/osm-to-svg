@@ -3,6 +3,7 @@
 import xml.etree.ElementTree as ET
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Self
 
 from osm_to_svg.features import FeatureSpec
 from osm_to_svg.models import (
@@ -65,7 +66,7 @@ class SvgMapper:
                   The scale is accurate at the center latitude of the map bounds.
             dpi: Dots per inch for the output SVG (default: 300).
                  Standard values: 96 (web/screen), 72 (print), 300 (high-res print).
-            bounds: Optional custom bounding box as (south_lat, west_lon, north_lat, east_lon).
+            bounds: Optional polygon as ``(latitude, longitude)`` vertices.
                    If not provided, bounds will be extracted from the PBF file by scanning
                      all nodes, which may include nodes outside the area of interest.
                      Passing bounds explicitly is recommended to ensure clipping and
@@ -87,7 +88,7 @@ class SvgMapper:
         self.renderer: SVGRenderer | None = None
         self._layers: list[ET.Element] = []  # In-memory layer storage
 
-    def __enter__(self) -> "SvgMapper":
+    def __enter__(self) -> Self:
         """Enter context manager and initialize components."""
         # Initialize parser
         self.parser = PBFParser(str(self.pbf_path))

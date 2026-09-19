@@ -81,7 +81,7 @@ class FeatureHandler(osmium.SimpleHandler):
             return
 
         try:
-            outer_ring = list(area.outer_rings())[0]
+            outer_ring = next(iter(area.outer_rings()))
             geometry = [(node.lat, node.lon) for node in outer_ring]
             if len(geometry) >= 4:
                 is_relation = getattr(area, "is_relation", lambda: False)()
@@ -97,7 +97,7 @@ class FeatureHandler(osmium.SimpleHandler):
                         else None,
                     )
                 )
-        except (IndexError, RuntimeError):
+        except (RuntimeError, StopIteration):
             pass
 
     def _matches_filter(self, tags: dict[str, str]) -> bool:

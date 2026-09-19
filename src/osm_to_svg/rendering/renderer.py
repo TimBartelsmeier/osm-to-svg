@@ -223,7 +223,7 @@ class SVGRenderer:
         svg_string = dwg.tostring()
         return ET.fromstring(svg_string)
 
-    def _parse_svg_dimension(self, value: str | int | float) -> float:
+    def _parse_svg_dimension(self, value: str | float) -> float:
         """Delegate to :func:`~osm_to_svg.rendering.svg_utils.parse_svg_dimension`."""
         return parse_svg_dimension(value)
 
@@ -236,7 +236,7 @@ class SVGRenderer:
             return f"{prefix}-{normalized}"
         return normalized
 
-    def _parse_dimension(self, value: str | int | float) -> float:
+    def _parse_dimension(self, value: str | float) -> float:
         """Alias for :meth:`_parse_svg_dimension`."""
         return self._parse_svg_dimension(value)
 

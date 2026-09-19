@@ -5,10 +5,10 @@ from typing import Any
 
 import svgwrite
 
-__all__ = ["parse_svg_dimension", "copy_svg_element"]
+__all__ = ["copy_svg_element", "parse_svg_dimension"]
 
 
-def parse_svg_dimension(value: str | int | float, fallback: float = 24.0) -> float:
+def parse_svg_dimension(value: str | float, fallback: float = 24.0) -> float:
     """Parse an SVG dimension value (for example "24px" or "1.5pt") to float."""
     if isinstance(value, (int, float)):
         return float(value)

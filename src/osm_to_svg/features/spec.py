@@ -74,7 +74,7 @@ class FeatureSpec:
             self.tag_filters = normalized
             self.match_clauses = [normalized]
 
-    def __or__(self, other: "FeatureSpec") -> "FeatureSpec":
+    def __or__(self, other: FeatureSpec) -> FeatureSpec:
         merged = _merge_tag_filters(self.tag_filters, other.tag_filters)
         match_clauses: list[dict[str, list[str]]] = []
         seen: set[tuple[tuple[str, tuple[str, ...]], ...]] = set()

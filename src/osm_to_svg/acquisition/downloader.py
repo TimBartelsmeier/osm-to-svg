@@ -23,7 +23,7 @@ def download_from_overpass(
     partially written state.
 
     Args:
-        bbox: Bounding box as ``(south_lat, west_lon, north_lat, east_lon)``.
+        bbox: Polygon vertices; its rectangular envelope is downloaded.
         output_path: Destination file path for the downloaded PBF data.
         timeout: HTTP request timeout in seconds (default: 300).
 

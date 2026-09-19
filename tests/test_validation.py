@@ -13,6 +13,11 @@ def test_validate_bbox_normalizes_explicitly_closed_values() -> None:
     assert validate_bbox(bbox) == bbox
 
 
+def test_validate_bbox_rejects_non_numeric_coordinates() -> None:
+    with pytest.raises(ValueError, match="real numbers"):
+        validate_bbox(((0.0, "invalid"), (0.0, 1.0), (1.0, 1.0)))
+
+
 @pytest.mark.parametrize(
     ("bbox", "error_fragment"),
     [

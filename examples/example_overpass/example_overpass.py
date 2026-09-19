@@ -1,5 +1,6 @@
 """Alternative Example: Download a small region centered on Hannover from Overpass API."""
 
+import sys
 from pathlib import Path
 
 import httpx
@@ -38,10 +39,10 @@ except httpx.HTTPStatusError as e:
         "Recommendation: Use example_2_download_extract_pbf.py instead (Geofabrik method)."
     )
     print("It's much more reliable and works for any area size.")
-    exit(1)
-except Exception as e:
+    sys.exit(1)
+except (OSError, RuntimeError, ValueError) as e:
     print(f"\nError: {e}")
     print(
         "Recommendation: Use example_2_download_extract_pbf.py instead (Geofabrik method)."
     )
-    exit(1)
+    sys.exit(1)

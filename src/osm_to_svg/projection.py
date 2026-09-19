@@ -28,7 +28,7 @@ class CoordinateTransformer:
         """Initialize coordinate transformer with geographic bounds.
 
         Args:
-            bounds: Geographic bounding box as (south_lat, west_lon, north_lat, east_lon)
+            bounds: Geographic polygon as ``(latitude, longitude)`` vertices.
             scale: Map scale denominator (default: 100000 for 1:100,000).
                   At scale 1:100,000, 1km in reality = 1cm in output.
                   The scale is accurate at the center latitude.

@@ -33,7 +33,7 @@ def create_map(
         pbf_path: Path to the OpenStreetMap PBF file.
         scale: Map scale denominator (default: 100000 for 1:100,000). The scale is accurate at the centre latitude of the map bounds.
         dpi: Dots per inch for the output SVG (default: 300).
-        bounds: Optional bounding box as (south_lat, west_lon, north_lat, east_lon).
+        bounds: Optional polygon as ``(latitude, longitude)`` vertices.
             Passing this explicitly is recommended for predictable clipping and
             output dimensions.
         background_color: Optional SVG background color.

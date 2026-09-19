@@ -9,12 +9,12 @@ from osm_to_svg.features.spec import FeatureSpec
 from osm_to_svg.features.water import WATER_POLYGONS, WATERWAYS
 
 __all__ = [
-    "FeatureSpec",
-    "ROADS",
-    "RAILWAYS",
-    "WATERWAYS",
-    "WATER_POLYGONS",
     "BUILDINGS",
     "GREEN_SPACES",
     "LANDUSE",
+    "RAILWAYS",
+    "ROADS",
+    "WATERWAYS",
+    "WATER_POLYGONS",
+    "FeatureSpec",
 ]
