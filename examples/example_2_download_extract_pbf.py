@@ -14,7 +14,13 @@ niedersachsen_pbf = osmdata_dir / "niedersachsen.osm.pbf"
 hannover_pbf = osmdata_dir / "hannover.osm.pbf"
 
 # Bounding box for Hannover obtained from example_1_geocode_bbox.py
-hannover_bbox = [(52.34, 9.68), (52.34, 9.79), (52.41, 9.79), (52.41, 9.68)]
+hannover_bbox = (
+    (52.34069411621622, 9.683215127762876),
+    (52.34069411621622, 9.793891272237124),
+    (52.408261683783785, 9.793891272237124),
+    (52.408261683783785, 9.683215127762876),
+    (52.34069411621622, 9.683215127762876),
+)
 
 # Download Niedersachsen from Geofabrik
 if not niedersachsen_pbf.exists():
