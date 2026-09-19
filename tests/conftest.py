@@ -4,6 +4,8 @@ import pytest
 
 
 class DummyTransformer:
+    svg_polygon = ((0.0, 0.0), (200.0, 0.0), (200.0, 100.0), (0.0, 100.0), (0.0, 0.0))
+
     def get_dimensions(self) -> tuple[int, int]:
         return (200, 100)
 

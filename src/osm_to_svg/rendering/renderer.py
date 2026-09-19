@@ -57,18 +57,10 @@ class SVGRenderer:
             viewBox=viewbox,
         )
 
-        vb_parts = viewbox.split()
-        vb_x, vb_y, vb_width, vb_height = map(float, vb_parts)
-
         safe_layer_id = self._sanitize_svg_id(layer_id, prefix="layer")
         clip_id = f"clip-{safe_layer_id}"
         clip_path = dwg.defs.add(dwg.clipPath(id=clip_id))
-        clip_path.add(
-            dwg.rect(
-                insert=(vb_x, vb_y),
-                size=(vb_width, vb_height),
-            )
-        )
+        clip_path.add(dwg.polygon(points=self.transformer.svg_polygon))
 
         group = dwg.g(id=safe_layer_id, clip_path=f"url(#{clip_id})")
         style_attrs = style.to_svg_attrs()
@@ -144,18 +136,10 @@ class SVGRenderer:
             debug=False,
         )
 
-        vb_parts = viewbox.split()
-        vb_x, vb_y, vb_width, vb_height = map(float, vb_parts)
-
         safe_layer_id = self._sanitize_svg_id(layer_id, prefix="layer")
         clip_id = f"clip-{safe_layer_id}"
         clip_path = dwg.defs.add(dwg.clipPath(id=clip_id))
-        clip_path.add(
-            dwg.rect(
-                insert=(vb_x, vb_y),
-                size=(vb_width, vb_height),
-            )
-        )
+        clip_path.add(dwg.polygon(points=self.transformer.svg_polygon))
 
         pois_group = dwg.g(id=safe_layer_id, clip_path=f"url(#{clip_id})")
 

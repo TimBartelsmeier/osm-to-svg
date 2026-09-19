@@ -1,10 +1,12 @@
 """PBF parser facade."""
 
 from collections.abc import Sequence
+from itertools import pairwise
 
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import BoundingBox, Feature, OsmObjectId
+from osm_to_svg.models import BoundingBox, Feature, OsmObjectId, Polygon
 from osm_to_svg.parsing.handlers import BoundsHandler, FeatureHandler
+from osm_to_svg.validation import validate_bbox
 
 
 class PBFParser:
@@ -28,7 +30,7 @@ class PBFParser:
         self,
         spec: FeatureSpec,
         *,
-        bboxes: Sequence[BoundingBox] | None = None,
+        areas: Sequence[Polygon] | None = None,
         object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None = None,
     ) -> list[Feature]:
         """Extract OSM features matching the given spec from the PBF file.
@@ -43,8 +45,9 @@ class PBFParser:
         Returns:
             List of unique :class:`~osm_to_svg.models.Feature` objects.
         """
-        if bboxes is not None and object_ids is not None:
-            raise ValueError("Specify either bboxes or object_ids, not both")
+        validated_areas = (
+            tuple(validate_bbox(area) for area in areas) if areas is not None else None
+        )
 
         handler = FeatureHandler(spec)
         handler.apply_file(self.pbf_path, locations=True)
@@ -63,7 +66,9 @@ class PBFParser:
                 tuple(sorted(feature.tags.items())),
                 feature.is_closed,
             )
-            if key not in seen and self._matches_limit(feature, bboxes, object_ids):
+            if key not in seen and self._matches_limit(
+                feature, validated_areas, object_ids
+            ):
                 seen.add(key)
                 unique_features.append(feature)
 
@@ -72,51 +77,52 @@ class PBFParser:
     @staticmethod
     def _matches_limit(
         feature: Feature,
-        bboxes: Sequence[BoundingBox] | None,
+        areas: Sequence[Polygon] | None,
         object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None,
     ) -> bool:
-        if object_ids is not None:
-            return feature.object_id in object_ids
-        if bboxes is None:
+        if areas is None and object_ids is None:
             return True
-        return any(_geometry_intersects_bbox(feature.geometry, bbox) for bbox in bboxes)
+        matches_area = areas is not None and any(
+            _geometry_intersects_bbox(feature.geometry, area) for area in areas
+        )
+        matches_object_id = object_ids is not None and feature.object_id in object_ids
+        return matches_area or matches_object_id
 
 
 def _geometry_intersects_bbox(
     geometry: list[tuple[float, float]],
-    bbox: BoundingBox,
+    bbox: Polygon,
 ) -> bool:
-    south, west, north, east = bbox
+    polygon = validate_bbox(bbox)
 
-    def inside(point: tuple[float, float]) -> bool:
-        lat, lon = point
-        return south <= lat <= north and west <= lon <= east
-
-    if any(inside(point) for point in geometry):
+    if any(_point_in_polygon(point, polygon) for point in geometry):
         return True
 
-    edges = list(zip(geometry, geometry[1:]))
+    feature_edges = list(pairwise(geometry))
     if len(geometry) > 2 and geometry[0] != geometry[-1]:
-        edges.append((geometry[-1], geometry[0]))
+        feature_edges.append((geometry[-1], geometry[0]))
+    polygon_edges = list(pairwise(polygon))
 
-    for start, end in edges:
-        if _segments_intersect_bbox(start, end, bbox):
-            return True
+    if any(
+        _segments_intersect(start, end, polygon_start, polygon_end)
+        for start, end in feature_edges
+        for polygon_start, polygon_end in polygon_edges
+    ):
+        return True
 
     return bool(
         geometry
         and geometry[0] == geometry[-1]
-        and _point_in_polygon((south, west), geometry)
+        and _point_in_polygon(polygon[0], geometry)
     )
 
 
-def _segments_intersect_bbox(
+def _segments_intersect(
     start: tuple[float, float],
     end: tuple[float, float],
-    bbox: BoundingBox,
+    other_start: tuple[float, float],
+    other_end: tuple[float, float],
 ) -> bool:
-    south, west, north, east = bbox
-
     def orientation(
         a: tuple[float, float], b: tuple[float, float], c: tuple[float, float]
     ) -> float:
@@ -132,19 +138,17 @@ def _segments_intersect_bbox(
         second = orientation(c, d, a) * orientation(c, d, b)
         return first <= 0 and second <= 0
 
-    rectangle = [(south, west), (south, east), (north, east), (north, west)]
-    return any(
-        intersects(start, end, corner, rectangle[(index + 1) % 4])
-        for index, corner in enumerate(rectangle)
-    )
+    return intersects(start, end, other_start, other_end)
 
 
 def _point_in_polygon(
-    point: tuple[float, float], polygon: list[tuple[float, float]]
+    point: tuple[float, float], polygon: list[tuple[float, float]] | Polygon
 ) -> bool:
     lat, lon = point
     inside = False
-    for start, end in zip(polygon, polygon[1:]):
+    for start, end in pairwise(polygon):
+        if _point_on_segment(start, end, point):
+            return True
         if (start[1] > lon) != (end[1] > lon):
             crossing_lat = (end[0] - start[0]) * (lon - start[1]) / (
                 end[1] - start[1]
@@ -152,3 +156,21 @@ def _point_in_polygon(
             if lat < crossing_lat:
                 inside = not inside
     return inside
+
+
+def _point_on_segment(
+    start: tuple[float, float],
+    end: tuple[float, float],
+    point: tuple[float, float],
+) -> bool:
+    cross = (end[0] - start[0]) * (point[1] - start[1]) - (end[1] - start[1]) * (
+        point[0] - start[0]
+    )
+    return (
+        cross == 0
+        and min(start[0], end[0]) <= point[0] <= max(start[0], end[0])
+        and min(start[1], end[1]) <= point[1] <= max(start[1], end[1])
+    )
+
+
+_segments_intersect_bbox = _segments_intersect

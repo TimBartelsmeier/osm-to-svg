@@ -7,12 +7,12 @@ from pathlib import Path
 import httpx
 from tqdm.auto import tqdm
 
-from osm_to_svg.models import BoundingBox
-from osm_to_svg.validation import validate_bbox
+from osm_to_svg.models import Polygon
+from osm_to_svg.validation import bbox_envelope
 
 
 def download_from_overpass(
-    bbox: BoundingBox,
+    bbox: Polygon,
     output_path: str,
     timeout: int = 300,
 ) -> None:
@@ -32,7 +32,7 @@ def download_from_overpass(
             HTML/XML instead of PBF data.
         httpx.HTTPError: If the download fails or times out.
     """
-    south_lat, west_lon, north_lat, east_lon = validate_bbox(bbox)
+    south_lat, west_lon, north_lat, east_lon = bbox_envelope(bbox)
     url = f"https://overpass-api.de/api/map?bbox={west_lon},{south_lat},{east_lon},{north_lat}"
 
     temp_fd, temp_path = tempfile.mkstemp(suffix=".osm.pbf", prefix="overpass_")

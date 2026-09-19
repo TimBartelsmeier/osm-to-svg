@@ -32,7 +32,7 @@ To play around with the styling options and see the results immediately without 
 ### Coordinate conventions
 This library uses the following conventions for coordinates:
 - **Individual coordinates**: `(latitude, longitude)` — lat first.
-- **Bounding boxes**: `(south_lat, west_lon, north_lat, east_lon)` — lat/lon pairs for the SW and NE corners.
+- **Polygons**: `[(latitude, longitude), ...]` — edge vertices with latitude first. Open rings are accepted and normalized to closed polygons.
 
 > [!NOTE]
 > Most of the code examples shown in this README are also included in the [example scripts](./examples/).
@@ -52,7 +52,7 @@ download_from_url(
 
 extract_from_pbf(
     source_pbf_path="niedersachsen.osm.pbf",
-    bbox=(52.34, 9.68, 52.41, 9.79),  # (south_lat, west_lon, north_lat, east_lon)
+    bbox=[(52.34, 9.68), (52.34, 9.79), (52.41, 9.79), (52.41, 9.68)],
     output_path="hannover.osm.pbf",
 )
 ```
@@ -77,12 +77,23 @@ bbox = get_bbox_around_coordinates(
     width_km=7.5,
     height_km=7.5,
 )
-# returns (south_lat, west_lon, north_lat, east_lon)
+# returns a closed polygon of (latitude, longitude) vertices
 
 # You can now pass the bbox object to extract_from_pbf (described above) and/or to pass create_map (described below).
 ```
 
 `get_bbox_around_coordinates` also accepts asymmetric extents: you can specify ``east_km`` and ``west_km`` instead of ``width_km``, and/or  ``north_km`` and ``south_km`` instead of ``height_km`` (see the function's docstring for the full parameter reference).
+
+To obtain the validated polygon geometry of an OSM relation or closed way, first resolve its ID and then call `get_polygon_from_osm_id`:
+
+```python
+from osm_to_svg import geocode_osm_object, get_polygon_from_osm_id
+
+osm_id = geocode_osm_object("Herrenhäuser Gärten, Hannover")
+polygon = get_polygon_from_osm_id(osm_id)
+```
+
+The utility supports single GeoJSON polygons without holes. Points, lines, multipolygons, and polygons with holes are rejected because they cannot be represented by the project's `Polygon` type.
 
 To resolve a named OSM object directly (to pass to `FeatureLayer`'s `object_ids`), use `geocode_osm_object`. It returns a typed `OsmObjectId` containing the OSM element type (`node`, `way`, or `relation`) and numeric ID.
 
@@ -100,7 +111,7 @@ Data can also be downloaded directly from the Overpass API. Note that this is of
 from osm_to_svg import download_from_overpass
 
 download_from_overpass(
-    bbox=(52.372, 9.735, 52.378, 9.745),
+    bbox=[(52.372, 9.735), (52.372, 9.745), (52.378, 9.745), (52.378, 9.735)],
     output_path="area.osm.pbf"
 )
 ```
@@ -112,7 +123,7 @@ Options:
 - `pbf_path` — path to the `.osm.pbf` file to read.
 - `scale` — map scale denominator (default: `100000` for scale 1:100,000, i.e. 1 km in reality equals 1 cm in the output SVG). The scale is accurate at the centre latitude of the map bounds.
 - `dpi` — dots per inch for the output SVG (default: `300`). Common values: `96` (screen), `72` (print), `300` (high-res print).
-- `bounds` — optional bounding box as `(south_lat, west_lon, north_lat, east_lon)`. It is recommended to pass this even if your PBF file is already cropped to the region of interest because some features contained in the PBF file (such as long roads) can extend out of the PBF's region. Specifying the bounding box ensures the SVG is sized correctly and cropped to the region of interest. If omitted, bounds are derived from the PBF file by scanning all nodes.
+- `bounds` — optional polygon as `[(latitude, longitude), ...]`. The SVG dimensions use the projected polygon envelope and all rendered content is clipped to the polygon. If omitted, bounds are derived from the PBF file by scanning all nodes.
 - `background_color` — optional background fill for the SVG (e.g. `"#FFFFFF"`, `"white"`). Defaults to `None` (transparent).
 - `feature_layers` — list of `FeatureLayer` objects. See below for details.
 - `poi_layers` — list of `([(lat, lon), ...], PoiStyle)` tuples. See below for details.
@@ -120,7 +131,7 @@ Options:
 - `show_progress` — if `True`, displays a progress bar via `tqdm` showing which layer is currently being processed (e.g. `Layer 1/3`). Defaults to `False`.
 
 #### Specifiying features (roads, forests, ...)
-`feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer` with either `bboxes` or a set of typed `object_ids` to limit a layer to a certain region (see [examples/example_6_layer_with_sub_bbox/example_6_layer_with_sub_bbox.py](Example 6)). The available features (and how to combine them) are described [below](#available-features).
+`feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer` with `areas`, `object_ids`, or both to limit a layer to a region and/or exact OSM objects (see [examples/example_6_layer_with_sub_bbox/example_6_layer_with_sub_bbox.py](Example 6)). The available features (and how to combine them) are described [below](#available-features).
 
 ```python
 from osm_to_svg import FeatureLayer, OsmObjectId, Style, create_map, features
@@ -138,7 +149,7 @@ all_roads = FeatureLayer(
 parks_in_area = FeatureLayer(
     features.GREEN_SPACES.PARK,
     style,
-    bboxes=[(52.37, 9.70, 52.40, 9.76)],
+    areas=[[(52.37, 9.70), (52.37, 9.76), (52.40, 9.76), (52.40, 9.70)]],
 )
 
 # Or select exact OSM objects to plot.
@@ -155,7 +166,7 @@ create_map(
 )
 ```
 
-When neither `bboxes` nor `object_ids` is specified, the feature(s) defined in the `FeatureLayer` will be plotted in the defined style for the entire bounding box. With `bboxes` or `object_ids`, it is possible to limit this to a subset: `bboxes` is a list of rectangular sub-bounding-boxes. `object_ids` is a list of OSM object ID to plot. [Geocoding](#geocoding--bounding-arodund-coordinates) is really useful here.
+When neither `areas` nor `object_ids` is specified, the feature(s) defined in the `FeatureLayer` will be plotted in the defined style for the entire map. With `areas` or `object_ids`, it is possible to limit this to a subset: `areas` is a list of polygons, and a feature matching any polygon is selected. If both are supplied, a feature matching either an area or an OSM ID is selected. Features and markers are clipped to the overall map polygon. Acquisition functions use the polygon's rectangular envelope because Overpass `/api/map` and `osmium extract -b` are rectangular interfaces.
 
 Feature layers are styled with the `Style` class. All attributes are optional and default to no stroke and no fill (i.e. invisible). Options:
 - `stroke` — stroke colour as a CSS colour string (e.g. `"#000000"`, `"red"`). Use `"none"` for no stroke (default: `"none"`).

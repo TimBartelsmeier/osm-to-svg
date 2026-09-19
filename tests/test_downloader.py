@@ -73,7 +73,9 @@ def test_download_from_overpass_writes_streamed_content(
 
     monkeypatch.setattr(httpx, "stream", fake_stream)
 
-    download_from_overpass((8.0, 52.0, 8.1, 52.1), str(output))
+    download_from_overpass(
+        ((52.0, 8.0), (52.0, 8.1), (52.1, 8.1), (52.1, 8.0)), str(output)
+    )
 
     assert output.exists()
     assert output.read_bytes() == b"\x00\x11\x22\x33\x44"
@@ -94,7 +96,9 @@ def test_download_from_overpass_rejects_html_response(
     monkeypatch.setattr(httpx, "stream", fake_stream)
 
     with pytest.raises(ValueError, match="returned HTML"):
-        download_from_overpass((52.0, 8.0, 52.1, 8.1), str(output))
+        download_from_overpass(
+            ((52.0, 8.0), (52.0, 8.1), (52.1, 8.1), (52.1, 8.0)), str(output)
+        )
 
     assert not output.exists()
 
@@ -111,7 +115,9 @@ def test_download_from_overpass_wraps_timeout(
     monkeypatch.setattr(httpx, "stream", fake_stream)
 
     with pytest.raises(httpx.HTTPError, match="timed out"):
-        download_from_overpass((8.0, 52.0, 8.1, 52.1), str(output), timeout=1)
+        download_from_overpass(
+            ((52.0, 8.0), (52.0, 8.1), (52.1, 8.1), (52.1, 8.0)), str(output), timeout=1
+        )
 
 
 def test_download_from_overpass_rejects_html_in_first_chunk(
@@ -129,7 +135,9 @@ def test_download_from_overpass_rejects_html_in_first_chunk(
     monkeypatch.setattr(httpx, "stream", fake_stream)
 
     with pytest.raises(ValueError, match="appears to be HTML/XML"):
-        download_from_overpass((8.0, 52.0, 8.1, 52.1), str(output))
+        download_from_overpass(
+            ((52.0, 8.0), (52.0, 8.1), (52.1, 8.1), (52.1, 8.0)), str(output)
+        )
 
     assert not output.exists()
 
@@ -154,7 +162,9 @@ def test_download_from_overpass_wraps_http_error(
     monkeypatch.setattr(httpx, "stream", fake_stream)
 
     with pytest.raises(httpx.HTTPError, match="Failed to download PBF file"):
-        download_from_overpass((8.0, 52.0, 8.1, 52.1), str(output))
+        download_from_overpass(
+            ((52.0, 8.0), (52.0, 8.1), (52.1, 8.1), (52.1, 8.0)), str(output)
+        )
 
 
 def test_download_from_url_wraps_timeout(
@@ -214,7 +224,9 @@ def test_download_from_overpass_reraises_generic_exception(
     monkeypatch.setattr("builtins.open", broken_open)
 
     with pytest.raises(RuntimeError, match="disk write failed"):
-        download_from_overpass((8.0, 52.0, 8.1, 52.1), str(output))
+        download_from_overpass(
+            ((52.0, 8.0), (52.0, 8.1), (52.1, 8.1), (52.1, 8.0)), str(output)
+        )
 
 
 def test_download_from_url_reraises_generic_exception(

@@ -8,11 +8,19 @@ from osm_to_svg.acquisition import (
     geocode_coordinates,
     geocode_osm_object,
     get_bbox_around_coordinates,
+    get_polygon_from_osm_id,
 )
 from osm_to_svg.create_map import create_map
 from osm_to_svg.features import FeatureSpec
 from osm_to_svg.mapper import SvgMapper
-from osm_to_svg.models import BoundingBox, FeatureLayer, OsmObjectId, PoiStyle, Style
+from osm_to_svg.models import (
+    BoundingBox,
+    FeatureLayer,
+    OsmObjectId,
+    PoiStyle,
+    Polygon,
+    Style,
+)
 
 __version__ = "0.1.0"
 
@@ -22,6 +30,7 @@ __all__ = [
     "FeatureSpec",
     "OsmObjectId",
     "PoiStyle",
+    "Polygon",
     "Style",
     "SvgMapper",
     "create_map",
@@ -32,4 +41,5 @@ __all__ = [
     "geocode_coordinates",
     "geocode_osm_object",
     "get_bbox_around_coordinates",
+    "get_polygon_from_osm_id",
 ]

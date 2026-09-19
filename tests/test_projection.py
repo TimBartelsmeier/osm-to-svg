@@ -5,7 +5,11 @@ from osm_to_svg.projection import CoordinateTransformer
 
 @pytest.fixture
 def transformer() -> CoordinateTransformer:
-    return CoordinateTransformer((52.0, 8.0, 52.2, 8.2), scale=10000, dpi=96)
+    return CoordinateTransformer(
+        ((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0)),
+        scale=10000,
+        dpi=96,
+    )
 
 
 def test_projection_dimensions_are_positive(transformer: CoordinateTransformer) -> None:
@@ -44,12 +48,18 @@ def test_projection_meters_to_pixels_returns_positive_scalars(
 
 def test_projection_rejects_invalid_scale_and_dpi() -> None:
     with pytest.raises(ValueError, match="scale must be greater than 0"):
-        CoordinateTransformer((52.0, 8.0, 52.2, 8.2), scale=0, dpi=96)
+        CoordinateTransformer(((52.0, 8.0), (52.0, 8.2), (52.2, 8.2)), scale=0, dpi=96)
 
     with pytest.raises(ValueError, match="dpi must be greater than 0"):
-        CoordinateTransformer((52.0, 8.0, 52.2, 8.2), scale=10000, dpi=0)
+        CoordinateTransformer(
+            ((52.0, 8.0), (52.0, 8.2), (52.2, 8.2)), scale=10000, dpi=0
+        )
 
 
 def test_projection_rejects_invalid_bounds() -> None:
-    with pytest.raises(ValueError, match="west_lon"):
-        CoordinateTransformer((52.0, 8.2, 52.2, 8.0), scale=10000, dpi=96)
+    with pytest.raises(ValueError, match="self-intersect"):
+        CoordinateTransformer(
+            ((52.0, 8.0), (52.2, 8.2), (52.0, 8.2), (52.2, 8.0)),
+            scale=10000,
+            dpi=96,
+        )

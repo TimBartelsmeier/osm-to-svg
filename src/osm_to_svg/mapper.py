@@ -5,11 +5,19 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import BoundingBox, FeatureLayer, OsmObjectId, PoiStyle, Style
+from osm_to_svg.models import (
+    BoundingBox,
+    FeatureLayer,
+    OsmObjectId,
+    PoiStyle,
+    Polygon,
+    Style,
+)
 from osm_to_svg.parsing import PBFParser
 from osm_to_svg.projection import CoordinateTransformer
 from osm_to_svg.rendering.combiner import combine_elements
 from osm_to_svg.rendering.renderer import SVGRenderer
+from osm_to_svg.validation import rectangle_to_polygon
 
 __all__ = ["SvgMapper"]
 
@@ -45,7 +53,7 @@ class SvgMapper:
         pbf_path: str,
         scale: int = 100000,
         dpi: int = 300,
-        bounds: BoundingBox | None = None,
+        bounds: Polygon | None = None,
         background_color: str | None = None,
     ):
         """Initialize SvgMapper with a PBF file.
@@ -88,7 +96,7 @@ class SvgMapper:
         if self.custom_bounds is not None:
             bounds = self.custom_bounds
         else:
-            bounds = self.parser.get_bounds()
+            bounds = rectangle_to_polygon(self.parser.get_bounds())
 
         # Initialize coordinate transformer
         self.transformer = CoordinateTransformer(bounds, scale=self.scale, dpi=self.dpi)
@@ -118,7 +126,7 @@ class SvgMapper:
         style: Style,
         layer_id: str | None = None,
         _progress_bar=None,
-        bboxes: Sequence[BoundingBox] | None = None,
+        areas: Sequence[Polygon] | None = None,
         object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None = None,
     ) -> None:
         """Render cartographic features and accumulate the layer in memory.
@@ -148,11 +156,11 @@ class SvgMapper:
             _progress_bar.n = 0
             _progress_bar.total = None
             _progress_bar.refresh()
-        if bboxes is None and object_ids is None:
+        if areas is None and object_ids is None:
             osm_features = self.parser.extract_features(features)
         else:
             osm_features = self.parser.extract_features(
-                features, bboxes=bboxes, object_ids=object_ids
+                features, areas=areas, object_ids=object_ids
             )
         if _progress_bar is not None:
             _progress_bar.set_description("Rendering features")
@@ -178,7 +186,7 @@ class SvgMapper:
             layer.style,
             layer_id=layer.layer_id,
             _progress_bar=_progress_bar,
-            bboxes=layer.bboxes,
+            areas=layer.areas,
             object_ids=layer.object_ids,
         )
 

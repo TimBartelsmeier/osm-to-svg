@@ -26,7 +26,14 @@ class DummyParser:
 
 class DummyCoordinateTransformer:
     def __init__(self, bounds, scale: int = 100000, dpi: int = 300):  # noqa: ANN001
-        self.geo_bounds = bounds
+        latitudes = [point[0] for point in bounds]
+        longitudes = [point[1] for point in bounds]
+        self.geo_bounds = (
+            min(latitudes),
+            min(longitudes),
+            max(latitudes),
+            max(longitudes),
+        )
         self.scale = scale
         self.dpi = dpi
 
@@ -151,9 +158,9 @@ def test_svgmapper_uses_custom_bounds_when_provided(
     pbf_path: Path,
     patched_svgmapper_dependencies,
 ) -> None:
-    custom_bounds = (1.0, 2.0, 3.0, 4.0)
+    custom_bounds = ((1.0, 2.0), (1.0, 4.0), (3.0, 4.0), (3.0, 2.0))
     with SvgMapper(str(pbf_path), bounds=custom_bounds) as mapper:
-        assert mapper.get_bounds() == custom_bounds
+        assert mapper.get_bounds() == (1.0, 2.0, 3.0, 4.0)
 
 
 def test_svgmapper_place_poi_requires_context(
@@ -397,7 +404,7 @@ def test_create_map_uses_svgmapper_workflow(
         pbf_path=str(pbf_path),
         scale=75000,
         dpi=300,
-        bounds=(9.6, 52.3, 9.8, 52.5),
+        bounds=((52.3, 9.6), (52.3, 9.8), (52.5, 9.8), (52.5, 9.6)),
         background_color="#FFFFFF",
         feature_layers=feature_layers,
         poi_layers=poi_layers,
@@ -410,7 +417,7 @@ def test_create_map_uses_svgmapper_workflow(
             "pbf_path": str(pbf_path),
             "scale": 75000,
             "dpi": 300,
-            "bounds": (9.6, 52.3, 9.8, 52.5),
+            "bounds": ((52.3, 9.6), (52.3, 9.8), (52.5, 9.8), (52.5, 9.6)),
             "background_color": "#FFFFFF",
         },
     )

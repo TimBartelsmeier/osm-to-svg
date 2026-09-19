@@ -2,7 +2,8 @@
 
 import httpx
 
-from osm_to_svg.models import OsmObjectId
+from osm_to_svg.models import OsmObjectId, Polygon
+from osm_to_svg.validation import validate_bbox
 
 
 def _geocode_result(place_name: str, timeout: int) -> dict[str, object]:
@@ -71,3 +72,75 @@ def geocode_osm_object(
         raise ValueError(
             f"Nominatim result for '{place_name}' has no valid OSM object identity"
         ) from e
+
+
+def get_polygon_from_osm_id(
+    osm_id: OsmObjectId,
+    *,
+    timeout: int = 30,
+) -> Polygon:
+    """Fetch and validate the outer polygon of an OSM object from Nominatim.
+
+    Args:
+        osm_id: Typed OSM object identity to look up.
+        timeout: HTTP request timeout in seconds (default: 30).
+
+    Returns:
+        The object's outer polygon as closed ``(latitude, longitude)`` vertices.
+
+    Raises:
+        TypeError: If the returned GeoJSON ring has an invalid container type.
+        ValueError: If the object has no polygon geometry, has holes, or is a
+            multipolygon. These geometries cannot be represented by ``Polygon``.
+        httpx.HTTPError: If the Nominatim request fails.
+    """
+    url = "https://nominatim.openstreetmap.org/details"
+    params = {
+        "osmtype": osm_id.object_type[0].upper(),
+        "osmid": osm_id.object_id,
+        "format": "json",
+        "polygon_geojson": 1,
+    }
+    headers = {
+        "User-Agent": "osm-to-svg Python library (https://github.com/timbartelsmeier/osm-to-svg)"
+    }
+
+    try:
+        response = httpx.get(url, params=params, headers=headers, timeout=timeout)
+        response.raise_for_status()
+        result = response.json()
+    except httpx.HTTPError as error:
+        raise httpx.HTTPError(
+            f"Failed to get polygon for OSM object '{osm_id}': {error}"
+        ) from error
+
+    geometry = result.get("geometry") if isinstance(result, dict) else None
+    if not isinstance(geometry, dict) or geometry.get("type") != "Polygon":
+        raise ValueError(
+            f"OSM object '{osm_id}' does not have a supported polygon geometry"
+        )
+
+    coordinates = geometry.get("coordinates")
+    if not isinstance(coordinates, list) or len(coordinates) != 1:
+        raise ValueError(
+            f"OSM object '{osm_id}' has holes or an unsupported polygon geometry"
+        )
+    ring = coordinates[0]
+    if not isinstance(ring, list):
+        raise TypeError(f"OSM object '{osm_id}' has invalid polygon coordinates")
+
+    try:
+        polygon = tuple(
+            (float(latitude), float(longitude)) for longitude, latitude in ring
+        )
+    except (TypeError, ValueError) as error:
+        raise ValueError(
+            f"OSM object '{osm_id}' has invalid polygon coordinates"
+        ) from error
+
+    try:
+        return validate_bbox(polygon)
+    except ValueError as error:
+        raise ValueError(
+            f"OSM object '{osm_id}' has invalid polygon geometry: {error}"
+        ) from error

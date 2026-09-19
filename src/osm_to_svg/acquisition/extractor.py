@@ -3,13 +3,13 @@
 import subprocess
 from pathlib import Path
 
-from osm_to_svg.models import BoundingBox
-from osm_to_svg.validation import validate_bbox
+from osm_to_svg.models import Polygon
+from osm_to_svg.validation import bbox_envelope
 
 
 def extract_from_pbf(
     source_pbf_path: str,
-    bbox: BoundingBox,
+    bbox: Polygon,
     output_path: str,
 ) -> None:
     """Extract a bounding-box region from a PBF file using osmium-tool.
@@ -24,7 +24,7 @@ def extract_from_pbf(
         ValueError: If the bounding box is invalid.
         RuntimeError: If osmium-tool is not installed or the extraction fails.
     """
-    south_lat, west_lon, north_lat, east_lon = validate_bbox(bbox)
+    south_lat, west_lon, north_lat, east_lon = bbox_envelope(bbox)
 
     source_path = Path(source_pbf_path)
     if not source_path.exists():

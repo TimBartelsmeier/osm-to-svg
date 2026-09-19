@@ -4,8 +4,8 @@ import math
 
 from pyproj import Transformer
 
-from osm_to_svg.models import BoundingBox
-from osm_to_svg.validation import validate_bbox
+from osm_to_svg.models import Polygon
+from osm_to_svg.validation import bbox_envelope, validate_bbox
 
 
 class CoordinateTransformer:
@@ -21,7 +21,7 @@ class CoordinateTransformer:
 
     def __init__(
         self,
-        bounds: BoundingBox,
+        bounds: Polygon,
         scale: int = 100000,
         dpi: int = 300,
     ):
@@ -39,7 +39,8 @@ class CoordinateTransformer:
         if dpi <= 0:
             raise ValueError("dpi must be greater than 0")
 
-        self.geo_bounds = validate_bbox(bounds)
+        self.geo_polygon = validate_bbox(bounds)
+        self.geo_bounds = bbox_envelope(self.geo_polygon)
         self.scale = scale
         self.dpi = dpi
 
@@ -49,10 +50,14 @@ class CoordinateTransformer:
         )
 
         # Project bounding box corners to get projected bounds
-        south_lat, west_lon, north_lat, east_lon = self.geo_bounds
-
-        min_x, min_y = self.transformer.transform(west_lon, south_lat)
-        max_x, max_y = self.transformer.transform(east_lon, north_lat)
+        projected_polygon = [
+            self.transformer.transform(longitude, latitude)
+            for latitude, longitude in self.geo_polygon
+        ]
+        min_x = min(point[0] for point in projected_polygon)
+        max_x = max(point[0] for point in projected_polygon)
+        min_y = min(point[1] for point in projected_polygon)
+        max_y = max(point[1] for point in projected_polygon)
 
         # Store projected bounds
         self.proj_bounds = (min_x, min_y, max_x, max_y)
@@ -60,6 +65,7 @@ class CoordinateTransformer:
         self.proj_height = max_y - min_y
 
         # Calculate center latitude for Mercator scale correction
+        south_lat, _, north_lat, _ = self.geo_bounds
         center_lat = (south_lat + north_lat) / 2.0
         mercator_factor = math.cos(math.radians(center_lat))
 
@@ -82,6 +88,14 @@ class CoordinateTransformer:
         self.scale_x = self.svg_width / self.proj_width
         self.scale_y = self.svg_height / self.proj_height
 
+        self.svg_polygon = tuple(
+            (
+                (x - min_x) * self.scale_x,
+                (max_y - y) * self.scale_y,
+            )
+            for x, y in projected_polygon
+        )
+
     def latlon_to_svg(self, lat: float, lon: float) -> tuple[float, float]:
         """Convert geographic coordinates to SVG pixel coordinates.
 
@@ -97,7 +111,7 @@ class CoordinateTransformer:
 
         # Transform to SVG space
         # Note: SVG y-axis grows downward, so we flip it
-        min_x, min_y, max_x, max_y = self.proj_bounds
+        min_x, _, _, max_y = self.proj_bounds
 
         x_svg = (x_proj - min_x) * self.scale_x
         y_svg = (max_y - y_proj) * self.scale_y  # Flip y-axis

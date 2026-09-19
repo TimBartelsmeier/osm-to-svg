@@ -29,16 +29,17 @@ def _create_root_with_boundary_clip(
 
     defs = ET.Element(f"{{{svg_ns}}}defs")
     clip_path = ET.Element(f"{{{svg_ns}}}clipPath", attrib={"id": "boundary-clip"})
-    clip_rect = ET.Element(
-        f"{{{svg_ns}}}rect",
-        attrib={
-            "x": vb_x,
-            "y": vb_y,
-            "width": vb_width,
-            "height": vb_height,
-        },
+    clip_path.append(
+        ET.Element(
+            f"{{{svg_ns}}}rect",
+            attrib={
+                "x": vb_x,
+                "y": vb_y,
+                "width": vb_width,
+                "height": vb_height,
+            },
+        )
     )
-    clip_path.append(clip_rect)
     defs.append(clip_path)
     combined_root.append(defs)
     return combined_root
@@ -102,6 +103,13 @@ def combine_elements(
     viewbox = first_root.get("viewBox")
 
     combined_root = _create_root_with_boundary_clip(width, height, viewbox)
+    source_clip = _find_source_polygon_clip(first_root)
+    if source_clip is not None:
+        svg_ns = "http://www.w3.org/2000/svg"
+        boundary_clip = combined_root.find(f"{{{svg_ns}}}defs/{{{svg_ns}}}clipPath")
+        if boundary_clip is not None:
+            boundary_clip.clear()
+            boundary_clip.append(source_clip)
 
     vb_parts = viewbox.split()
     vb_x, vb_y, vb_width, vb_height = vb_parts
@@ -133,3 +141,13 @@ def combine_elements(
     tree = ET.ElementTree(combined_root)
     ET.indent(tree, space="  ")
     tree.write(output_path, encoding="utf-8", xml_declaration=True)
+
+
+def _find_source_polygon_clip(root: ET.Element) -> ET.Element | None:
+    svg_ns = "http://www.w3.org/2000/svg"
+    for defs in root.findall(f"{{{svg_ns}}}defs"):
+        for clip_path in defs.findall(f"{{{svg_ns}}}clipPath"):
+            polygon = clip_path.find(f"{{{svg_ns}}}polygon")
+            if polygon is not None:
+                return ET.fromstring(ET.tostring(polygon))
+    return None

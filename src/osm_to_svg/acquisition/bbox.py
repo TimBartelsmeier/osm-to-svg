@@ -2,7 +2,7 @@
 
 import math
 
-from osm_to_svg.models import BoundingBox
+from osm_to_svg.models import Polygon
 from osm_to_svg.validation import validate_bbox
 
 
@@ -33,7 +33,7 @@ def get_bbox_around_coordinates(
     height_km: float | None = None,
     north_km: float | None = None,
     south_km: float | None = None,
-) -> BoundingBox:
+) -> Polygon:
     """Compute a bounding box of the requested size centred on the given coordinates.
 
     Exactly one horizontal sizing method must be supplied: either ``width_km``
@@ -110,4 +110,11 @@ def get_bbox_around_coordinates(
     west_lon = lon - west_offset
     east_lon = lon + east_offset
 
-    return validate_bbox((south_lat, west_lon, north_lat, east_lon))
+    return validate_bbox(
+        (
+            (south_lat, west_lon),
+            (south_lat, east_lon),
+            (north_lat, east_lon),
+            (north_lat, west_lon),
+        )
+    )

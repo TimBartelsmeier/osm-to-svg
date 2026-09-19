@@ -3,7 +3,11 @@
 from osm_to_svg.acquisition.bbox import get_bbox_around_coordinates
 from osm_to_svg.acquisition.downloader import download_from_overpass, download_from_url
 from osm_to_svg.acquisition.extractor import extract_from_pbf
-from osm_to_svg.acquisition.geocoding import geocode_coordinates, geocode_osm_object
+from osm_to_svg.acquisition.geocoding import (
+    geocode_coordinates,
+    geocode_osm_object,
+    get_polygon_from_osm_id,
+)
 
 __all__ = [
     "download_from_overpass",
@@ -12,4 +16,5 @@ __all__ = [
     "geocode_coordinates",
     "geocode_osm_object",
     "get_bbox_around_coordinates",
+    "get_polygon_from_osm_id",
 ]

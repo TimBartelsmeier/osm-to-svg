@@ -21,6 +21,8 @@ MarkerAnchor = Literal[
     "center",
 ]
 OsmObjectType = Literal["node", "way", "relation"]
+Coordinate: TypeAlias = tuple[float, float]
+Polygon: TypeAlias = tuple[Coordinate, ...]
 BoundingBox: TypeAlias = tuple[float, float, float, float]
 
 
@@ -152,18 +154,16 @@ class FeatureLayer:
     features: "FeatureSpec"
     style: Style
     layer_id: str | None = None
-    bboxes: Sequence[BoundingBox] | None = None
+    areas: Sequence[Polygon] | None = None
     object_ids: Iterable[OsmObjectId] | None = None
 
     def __post_init__(self) -> None:
         from osm_to_svg.validation import validate_bbox
 
-        if self.bboxes is not None:
-            if not self.bboxes:
-                raise ValueError("bboxes must not be empty")
-            self.bboxes = tuple(validate_bbox(box) for box in self.bboxes)
-        if self.bboxes is not None and self.object_ids is not None:
-            raise ValueError("Specify either bboxes or object_ids, not both")
+        if self.areas is not None:
+            if not self.areas:
+                raise ValueError("areas must not be empty")
+            self.areas = tuple(validate_bbox(area) for area in self.areas)
         if self.object_ids is not None:
             self.object_ids = frozenset(self.object_ids)
             if not self.object_ids:

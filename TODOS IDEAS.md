@@ -6,13 +6,8 @@ Quality Control
 
 Fixes
 -----
-- Ensure that FeatureLayer accepts bboxes AND osm ids simultaneously
 - "Cleanup" ai pass
 
 Feature Ideas
 -------------
 - Other map orientations and projections
-- non-rectangular bboxes
-  - specified using coordinates
-  - how to handle "malformed" corner coordinates?
-  - Utility: get shape by osm id

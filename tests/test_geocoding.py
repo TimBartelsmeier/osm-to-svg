@@ -1,7 +1,11 @@
 import httpx
 import pytest
 
-from osm_to_svg.acquisition.geocoding import geocode_coordinates, geocode_osm_object
+from osm_to_svg.acquisition.geocoding import (
+    geocode_coordinates,
+    geocode_osm_object,
+    get_polygon_from_osm_id,
+)
 from osm_to_svg.models import OsmObjectId
 
 
@@ -120,3 +124,91 @@ def test_geocode_place_uses_first_result(monkeypatch: pytest.MonkeyPatch) -> Non
 
     assert lat == pytest.approx(1.0)
     assert lon == pytest.approx(2.0)
+
+
+def test_get_polygon_from_osm_id_converts_geojson_coordinates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_get(url, params, headers, timeout):  # noqa: ANN001, ANN202
+        captured.update(params)
+        return DummyResponse(
+            {
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [[8.0, 52.0], [8.1, 52.0], [8.1, 52.1], [8.0, 52.0]]
+                    ],
+                }
+            }
+        )
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+
+    polygon = get_polygon_from_osm_id(OsmObjectId("relation", 123), timeout=60)
+
+    assert captured == {
+        "osmtype": "R",
+        "osmid": 123,
+        "format": "json",
+        "polygon_geojson": 1,
+    }
+    assert polygon == (
+        (52.0, 8.0),
+        (52.0, 8.1),
+        (52.1, 8.1),
+        (52.0, 8.0),
+    )
+
+
+@pytest.mark.parametrize("geometry_type", ["Point", "LineString", "MultiPolygon"])
+def test_get_polygon_from_osm_id_rejects_unsupported_geometry(
+    monkeypatch: pytest.MonkeyPatch,
+    geometry_type: str,
+) -> None:
+    monkeypatch.setattr(
+        httpx,
+        "get",
+        lambda *args, **kwargs: DummyResponse(
+            {"geometry": {"type": geometry_type, "coordinates": []}}
+        ),
+    )
+
+    with pytest.raises(ValueError, match="does not have a supported polygon"):
+        get_polygon_from_osm_id(OsmObjectId("way", 123))
+
+
+def test_get_polygon_from_osm_id_rejects_holes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        httpx,
+        "get",
+        lambda *args, **kwargs: DummyResponse(
+            {
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [[8.0, 52.0], [8.1, 52.0], [8.0, 52.1], [8.0, 52.0]],
+                        [[8.02, 52.02], [8.03, 52.02], [8.02, 52.03], [8.02, 52.02]],
+                    ],
+                }
+            }
+        ),
+    )
+
+    with pytest.raises(ValueError, match="holes"):
+        get_polygon_from_osm_id(OsmObjectId("way", 123))
+
+
+def test_get_polygon_from_osm_id_wraps_http_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_get(*args, **kwargs):  # noqa: ANN002, ANN003
+        raise httpx.ConnectError("network down")
+
+    monkeypatch.setattr(httpx, "get", fail_get)
+
+    with pytest.raises(httpx.HTTPError, match="Failed to get polygon"):
+        get_polygon_from_osm_id(OsmObjectId("relation", 123))
