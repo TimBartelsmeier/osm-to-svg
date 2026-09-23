@@ -93,7 +93,25 @@ osm_id = geocode_osm_object("Herrenhäuser Gärten, Hannover")
 polygon = get_polygon_from_osm_id(osm_id)
 ```
 
-The utility supports single GeoJSON polygons without holes. Points, lines, multipolygons, and polygons with holes are rejected because they cannot be represented by the project's `Polygon` type.
+The utility supports GeoJSON `Polygon` geometries without holes. Points, lines,
+`MultiPolygon` geometries, and polygons with holes are rejected because they
+cannot be represented by the project's `Polygon` type. Multiple separate
+`Polygon` Features in one `FeatureCollection` are supported and returned as a
+tuple of polygons.
+
+To use polygons drawn in [geojson.io](https://geojson.io/), pass the exported JSON directly to `polygon_from_geojson`. A single Polygon or Feature returns one polygon; a FeatureCollection returns one polygon or a tuple of polygons, which can be passed to `FeatureLayer(areas=...)`:
+
+```python
+from osm_to_svg import FeatureLayer, Style, polygon_from_geojson
+
+polygons = polygon_from_geojson(geojson_text)
+
+layer = FeatureLayer(
+    features=...,
+    style=Style(fill="#D9EAD3"),
+    areas=polygons,
+)
+```
 
 To resolve a named OSM object directly (to pass to `FeatureLayer`'s `object_ids`), use `geocode_osm_object`. It returns a typed `OsmObjectId` containing the OSM element type (`node`, `way`, or `relation`) and numeric ID.
 

@@ -12,6 +12,7 @@ from osm_to_svg.acquisition import (
 )
 from osm_to_svg.create_map import create_map
 from osm_to_svg.features import FeatureSpec
+from osm_to_svg.geojson import polygon_from_geojson
 from osm_to_svg.mapper import SvgMapper
 from osm_to_svg.models import (
     BoundingBox,
@@ -42,4 +43,5 @@ __all__ = [
     "geocode_osm_object",
     "get_bbox_around_coordinates",
     "get_polygon_from_osm_id",
+    "polygon_from_geojson",
 ]

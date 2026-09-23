@@ -2,8 +2,8 @@
 
 import httpx
 
+from osm_to_svg.geojson import polygon_from_geojson
 from osm_to_svg.models import OsmObjectId, Polygon
-from osm_to_svg.validation import validate_bbox
 
 
 def _geocode_result(place_name: str, timeout: int) -> dict[str, object]:
@@ -114,33 +114,7 @@ def get_polygon_from_osm_id(
             f"Failed to get polygon for OSM object '{osm_id}': {error}"
         ) from error
 
-    geometry = result.get("geometry") if isinstance(result, dict) else None
-    if not isinstance(geometry, dict) or geometry.get("type") != "Polygon":
-        raise ValueError(
-            f"OSM object '{osm_id}' does not have a supported polygon geometry"
-        )
-
-    coordinates = geometry.get("coordinates")
-    if not isinstance(coordinates, list) or len(coordinates) != 1:
-        raise ValueError(
-            f"OSM object '{osm_id}' has holes or an unsupported polygon geometry"
-        )
-    ring = coordinates[0]
-    if not isinstance(ring, list):
-        raise TypeError(f"OSM object '{osm_id}' has invalid polygon coordinates")
-
     try:
-        polygon = tuple(
-            (float(latitude), float(longitude)) for longitude, latitude in ring
-        )
+        return polygon_from_geojson(result.get("geometry"))
     except (TypeError, ValueError) as error:
-        raise ValueError(
-            f"OSM object '{osm_id}' has invalid polygon coordinates"
-        ) from error
-
-    try:
-        return validate_bbox(polygon)
-    except ValueError as error:
-        raise ValueError(
-            f"OSM object '{osm_id}' has invalid polygon geometry: {error}"
-        ) from error
+        raise type(error)(f"OSM object '{osm_id}' has {error}") from error
