@@ -1,12 +1,20 @@
 """PBF parser facade."""
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from itertools import pairwise
 
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import BoundingBox, Feature, OsmObjectId, Polygon
+from osm_to_svg.models import BoundingBox, Coordinate, Feature, OsmObjectId, Polygon
 from osm_to_svg.parsing.handlers import BoundsHandler, FeatureHandler
 from osm_to_svg.validation import validate_bbox
+
+
+@dataclass(frozen=True)
+class _PreparedArea:
+    polygon: Polygon
+    envelope: BoundingBox
+    edges: tuple[tuple[Coordinate, Coordinate], ...]
 
 
 class PBFParser:
@@ -48,6 +56,11 @@ class PBFParser:
         validated_areas = (
             tuple(validate_bbox(area) for area in areas) if areas is not None else None
         )
+        prepared_areas = (
+            tuple(_prepare_area(area) for area in validated_areas)
+            if validated_areas is not None
+            else None
+        )
 
         handler = FeatureHandler(spec)
         handler.apply_file(self.pbf_path, locations=True)
@@ -67,7 +80,7 @@ class PBFParser:
                 feature.is_closed,
             )
             if key not in seen and self._matches_limit(
-                feature, validated_areas, object_ids
+                feature, prepared_areas, object_ids
             ):
                 seen.add(key)
                 unique_features.append(feature)
@@ -77,7 +90,7 @@ class PBFParser:
     @staticmethod
     def _matches_limit(
         feature: Feature,
-        areas: Sequence[Polygon] | None,
+        areas: Sequence[Polygon | _PreparedArea] | None,
         object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None,
     ) -> bool:
         if areas is None and object_ids is None:
@@ -91,9 +104,45 @@ class PBFParser:
 
 def _geometry_intersects_bbox(
     geometry: list[tuple[float, float]],
-    bbox: Polygon,
+    bbox: Polygon | _PreparedArea,
 ) -> bool:
-    polygon = validate_bbox(bbox)
+    area = (
+        bbox if isinstance(bbox, _PreparedArea) else _prepare_area(validate_bbox(bbox))
+    )
+    return _geometry_intersects_area(geometry, area)
+
+
+def _prepare_area(polygon: Polygon) -> _PreparedArea:
+    latitudes = [point[0] for point in polygon]
+    longitudes = [point[1] for point in polygon]
+    return _PreparedArea(
+        polygon=polygon,
+        envelope=(
+            min(latitudes),
+            min(longitudes),
+            max(latitudes),
+            max(longitudes),
+        ),
+        edges=tuple(pairwise(polygon)),
+    )
+
+
+def _geometry_intersects_area(
+    geometry: list[tuple[float, float]],
+    area: _PreparedArea,
+) -> bool:
+    if not geometry:
+        return False
+
+    min_lat = min(point[0] for point in geometry)
+    max_lat = max(point[0] for point in geometry)
+    min_lon = min(point[1] for point in geometry)
+    max_lon = max(point[1] for point in geometry)
+    south, west, north, east = area.envelope
+    if max_lat < south or min_lat > north or max_lon < west or min_lon > east:
+        return False
+
+    polygon = area.polygon
 
     if any(_point_in_polygon(point, polygon) for point in geometry):
         return True
@@ -101,12 +150,10 @@ def _geometry_intersects_bbox(
     feature_edges = list(pairwise(geometry))
     if len(geometry) > 2 and geometry[0] != geometry[-1]:
         feature_edges.append((geometry[-1], geometry[0]))
-    polygon_edges = list(pairwise(polygon))
-
     if any(
         _segments_intersect(start, end, polygon_start, polygon_end)
         for start, end in feature_edges
-        for polygon_start, polygon_end in polygon_edges
+        for polygon_start, polygon_end in area.edges
     ):
         return True
 
