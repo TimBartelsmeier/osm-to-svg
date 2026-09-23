@@ -89,7 +89,10 @@ class PBFParser:
         handler = FeatureHandler(combined_spec)
         handler.apply_file(self.pbf_path, locations=True)
         if _progress_callback is not None:
-            _progress_callback(1, 2 if any(query.spec.needs_areas for query in normalized_queries) else 1)
+            _progress_callback(
+                1,
+                2 if any(query.spec.needs_areas for query in normalized_queries) else 1,
+            )
         feature_batches: list[tuple[Iterable[Feature], set[int] | None]] = [
             (handler.features, None)
         ]

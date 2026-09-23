@@ -102,7 +102,9 @@ def create_map(
                     coords=coords, poi_style=poi_style, _progress_bar=None
                 )
                 if progress_bar is not None:
-                    progress_bar.update(len(coords) if hasattr(mapper, "render_layers") else 1)
+                    progress_bar.update(
+                        len(coords) if hasattr(mapper, "render_layers") else 1
+                    )
 
             mapper.save(output_path)
     finally:
