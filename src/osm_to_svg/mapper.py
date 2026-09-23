@@ -199,17 +199,14 @@ class SvgMapper:
         if not layers:
             return
 
-        parse_passes = 1 + any(layer.features.needs_areas for layer in layers)
         if _progress_bar is not None:
             _progress_bar.n = 0
-            _progress_bar.total = parse_passes
+            _progress_bar.total = None
             _progress_bar.set_description("Parsing PBF")
             _progress_bar.refresh()
 
         def on_parse_pass(completed: int, total: int) -> None:
             if _progress_bar is not None:
-                _progress_bar.n = completed
-                _progress_bar.total = total
                 _progress_bar.set_description(f"Parsing PBF ({completed}/{total})")
                 _progress_bar.refresh()
 
@@ -230,7 +227,8 @@ class SvgMapper:
         )
 
         if _progress_bar is not None:
-            _progress_bar.total = parse_passes + sum(
+            _progress_bar.n = 0
+            _progress_bar.total = sum(
                 len(layer_features) for layer_features in extracted_layers
             )
             _progress_bar.set_description("Rendering features")
