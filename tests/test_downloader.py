@@ -40,7 +40,7 @@ def test_download_from_url_writes_streamed_content(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    output = tmp_path / "region.osm.pbf"
+    output = tmp_path / "nested" / "region.osm.pbf"
 
     def fake_stream(method, url, timeout, follow_redirects):  # noqa: ANN001, ANN202
         assert method == "GET"
@@ -62,7 +62,7 @@ def test_download_from_overpass_writes_streamed_content(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    output = tmp_path / "bbox.osm.pbf"
+    output = tmp_path / "nested" / "bbox.osm.pbf"
 
     def fake_stream(method, url, timeout, follow_redirects):  # noqa: ANN001, ANN202
         assert "overpass-api.de" in url

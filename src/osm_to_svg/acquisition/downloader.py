@@ -36,6 +36,8 @@ def download_from_overpass(
     url = f"https://overpass-api.de/api/map?bbox={west_lon},{south_lat},{east_lon},{north_lat}"
 
     temp_fd, temp_path = tempfile.mkstemp(suffix=".osm.pbf", prefix="overpass_")
+    progress = None
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     try:
         os.close(temp_fd)
@@ -68,7 +70,6 @@ def download_from_overpass(
                 for chunk in response.iter_bytes(chunk_size=8192):
                     if first_chunk and len(chunk) > 0:
                         if chunk[0:1] == b"<" or chunk[0:5] == b"<?xml":
-                            progress.close()
                             raise ValueError(
                                 "Downloaded file appears to be HTML/XML, not a PBF file. "
                                 "The Overpass API may have returned an error page."
@@ -76,8 +77,6 @@ def download_from_overpass(
                         first_chunk = False
                     f.write(chunk)
                     progress.update(len(chunk))
-
-            progress.close()
 
         Path(temp_path).replace(output_path)
 
@@ -96,6 +95,9 @@ def download_from_overpass(
             ) from e
         else:
             raise
+    finally:
+        if progress is not None:
+            progress.close()
 
 
 def download_from_url(
@@ -118,6 +120,8 @@ def download_from_url(
         httpx.HTTPError: If the download fails or times out.
     """
     temp_fd, temp_path = tempfile.mkstemp(suffix=".osm.pbf", prefix="download_")
+    progress = None
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     try:
         os.close(temp_fd)
@@ -142,8 +146,6 @@ def download_from_url(
                     f.write(chunk)
                     progress.update(len(chunk))
 
-            progress.close()
-
         Path(temp_path).replace(output_path)
 
     except Exception as e:
@@ -159,3 +161,6 @@ def download_from_url(
             raise httpx.HTTPError(f"Failed to download file: {e}") from e
         else:
             raise
+    finally:
+        if progress is not None:
+            progress.close()

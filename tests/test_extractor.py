@@ -33,12 +33,14 @@ def test_extract_from_pbf_invokes_osmium_with_expected_args(
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
+    output = tmp_path / "nested" / "clip.osm.pbf"
     extract_from_pbf(
         str(source),
         ((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0)),
-        str(tmp_path / "clip.osm.pbf"),
+        str(output),
     )
 
+    assert output.parent.is_dir()
     cmd = called["cmd"]
     assert cmd[0:3] == ["osmium", "extract", "-b"]
     assert cmd[3] == "8.0,52.0,8.2,52.2"

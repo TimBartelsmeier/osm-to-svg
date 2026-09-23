@@ -93,7 +93,9 @@ def test_svgmapper_enforces_context_manager_for_rendering(
     pbf_path: Path,
     patched_svgmapper_dependencies,
 ) -> None:
-    mapper = SvgMapper(str(pbf_path))
+    mapper = SvgMapper(
+        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+    )
 
     with pytest.raises(RuntimeError, match="context manager"):
         mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000"))
@@ -103,7 +105,9 @@ def test_svgmapper_gets_bounds_inside_context(
     pbf_path: Path,
     patched_svgmapper_dependencies,
 ) -> None:
-    with SvgMapper(str(pbf_path)) as mapper:
+    with SvgMapper(
+        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+    ) as mapper:
         assert mapper.get_bounds() == (52.0, 8.0, 52.2, 8.2)
         assert mapper.get_dimensions() == (200, 100)
 
@@ -114,7 +118,9 @@ def test_svgmapper_forwards_limited_layers(
 ) -> None:
     area = ((52.0, 8.0), (52.0, 8.1), (52.1, 8.1), (52.1, 8.0))
 
-    with SvgMapper(str(pbf_path)) as mapper:
+    with SvgMapper(
+        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+    ) as mapper:
         mapper.render_features(
             features.ROADS.MAJOR,
             Style(stroke="#000"),
@@ -148,7 +154,11 @@ def test_save_uses_accumulated_in_memory_layers(
 
     monkeypatch.setattr(mapper_module, "combine_elements", fake_combine_elements)
 
-    with SvgMapper(str(pbf_path), background_color="#ffffff") as mapper:
+    with SvgMapper(
+        str(pbf_path),
+        bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0)),
+        background_color="#ffffff",
+    ) as mapper:
         mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000"))
         mapper.place_poi_markers(
             coords=[(52.0, 8.0)],
@@ -165,7 +175,9 @@ def test_save_raises_when_no_layers(
     pbf_path: Path,
     patched_svgmapper_dependencies,
 ) -> None:
-    with SvgMapper(str(pbf_path)) as mapper:
+    with SvgMapper(
+        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+    ) as mapper:
         with pytest.raises(ValueError, match="No layers to combine"):
             mapper.save("combined.svg")
 
@@ -173,6 +185,11 @@ def test_save_raises_when_no_layers(
 def test_svgmapper_raises_for_missing_pbf_file(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="PBF file not found"):
         SvgMapper(str(tmp_path / "missing.osm.pbf"))
+
+
+def test_svgmapper_requires_bounds(pbf_path: Path) -> None:
+    with pytest.raises(TypeError, match="bounds is required"):
+        SvgMapper(str(pbf_path))
 
 
 def test_svgmapper_uses_custom_bounds_when_provided(
@@ -189,7 +206,9 @@ def test_svgmapper_place_poi_requires_context(
     marker_svg_path: Path,
     patched_svgmapper_dependencies,
 ) -> None:
-    mapper = SvgMapper(str(pbf_path))
+    mapper = SvgMapper(
+        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+    )
     with pytest.raises(RuntimeError, match="context manager"):
         mapper.place_poi_markers(
             coords=[(52.0, 8.0)],
@@ -202,7 +221,9 @@ def test_svgmapper_place_poi_raises_for_missing_marker(
     patched_svgmapper_dependencies,
     tmp_path: Path,
 ) -> None:
-    with SvgMapper(str(pbf_path)) as mapper:
+    with SvgMapper(
+        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+    ) as mapper:
         with pytest.raises(FileNotFoundError, match="Marker SVG file not found"):
             mapper.place_poi_markers(
                 coords=[(52.0, 8.0)],
@@ -216,7 +237,9 @@ def test_svgmapper_getters_require_context(
     pbf_path: Path,
     patched_svgmapper_dependencies,
 ) -> None:
-    mapper = SvgMapper(str(pbf_path))
+    mapper = SvgMapper(
+        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+    )
 
     with pytest.raises(RuntimeError, match="context manager"):
         mapper.get_bounds()
@@ -265,7 +288,9 @@ def test_layer_id_default_uses_tag_key_with_index(
 ) -> None:
     captured = _capture_render_layer_ids(monkeypatch)
 
-    with SvgMapper(str(pbf_path)) as mapper:
+    with SvgMapper(
+        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+    ) as mapper:
         mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000"))
 
     assert captured == ["0 highway"]
@@ -278,7 +303,9 @@ def test_layer_id_explicit_value_gets_prefixed_with_index(
 ) -> None:
     captured = _capture_render_layer_ids(monkeypatch)
 
-    with SvgMapper(str(pbf_path)) as mapper:
+    with SvgMapper(
+        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+    ) as mapper:
         mapper.render_features(
             features.ROADS.MAJOR, Style(stroke="#000"), layer_id="roads"
         )
@@ -293,7 +320,9 @@ def test_layer_id_sequential_calls_increment_index(
 ) -> None:
     captured = _capture_render_layer_ids(monkeypatch)
 
-    with SvgMapper(str(pbf_path)) as mapper:
+    with SvgMapper(
+        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+    ) as mapper:
         mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000"))
         mapper.render_features(features.ROADS.MAJOR, Style(stroke="#FF0000"))
 
@@ -307,7 +336,9 @@ def test_layer_id_combined_features_joins_tag_keys(
 ) -> None:
     captured = _capture_render_layer_ids(monkeypatch)
 
-    with SvgMapper(str(pbf_path)) as mapper:
+    with SvgMapper(
+        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+    ) as mapper:
         mapper.render_features(
             features.ROADS.MAJOR | features.BUILDINGS.YES,
             Style(stroke="#000"),
@@ -324,7 +355,9 @@ def test_layer_id_poi_markers_uses_pois_with_index(
 ) -> None:
     captured = _capture_render_layer_ids(monkeypatch)
 
-    with SvgMapper(str(pbf_path)) as mapper:
+    with SvgMapper(
+        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+    ) as mapper:
         mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000"))
         mapper.place_poi_markers(
             coords=[(52.0, 8.0)],
@@ -342,7 +375,9 @@ def test_layer_id_poi_markers_explicit_value_gets_prefixed_with_index(
 ) -> None:
     captured = _capture_render_layer_ids(monkeypatch)
 
-    with SvgMapper(str(pbf_path)) as mapper:
+    with SvgMapper(
+        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+    ) as mapper:
         mapper.render_features(features.ROADS.MAJOR, Style(stroke="#000"))
         mapper.place_poi_markers(
             coords=[(52.0, 8.0)],
@@ -397,6 +432,9 @@ def test_create_map_uses_svgmapper_workflow(
         def render_layer(self, layer: FeatureLayer, _progress_bar=None) -> None:
             calls.append(("render_features", layer))
 
+        def render_layers(self, layers, _progress_bar=None):  # noqa: ANN001
+            calls.append(("render_layers", layers))
+
         def place_poi_markers(
             self,
             coords: list[tuple[float, float]],
@@ -446,16 +484,14 @@ def test_create_map_uses_svgmapper_workflow(
     assert [name for name, _ in calls] == [
         "init",
         "enter",
-        "render_features",
-        "render_features",
+        "render_layers",
         "place_poi_markers",
         "save",
         "exit",
     ]
-    assert calls[2][1] == feature_layers[0]
-    assert calls[3][1] == feature_layers[1]
-    assert calls[4][1] == poi_layers[0]
-    assert calls[5] == ("save", "result.svg")
+    assert calls[2][1] == feature_layers
+    assert calls[3][1] == poi_layers[0]
+    assert calls[4] == ("save", "result.svg")
 
 
 def test_create_map_defaults_to_empty_layers(
@@ -487,6 +523,10 @@ def test_create_map_defaults_to_empty_layers(
             del feature_spec, style
             calls.append("render_features")
 
+        def render_layers(self, layers, _progress_bar=None):  # noqa: ANN001
+            del layers, _progress_bar
+            calls.append("render_layers")
+
         def place_poi_markers(
             self,
             coords: list[tuple[float, float]],
@@ -502,9 +542,13 @@ def test_create_map_defaults_to_empty_layers(
 
     monkeypatch.setattr(create_map_module, "SvgMapper", SpyMapper)
 
-    create_map(pbf_path=str(pbf_path), output_path="empty.svg")
+    create_map(
+        pbf_path=str(pbf_path),
+        bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0)),
+        output_path="empty.svg",
+    )
 
-    assert calls == ["save"]
+    assert calls == ["render_layers", "save"]
 
 
 def test_create_map_rejects_non_feature_layers(
@@ -526,6 +570,7 @@ def test_create_map_rejects_non_feature_layers(
     with pytest.raises(TypeError, match="FeatureLayer"):
         create_map(
             pbf_path=str(pbf_path),
+            bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0)),
             feature_layers=[object()],
             output_path="invalid.svg",
         )
@@ -576,6 +621,9 @@ def test_create_map_show_progress_updates_and_closes_bar(
                 ("render_features", (layer.features, layer.style, _progress_bar))
             )
 
+        def render_layers(self, layers, _progress_bar=None):  # noqa: ANN001
+            calls.append(("render_layers", (layers, _progress_bar)))
+
         def place_poi_markers(
             self,
             coords: list[tuple[float, float]],
@@ -600,19 +648,20 @@ def test_create_map_show_progress_updates_and_closes_bar(
             )
         ],
         output_path="progress.svg",
+        bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0)),
         show_progress=True,
     )
 
     assert len(created_bars) == 1
     progress_bar = created_bars[0]
     assert progress_bar.kwargs["desc"] == "Rendering map"
-    assert progress_bar.updates == [1, 1]
-    assert progress_bar.descriptions == ["Layer 1/2", "Layer 2/2"]
+    assert progress_bar.updates == []
+    assert progress_bar.descriptions == ["Preparing map", "Placing POI markers"]
     assert progress_bar.closed is True
-    assert calls[2][0] == "render_features"
-    assert calls[2][1][2] is None
+    assert calls[2][0] == "render_layers"
+    assert calls[2][1][1] is progress_bar
     assert calls[3][0] == "place_poi_markers"
-    assert calls[3][1][2] is None
+    assert calls[3][1][2] is progress_bar
 
 
 def test_svgmapper_render_features_updates_progress_bar(
@@ -632,7 +681,9 @@ def test_svgmapper_render_features_updates_progress_bar(
     monkeypatch.setattr(DummyRenderer, "render_features", spy_render_features)
     progress = ProgressSpy()
 
-    with SvgMapper(str(pbf_path)) as mapper:
+    with SvgMapper(
+        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.0), (52.1, 8.1), (52.1, 8.0))
+    ) as mapper:
         mapper.render_features(
             features.ROADS.MAJOR,
             Style(stroke="#000"),
@@ -672,7 +723,9 @@ def test_svgmapper_place_poi_updates_progress_bar(
     progress = ProgressSpy()
     coords = [(52.0, 8.0), (52.1, 8.1)]
 
-    with SvgMapper(str(pbf_path)) as mapper:
+    with SvgMapper(
+        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+    ) as mapper:
         mapper.place_poi_markers(
             coords=coords,
             poi_style=PoiStyle(marker_svg_path=str(marker_svg_path), scale=1.0),

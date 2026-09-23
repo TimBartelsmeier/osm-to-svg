@@ -42,9 +42,10 @@ def test_combine_elements_merges_layers_and_background(tmp_path: Path) -> None:
 """.strip()
     )
 
-    output = tmp_path / "combined.svg"
+    output = tmp_path / "nested" / "combined.svg"
     combine_elements([layer_1, layer_2], str(output), background_color="#fff")
 
+    assert output.parent.is_dir()
     root = ET.parse(output).getroot()
     assert root.attrib["viewBox"] == "0 0 100 50"
 

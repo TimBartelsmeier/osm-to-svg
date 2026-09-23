@@ -2,6 +2,7 @@
 
 import copy
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 
 def _create_root_with_boundary_clip(
@@ -146,6 +147,7 @@ def combine_elements(
 
     tree = ET.ElementTree(combined_root)
     ET.indent(tree, space="  ")
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     tree.write(output_path, encoding="utf-8", xml_declaration=True)
 
 

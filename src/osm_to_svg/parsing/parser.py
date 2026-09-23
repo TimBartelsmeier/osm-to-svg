@@ -26,6 +26,12 @@ class FeatureQuery:
     object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None = None
 
 
+@dataclass(frozen=True)
+class _CompiledQuery:
+    clauses: tuple[tuple[tuple[str, frozenset[str]], ...], ...]
+    candidate_values: tuple[tuple[str, frozenset[str]], ...]
+
+
 class PBFParser:
     """Parser for OpenStreetMap PBF files."""
 
@@ -113,6 +119,10 @@ class PBFParser:
             feature_batches.append((area_handler.features, area_query_indexes))
 
         results: list[list[Feature]] = [[] for _ in normalized_queries]
+        compiled_queries = tuple(
+            _compile_query(query.spec) for query in normalized_queries
+        )
+        candidate_index, wildcard_indexes = _build_candidate_index(compiled_queries)
         seen: list[
             set[
                 tuple[
@@ -127,15 +137,15 @@ class PBFParser:
                     tuple(sorted(feature.tags.items())),
                     feature.is_closed,
                 )
-                indexes = (
-                    range(len(normalized_queries))
-                    if allowed_indexes is None
-                    else allowed_indexes
+                indexes = _candidate_query_indexes(
+                    feature.tags, candidate_index, wildcard_indexes
                 )
+                if allowed_indexes is not None:
+                    indexes &= allowed_indexes
                 for index in indexes:
                     query = normalized_queries[index]
-                    if key in seen[index] or not _matches_spec(
-                        query.spec, feature.tags
+                    if key in seen[index] or not _matches_compiled_query(
+                        compiled_queries[index], feature.tags
                     ):
                         continue
                     if not self._matches_limit(
@@ -172,12 +182,53 @@ class PBFParser:
 
 def _matches_spec(spec: FeatureSpec, tags: dict[str, str]) -> bool:
     """Return whether tags satisfy at least one feature-spec clause."""
-    return any(
-        all(
-            tags.get(tag_key) in valid_values
-            for tag_key, valid_values in clause.items()
-        )
+    return _matches_compiled_query(_compile_query(spec), tags)
+
+
+def _compile_query(spec: FeatureSpec) -> _CompiledQuery:
+    clauses = tuple(
+        tuple((key, frozenset(values)) for key, values in clause.items())
         for clause in spec.match_clauses
+    )
+    candidate_values = tuple(
+        (key, frozenset(values))
+        for clause in clauses
+        for key, values in (min(clause, key=lambda item: len(item[1])),)
+        if clause
+    )
+    return _CompiledQuery(clauses=clauses, candidate_values=candidate_values)
+
+
+def _candidate_query_indexes(
+    tags: dict[str, str],
+    candidate_index: dict[tuple[str, str], set[int]],
+    wildcard_indexes: set[int],
+) -> set[int]:
+    """Return queries whose clauses have at least one potentially matching tag."""
+    candidates = set(wildcard_indexes)
+    for key, value in tags.items():
+        candidates.update(candidate_index.get((key, value), ()))
+    return candidates
+
+
+def _build_candidate_index(
+    compiled_queries: Sequence[_CompiledQuery],
+) -> tuple[dict[tuple[str, str], set[int]], set[int]]:
+    candidate_index: dict[tuple[str, str], set[int]] = {}
+    wildcard_indexes: set[int] = set()
+    for index, query in enumerate(compiled_queries):
+        if any(not clause for clause in query.clauses):
+            wildcard_indexes.add(index)
+        for key, values in query.candidate_values:
+            for value in values:
+                candidate_index.setdefault((key, value), set()).add(index)
+    return candidate_index, wildcard_indexes
+
+
+def _matches_compiled_query(query: _CompiledQuery, tags: dict[str, str]) -> bool:
+    return any(
+        all(tags.get(tag_key) in valid_values for tag_key, valid_values in clause)
+        for clause in query.clauses
     )
 
 

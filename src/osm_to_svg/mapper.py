@@ -18,7 +18,6 @@ from osm_to_svg.parsing import FeatureQuery, PBFParser
 from osm_to_svg.projection import CoordinateTransformer
 from osm_to_svg.rendering.combiner import combine_elements
 from osm_to_svg.rendering.renderer import SVGRenderer
-from osm_to_svg.validation import rectangle_to_polygon
 
 __all__ = ["SvgMapper"]
 
@@ -30,14 +29,19 @@ class SvgMapper:
     The output SVG is generated with a specified scale (e.g., 1:100,000) and DPI,
     where the scale is accurate at the center latitude of the map.
 
-    For accurate clipping and predictable output dimensions, it is recommended to
-    pass ``bounds`` explicitly even when the input PBF is already cropped. Some
-    features (for example long roads) can extend beyond the intended region, and
-    explicit bounds ensure the SVG is sized and clipped to the area of interest.
+    ``bounds`` is required for accurate clipping and predictable output
+    dimensions. Some features (for example long roads) can extend beyond the
+    intended region, so bounds define both the SVG size and clipping area.
 
     Example:
         >>> from osm_to_svg import features
-        >>> with SvgMapper("city.osm.pbf", scale=50000, dpi=300, background_color="#FFFFFF") as mapper:
+        >>> with SvgMapper(
+        ...     "city.osm.pbf",
+        ...     scale=50000,
+        ...     dpi=300,
+        ...     bounds=((48.1, 11.5), (48.1, 11.6), (48.2, 11.6), (48.2, 11.5)),
+        ...     background_color="#FFFFFF",
+        ... ) as mapper:
         ...     mapper.render_features(
         ...         features.ROADS.MAJOR,
         ...         Style(stroke="#FF0000", stroke_width=2.0),
@@ -66,11 +70,9 @@ class SvgMapper:
                   The scale is accurate at the center latitude of the map bounds.
             dpi: Dots per inch for the output SVG (default: 300).
                  Standard values: 96 (web/screen), 72 (print), 300 (high-res print).
-            bounds: Optional polygon as ``(latitude, longitude)`` vertices.
-                   If not provided, bounds will be extracted from the PBF file by scanning
-                     all nodes, which may include nodes outside the area of interest.
-                     Passing bounds explicitly is recommended to ensure clipping and
-                     SVG dimensions match your intended region.
+                 bounds: Required polygon as ``(latitude, longitude)`` vertices.
+                     Explicit bounds avoid scanning the PBF solely to infer output
+                     dimensions and clipping bounds.
             background_color: Optional background color for the SVG (e.g., "#FFFFFF", "white").
                             If None, the background will be transparent (default: None).
         """
@@ -82,7 +84,8 @@ class SvgMapper:
 
         if not self.pbf_path.exists():
             raise FileNotFoundError(f"PBF file not found: {pbf_path}")
-
+        if bounds is None:
+            raise TypeError("bounds is required")
         self.parser: PBFParser | None = None
         self.transformer: CoordinateTransformer | None = None
         self.renderer: SVGRenderer | None = None
@@ -93,14 +96,10 @@ class SvgMapper:
         # Initialize parser
         self.parser = PBFParser(str(self.pbf_path))
 
-        # Use custom bounds if provided, otherwise extract from PBF file
-        if self.custom_bounds is not None:
-            bounds = self.custom_bounds
-        else:
-            bounds = rectangle_to_polygon(self.parser.get_bounds())
-
         # Initialize coordinate transformer
-        self.transformer = CoordinateTransformer(bounds, scale=self.scale, dpi=self.dpi)
+        self.transformer = CoordinateTransformer(
+            self.custom_bounds, scale=self.scale, dpi=self.dpi
+        )
 
         # Initialize renderer
         self.renderer = SVGRenderer(
@@ -144,7 +143,7 @@ class SvgMapper:
             >>> from osm_to_svg import features
             >>> mapper.render_features(
             ...     features.ROADS.MAJOR | features.WATER_POLYGONS.OPEN_WATER,
-            ...     Style(stroke="#000000", fill="#4A90E2")
+            ...     Style(stroke="#000000", fill="#4A90E2"),
             ... )
             >>> mapper.save("combined.svg")
         """

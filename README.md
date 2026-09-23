@@ -141,12 +141,14 @@ Options:
 - `pbf_path` — path to the `.osm.pbf` file to read.
 - `scale` — map scale denominator (default: `100000` for scale 1:100,000, i.e. 1 km in reality equals 1 cm in the output SVG). The scale is accurate at the centre latitude of the map bounds.
 - `dpi` — dots per inch for the output SVG (default: `300`). Common values: `96` (screen), `72` (print), `300` (high-res print).
-- `bounds` — optional polygon as `[(latitude, longitude), ...]`. The SVG dimensions use the projected polygon envelope and all rendered content is clipped to the polygon. If omitted, bounds are derived from the PBF file by scanning all nodes.
+- `bounds` — required polygon as `[(latitude, longitude), ...]`. The SVG dimensions use the projected polygon envelope and all rendered content is clipped to the polygon. Requiring this avoids scanning the entire PBF solely to infer output dimensions and clipping bounds.
 - `background_color` — optional background fill for the SVG (e.g. `"#FFFFFF"`, `"white"`). Defaults to `None` (transparent).
 - `feature_layers` — list of `FeatureLayer` objects. See below for details.
 - `poi_layers` — list of `([(lat, lon), ...], PoiStyle)` tuples. See below for details.
 - `output_path` — path for the final combined SVG file.
-- `show_progress` — if `True`, displays a progress bar via `tqdm` showing which layer is currently being processed (e.g. `Layer 1/3`). Defaults to `False`.
+- `show_progress` — if `True`, displays a progress bar via `tqdm` showing the current parsing or rendering phase. Defaults to `False`.
+
+Output functions create missing parent directories. Existing download targets are replaced atomically after a successful download; failed downloads remove their temporary files and leave the destination unchanged.
 
 #### Specifying features (roads, forests, ...)
 `feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer` with `areas`, `object_ids`, or both to limit a layer to a region and/or exact OSM objects (see [Example 6](./examples/example_6_layer_with_sub_bbox/example_6_layer_with_sub_bbox.py)). The available features (and how to combine them) are described [below](#available-features).
@@ -179,12 +181,15 @@ named_garden = FeatureLayer(
 
 create_map(
     pbf_path="hannover.osm.pbf",
+    bounds=[(52.37, 9.70), (52.37, 9.76), (52.40, 9.76), (52.40, 9.70)],
     feature_layers=[parks_in_area, named_garden],
     output_path="parks.svg",
 )
 ```
 
 When neither `areas` nor `object_ids` is specified, the feature(s) defined in the `FeatureLayer` will be plotted in the defined style for the entire map. With `areas` or `object_ids`, it is possible to limit this to a subset: `areas` is a list of polygons, and a feature matching any polygon is selected. If both are supplied, a feature matching either an area or an OSM ID is selected. Features and markers are clipped to the overall map polygon. Acquisition functions use the polygon's rectangular envelope because Overpass `/api/map` and `osmium extract -b` are rectangular interfaces.
+
+For maps with multiple feature layers, `create_map` uses one shared PBF traversal through `SvgMapper.render_layers`, which is more efficient than extracting each layer independently.
 
 Feature layers are styled with the `Style` class. All attributes are optional and default to no stroke and no fill (i.e. invisible). Options:
 - `stroke` — stroke colour as a CSS colour string (e.g. `"#000000"`, `"red"`). Use `"none"` for no stroke (default: `"none"`).

@@ -31,6 +31,7 @@ def extract_from_pbf(
         raise FileNotFoundError(f"Source PBF file not found: {source_pbf_path}")
 
     bbox_str = f"{west_lon},{south_lat},{east_lon},{north_lat}"
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     cmd = [
         "osmium",
         "extract",
