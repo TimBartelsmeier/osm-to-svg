@@ -99,7 +99,7 @@ cannot be represented by the project's `Polygon` type. Multiple separate
 `Polygon` Features in one `FeatureCollection` are supported and returned as a
 tuple of polygons.
 
-To use polygons drawn in [geojson.io](https://geojson.io/), pass the exported JSON directly to `polygon_from_geojson`. A single Polygon or Feature returns one polygon; a FeatureCollection returns one polygon or a tuple of polygons, which can be passed to `FeatureLayer(areas=...)`:
+To use polygons drawn in [geojson.io](https://geojson.io/), pass the exported JSON directly to `polygon_from_geojson`. A single Polygon or Feature returns one polygon; a FeatureCollection returns one polygon or a tuple of polygons, which can be passed to `FeatureLayer(include_areas=...)`:
 
 ```python
 from osm_to_svg import FeatureLayer, Style, polygon_from_geojson
@@ -109,11 +109,11 @@ polygons = polygon_from_geojson(geojson_text)
 layer = FeatureLayer(
     features=...,
     style=Style(fill="#D9EAD3"),
-    areas=polygons,
+    include_areas=polygons,
 )
 ```
 
-To resolve a named OSM object directly (to pass to `FeatureLayer`'s `object_ids`), use `geocode_osm_object`. It returns a typed `OsmObjectId` containing the OSM element type (`node`, `way`, or `relation`) and numeric ID.
+To resolve a named OSM object for inspection or other application logic, use `geocode_osm_object`. It returns a typed `OsmObjectId` containing the OSM element type (`node`, `way`, or `relation`) and numeric ID.
 
 ```python
 from osm_to_svg import geocode_osm_object
@@ -151,10 +151,10 @@ Options:
 Output functions create missing parent directories. Existing download targets are replaced atomically after a successful download; failed downloads remove their temporary files and leave the destination unchanged.
 
 #### Specifying features (roads, forests, ...)
-`feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer` with `areas`, `object_ids`, or both to limit a layer to a region and/or exact OSM objects (see [Example 6](./examples/example_6_layer_with_sub_bbox/example_6_layer_with_sub_bbox.py)). The available features (and how to combine them) are described [below](#available-features).
+`feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer` with `include_areas` and/or `exclude_areas` to limit a layer to regions (see [Example 6](./examples/example_6_layer_with_sub_bbox/example_6_layer_with_sub_bbox.py)). The available features (and how to combine them) are described [below](#available-features).
 
 ```python
-from osm_to_svg import FeatureLayer, OsmObjectId, Style, create_map, features
+from osm_to_svg import FeatureLayer, Style, create_map, features
 
 road_style = Style(stroke="#000000", stroke_width=2.0)
 park_style = Style(fill="#5eab2b")
@@ -169,25 +169,18 @@ all_roads = FeatureLayer(
 parks_in_area = FeatureLayer(
     features.GREEN_SPACES.PARK,
     park_style,
-    areas=[[(52.37, 9.70), (52.37, 9.76), (52.40, 9.76), (52.40, 9.70)]],
-)
-
-# Or select exact OSM objects to plot.
-named_garden = FeatureLayer(
-    features.GREEN_SPACES.PARK,
-    park_style,
-    object_ids={OsmObjectId("relation", 123456)},
+    include_areas=[[(52.37, 9.70), (52.37, 9.76), (52.40, 9.76), (52.40, 9.70)]],
 )
 
 create_map(
     pbf_path="hannover.osm.pbf",
     bounds=[(52.37, 9.70), (52.37, 9.76), (52.40, 9.76), (52.40, 9.70)],
-    feature_layers=[parks_in_area, named_garden],
+    feature_layers=[parks_in_area],
     output_path="parks.svg",
 )
 ```
 
-When neither `areas` nor `object_ids` is specified, the feature(s) defined in the `FeatureLayer` will be plotted in the defined style for the entire map. With `areas` or `object_ids`, it is possible to limit this to a subset: `areas` is a list of polygons, and a feature matching any polygon is selected. If both are supplied, a feature matching either an area or an OSM ID is selected. Features and markers are clipped to the overall map polygon. Acquisition functions use the polygon's rectangular envelope because Overpass `/api/map` and `osmium extract -b` are rectangular interfaces.
+When neither `include_areas` nor `exclude_areas` is specified, the feature(s) defined in the `FeatureLayer` will be plotted in the defined style for the entire map. `include_areas` and `exclude_areas` are lists of polygons; polygons within each list use OR semantics. A feature must match at least one include polygon when includes are supplied, and matching any exclude polygon removes it. Exclusions always win. By default, `area_match_mode="intersects"` treats boundary contact and crossings as matches. Set `area_match_mode="contains"` to require the complete feature geometry to remain inside the polygon; boundary points and segments are allowed. Features and markers are clipped to the overall map polygon. Acquisition functions use the polygon's rectangular envelope because Overpass `/api/map` and `osmium extract -b` are rectangular interfaces.
 
 For maps with multiple feature layers, `create_map` uses one shared PBF traversal through `SvgMapper.render_layers`, which is more efficient than extracting each layer independently.
 
@@ -257,10 +250,10 @@ create_map(
         FeatureLayer(features.ROADS.MAJOR | features.WATER_POLYGONS.OPEN_WATER, style)
     ],
     output_path="roads_and_water.svg",
-)
+    To resolve a named OSM object for inspection or other application logic, use `geocode_osm_object`. It returns a typed `OsmObjectId` containing the OSM element type (`node`, `way`, or `relation`) and numeric ID.
 ```
 
-Note: OSM is very granular in separating different types of features. For example, motorways (`features.ROADS.MOTORWAY`) are tagged differently than the ramps leading to them (`features.ROADS.MOTORWAY_LINK`). This can be a curse and a blessing: it gives you very granular control over your maps, but if you have unexpected "gaps" in your map, you probabaly need to research what additional tags you need to include in your query. The shorthand groups included in this library are intended to provide a good starting point for common applications.
+    `feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer` with `include_areas` and/or `exclude_areas` to limit a layer to regions (see [Example 6](./examples/example_6_layer_with_sub_bbox/example_6_layer_with_sub_bbox.py)). The available features (and how to combine them) are described [below](#available-features).
 
 ### ROADS
 

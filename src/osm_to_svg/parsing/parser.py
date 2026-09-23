@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from itertools import pairwise
 
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import BoundingBox, Coordinate, Feature, OsmObjectId, Polygon
+from osm_to_svg.models import AreaMatchMode, BoundingBox, Coordinate, Feature, Polygon
 from osm_to_svg.parsing.handlers import BoundsHandler, FeatureHandler
 from osm_to_svg.validation import validate_bbox
 
@@ -22,8 +22,9 @@ class FeatureQuery:
     """Normalized extraction request used by shared parser traversals."""
 
     spec: FeatureSpec
-    areas: Sequence[Polygon] | None = None
-    object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None = None
+    include_areas: Sequence[Polygon] | None = None
+    exclude_areas: Sequence[Polygon] | None = None
+    area_match_mode: AreaMatchMode = "intersects"
 
 
 @dataclass(frozen=True)
@@ -53,8 +54,9 @@ class PBFParser:
         self,
         spec: FeatureSpec,
         *,
-        areas: Sequence[Polygon] | None = None,
-        object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None = None,
+        include_areas: Sequence[Polygon] | None = None,
+        exclude_areas: Sequence[Polygon] | None = None,
+        area_match_mode: AreaMatchMode = "intersects",
     ) -> list[Feature]:
         """Extract OSM features matching the given spec from the PBF file.
 
@@ -69,7 +71,14 @@ class PBFParser:
             List of unique :class:`~osm_to_svg.models.Feature` objects.
         """
         return self.extract_features_for_queries(
-            [FeatureQuery(spec=spec, areas=areas, object_ids=object_ids)]
+            [
+                FeatureQuery(
+                    spec=spec,
+                    include_areas=include_areas,
+                    exclude_areas=exclude_areas,
+                    area_match_mode=area_match_mode,
+                )
+            ]
         )[0]
 
     def extract_features_for_queries(
@@ -86,9 +95,15 @@ class PBFParser:
         for query in normalized_queries[1:]:
             combined_spec = combined_spec | query.spec
 
-        prepared_areas = tuple(
-            tuple(_prepare_area(validate_bbox(area)) for area in query.areas)
-            if query.areas is not None
+        prepared_include_areas = tuple(
+            tuple(_prepare_area(validate_bbox(area)) for area in query.include_areas)
+            if query.include_areas is not None
+            else None
+            for query in normalized_queries
+        )
+        prepared_exclude_areas = tuple(
+            tuple(_prepare_area(validate_bbox(area)) for area in query.exclude_areas)
+            if query.exclude_areas is not None
             else None
             for query in normalized_queries
         )
@@ -149,7 +164,10 @@ class PBFParser:
                     ):
                         continue
                     if not self._matches_limit(
-                        feature, prepared_areas[index], query.object_ids
+                        feature,
+                        prepared_include_areas[index],
+                        prepared_exclude_areas[index],
+                        query.area_match_mode,
                     ):
                         continue
                     seen[index].add(key)
@@ -160,24 +178,35 @@ class PBFParser:
     @staticmethod
     def _matches_limit(
         feature: Feature,
-        areas: Sequence[Polygon | _PreparedArea] | None,
-        object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None,
+        include_areas: Sequence[Polygon | _PreparedArea] | None,
+        exclude_areas: Sequence[Polygon | _PreparedArea] | None = None,
+        area_match_mode: AreaMatchMode = "intersects",
     ) -> bool:
-        if areas is None and object_ids is None:
+        if include_areas is None and exclude_areas is None:
             return True
         feature_envelope = _geometry_envelope(feature.geometry)
         feature_edges = _geometry_edges(feature.geometry)
-        matches_area = areas is not None and any(
-            _geometry_intersects_area(
+        matches_area = include_areas is None or any(
+            _geometry_matches_area(
                 feature.geometry,
                 area if isinstance(area, _PreparedArea) else _prepare_area(area),
+                area_match_mode=area_match_mode,
                 feature_envelope=feature_envelope,
                 feature_edges=feature_edges,
             )
-            for area in areas
+            for area in include_areas
         )
-        matches_object_id = object_ids is not None and feature.object_id in object_ids
-        return matches_area or matches_object_id
+        matches_excluded_area = exclude_areas is not None and any(
+            _geometry_matches_area(
+                feature.geometry,
+                area if isinstance(area, _PreparedArea) else _prepare_area(area),
+                area_match_mode=area_match_mode,
+                feature_envelope=feature_envelope,
+                feature_edges=feature_edges,
+            )
+            for area in exclude_areas
+        )
+        return matches_area and not matches_excluded_area
 
 
 def _matches_spec(spec: FeatureSpec, tags: dict[str, str]) -> bool:
@@ -316,6 +345,86 @@ def _geometry_intersects_area(
         geometry
         and geometry[0] == geometry[-1]
         and _point_in_polygon(polygon[0], geometry)
+    )
+
+
+def _geometry_matches_area(
+    geometry: list[tuple[float, float]],
+    area: _PreparedArea,
+    *,
+    area_match_mode: AreaMatchMode,
+    feature_envelope: BoundingBox | None = None,
+    feature_edges: Sequence[tuple[Coordinate, Coordinate]] | None = None,
+) -> bool:
+    if area_match_mode == "intersects":
+        return _geometry_intersects_area(
+            geometry,
+            area,
+            feature_envelope=feature_envelope,
+            feature_edges=feature_edges,
+        )
+    return _geometry_is_contained_in_area(
+        geometry,
+        area,
+        feature_envelope=feature_envelope,
+        feature_edges=feature_edges,
+    )
+
+
+def _geometry_is_contained_in_area(
+    geometry: list[tuple[float, float]],
+    area: _PreparedArea,
+    *,
+    feature_envelope: BoundingBox | None = None,
+    feature_edges: Sequence[tuple[Coordinate, Coordinate]] | None = None,
+) -> bool:
+    if not geometry:
+        return False
+    if feature_envelope is None:
+        feature_envelope = _geometry_envelope(geometry)
+    min_lat, min_lon, max_lat, max_lon = feature_envelope
+    south, west, north, east = area.envelope
+    if min_lat < south or max_lat > north or min_lon < west or max_lon > east:
+        return False
+    if not all(_point_in_polygon(point, area.polygon) for point in geometry):
+        return False
+    if feature_edges is None:
+        feature_edges = _geometry_edges(geometry)
+    return all(_segment_is_contained(start, end, area) for start, end in feature_edges)
+
+
+def _segment_is_contained(
+    start: Coordinate,
+    end: Coordinate,
+    area: _PreparedArea,
+) -> bool:
+    delta_lat = end[0] - start[0]
+    delta_lon = end[1] - start[1]
+    parameters = [0.0, 1.0]
+    for edge_start, edge_end in area.edges:
+        edge_delta_lat = edge_end[0] - edge_start[0]
+        edge_delta_lon = edge_end[1] - edge_start[1]
+        denominator = delta_lat * edge_delta_lon - delta_lon * edge_delta_lat
+        if denominator == 0:
+            continue
+        offset_lat = edge_start[0] - start[0]
+        offset_lon = edge_start[1] - start[1]
+        parameter = (
+            offset_lat * edge_delta_lon - offset_lon * edge_delta_lat
+        ) / denominator
+        edge_parameter = (offset_lat * delta_lon - offset_lon * delta_lat) / denominator
+        if 0 <= parameter <= 1 and 0 <= edge_parameter <= 1:
+            parameters.append(parameter)
+    parameters.sort()
+    return all(
+        _point_in_polygon(
+            (
+                start[0] + delta_lat * (first + second) / 2,
+                start[1] + delta_lon * (first + second) / 2,
+            ),
+            area.polygon,
+        )
+        for first, second in pairwise(parameters)
     )
 
 

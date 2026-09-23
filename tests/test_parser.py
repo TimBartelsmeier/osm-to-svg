@@ -4,7 +4,7 @@ import pytest
 
 from osm_to_svg import features
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import Feature, OsmObjectId
+from osm_to_svg.models import Feature
 from osm_to_svg.parsing import BoundsHandler, FeatureHandler, FeatureQuery, PBFParser
 from osm_to_svg.parsing.parser import _geometry_intersects_bbox, _segments_intersect
 
@@ -69,15 +69,15 @@ def test_segments_intersect_handles_each_collinear_endpoint_case(first, second) 
     assert _segments_intersect(*first, *second)
 
 
-def test_parser_limit_matches_typed_object_ids() -> None:
+def test_parser_limit_applies_include_and_exclude_areas() -> None:
+    area = ((52.0, 8.0), (52.0, 8.01), (52.01, 8.01), (52.01, 8.0))
     feature = Feature(
-        geometry=[(52.0, 8.0), (52.01, 8.01)],
+        geometry=[(52.005, 8.005), (52.006, 8.006)],
         tags={"highway": "primary"},
-        object_id=OsmObjectId("way", 123),
     )
 
-    assert PBFParser._matches_limit(feature, None, {OsmObjectId("way", 123)})
-    assert not PBFParser._matches_limit(feature, None, {OsmObjectId("relation", 123)})
+    assert PBFParser._matches_limit(feature, [area])
+    assert not PBFParser._matches_limit(feature, [area], [area])
 
 
 def test_parser_limit_matches_any_of_multiple_areas() -> None:
@@ -96,20 +96,28 @@ def test_parser_limit_matches_any_of_multiple_areas() -> None:
     )
 
 
-def test_parser_limit_matches_area_or_object_id() -> None:
+def test_parser_limit_matches_included_area() -> None:
     area = ((52.0, 8.0), (52.0, 8.01), (52.01, 8.01), (52.01, 8.0))
     area_feature = Feature(
         geometry=[(52.005, 8.005), (52.006, 8.006)],
         tags={"highway": "primary"},
     )
-    object_feature = Feature(
-        geometry=[(53.0, 10.0), (53.01, 10.01)],
-        tags={"highway": "primary"},
-        object_id=OsmObjectId("way", 123),
-    )
+    assert PBFParser._matches_limit(area_feature, [area])
 
-    assert PBFParser._matches_limit(area_feature, [area], {OsmObjectId("way", 123)})
-    assert PBFParser._matches_limit(object_feature, [area], {OsmObjectId("way", 123)})
+
+def test_parser_contains_requires_complete_feature_geometry() -> None:
+    area = ((0.0, 0.0), (0.0, 2.0), (2.0, 2.0), (2.0, 0.0))
+
+    assert PBFParser._matches_limit(
+        Feature(geometry=[(0.5, 0.5), (1.5, 1.5)], tags={}),
+        [area],
+        area_match_mode="contains",
+    )
+    assert not PBFParser._matches_limit(
+        Feature(geometry=[(-1.0, 1.0), (1.0, 1.0)], tags={}),
+        [area],
+        area_match_mode="contains",
+    )
 
 
 @pytest.fixture

@@ -15,25 +15,25 @@ def test_osm_object_id_rejects_non_positive_values() -> None:
         OsmObjectId("way", 0)
 
 
-def test_feature_layer_accepts_areas() -> None:
+def test_feature_layer_accepts_include_areas() -> None:
     bbox = ((52.0, 9.0), (52.0, 9.1), (52.1, 9.1), (52.1, 9.0))
     layer = FeatureLayer(
         FeatureSpec(tag_filters={"leisure": ["park"]}),
         Style(fill="green"),
-        areas=[bbox],
+        include_areas=[bbox],
     )
 
-    assert layer.areas == ((*bbox, bbox[0]),)
+    assert layer.include_areas == ((*bbox, bbox[0]),)
 
 
 def test_feature_layer_rejects_empty_limits() -> None:
     import pytest
 
     spec = FeatureSpec(tag_filters={"leisure": ["park"]})
-    with pytest.raises(ValueError, match="areas must not be empty"):
-        FeatureLayer(spec, Style(), areas=[])
-    with pytest.raises(ValueError, match="object_ids must not be empty"):
-        FeatureLayer(spec, Style(), object_ids=[])
+    with pytest.raises(ValueError, match="include_areas must not be empty"):
+        FeatureLayer(spec, Style(), include_areas=[])
+    with pytest.raises(ValueError, match="exclude_areas must not be empty"):
+        FeatureLayer(spec, Style(), exclude_areas=[])
 
 
 def test_feature_layer_accepts_multiple_areas() -> None:
@@ -42,23 +42,36 @@ def test_feature_layer_accepts_multiple_areas() -> None:
     layer = FeatureLayer(
         FeatureSpec(tag_filters={"leisure": ["park"]}),
         Style(fill="green"),
-        areas=[first, second],
+        include_areas=[first, second],
     )
 
-    assert layer.areas == ((*first, first[0]), (*second, second[0]))
+    assert layer.include_areas == ((*first, first[0]), (*second, second[0]))
 
 
-def test_feature_layer_accepts_areas_and_object_ids() -> None:
+def test_feature_layer_accepts_include_and_exclude_areas() -> None:
     bbox = ((52.0, 9.0), (52.0, 9.1), (52.1, 9.1), (52.1, 9.0))
     layer = FeatureLayer(
         FeatureSpec(tag_filters={"leisure": ["park"]}),
         Style(fill="green"),
-        areas=[bbox],
-        object_ids={OsmObjectId("way", 123)},
+        include_areas=[bbox],
+        exclude_areas=[bbox],
+        area_match_mode="contains",
     )
 
-    assert layer.areas == ((*bbox, bbox[0]),)
-    assert layer.object_ids == frozenset({OsmObjectId("way", 123)})
+    assert layer.include_areas == ((*bbox, bbox[0]),)
+    assert layer.exclude_areas == ((*bbox, bbox[0]),)
+    assert layer.area_match_mode == "contains"
+
+
+def test_feature_layer_rejects_unknown_area_match_mode() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="area_match_mode"):
+        FeatureLayer(
+            FeatureSpec(tag_filters={"leisure": ["park"]}),
+            Style(),
+            area_match_mode="unknown",
+        )
 
 
 def test_style_to_svg_attrs_defaults() -> None:

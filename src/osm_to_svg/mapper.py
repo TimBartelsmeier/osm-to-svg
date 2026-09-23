@@ -7,9 +7,9 @@ from typing import Self
 
 from osm_to_svg.features import FeatureSpec
 from osm_to_svg.models import (
+    AreaMatchMode,
     BoundingBox,
     FeatureLayer,
-    OsmObjectId,
     PoiStyle,
     Polygon,
     Style,
@@ -126,8 +126,9 @@ class SvgMapper:
         style: Style,
         layer_id: str | None = None,
         _progress_bar=None,
-        areas: Sequence[Polygon] | None = None,
-        object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None = None,
+        include_areas: Sequence[Polygon] | None = None,
+        exclude_areas: Sequence[Polygon] | None = None,
+        area_match_mode: AreaMatchMode = "intersects",
     ) -> None:
         """Render cartographic features and accumulate the layer in memory.
 
@@ -156,11 +157,14 @@ class SvgMapper:
             _progress_bar.n = 0
             _progress_bar.total = None
             _progress_bar.refresh()
-        if areas is None and object_ids is None:
+        if include_areas is None and exclude_areas is None:
             osm_features = self.parser.extract_features(features)
         else:
             osm_features = self.parser.extract_features(
-                features, areas=areas, object_ids=object_ids
+                features,
+                include_areas=include_areas,
+                exclude_areas=exclude_areas,
+                area_match_mode=area_match_mode,
             )
         if _progress_bar is not None:
             _progress_bar.set_description("Rendering features")
@@ -186,8 +190,9 @@ class SvgMapper:
             layer.style,
             layer_id=layer.layer_id,
             _progress_bar=_progress_bar,
-            areas=layer.areas,
-            object_ids=layer.object_ids,
+            include_areas=layer.include_areas,
+            exclude_areas=layer.exclude_areas,
+            area_match_mode=layer.area_match_mode,
         )
 
     def render_layers(self, layers: Sequence[FeatureLayer], _progress_bar=None) -> None:
@@ -212,12 +217,9 @@ class SvgMapper:
         queries = [
             FeatureQuery(
                 spec=layer.features,
-                areas=layer.areas,
-                object_ids=(
-                    frozenset(layer.object_ids)
-                    if layer.object_ids is not None
-                    else None
-                ),
+                include_areas=layer.include_areas,
+                exclude_areas=layer.exclude_areas,
+                area_match_mode=layer.area_match_mode,
             )
             for layer in layers
         ]

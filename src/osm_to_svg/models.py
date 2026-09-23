@@ -1,6 +1,6 @@
 """Data models for styling and feature representation."""
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal, TypeAlias
 
@@ -21,6 +21,7 @@ MarkerAnchor = Literal[
     "center",
 ]
 OsmObjectType = Literal["node", "way", "relation"]
+AreaMatchMode = Literal["intersects", "contains"]
 Coordinate: TypeAlias = tuple[float, float]
 Polygon: TypeAlias = tuple[Coordinate, ...]
 BoundingBox: TypeAlias = tuple[float, float, float, float]
@@ -154,17 +155,20 @@ class FeatureLayer:
     features: "FeatureSpec"
     style: Style
     layer_id: str | None = None
-    areas: Sequence[Polygon] | None = None
-    object_ids: Iterable[OsmObjectId] | None = None
+    include_areas: Sequence[Polygon] | None = None
+    exclude_areas: Sequence[Polygon] | None = None
+    area_match_mode: AreaMatchMode = "intersects"
 
     def __post_init__(self) -> None:
         from osm_to_svg.validation import validate_bbox
 
-        if self.areas is not None:
-            if not self.areas:
-                raise ValueError("areas must not be empty")
-            self.areas = tuple(validate_bbox(area) for area in self.areas)
-        if self.object_ids is not None:
-            self.object_ids = frozenset(self.object_ids)
-            if not self.object_ids:
-                raise ValueError("object_ids must not be empty")
+        for field_name in ("include_areas", "exclude_areas"):
+            areas = getattr(self, field_name)
+            if areas is not None:
+                if not areas:
+                    raise ValueError(f"{field_name} must not be empty")
+                setattr(self, field_name, tuple(validate_bbox(area) for area in areas))
+        if self.area_match_mode not in ("intersects", "contains"):
+            raise ValueError(
+                "area_match_mode must be either 'intersects' or 'contains'"
+            )

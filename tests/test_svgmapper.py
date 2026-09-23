@@ -20,7 +20,14 @@ class DummyParser:
     def get_bounds(self) -> BoundingBox:
         return (52.0, 8.0, 52.2, 8.2)
 
-    def extract_features(self, spec: FeatureSpec, *, areas=None, object_ids=None):  # noqa: ANN001
+    def extract_features(
+        self,
+        spec: FeatureSpec,
+        *,
+        include_areas=None,
+        exclude_areas=None,
+        area_match_mode="intersects",
+    ):  # noqa: ANN001
         return []
 
 
@@ -124,13 +131,13 @@ def test_svgmapper_forwards_limited_layers(
         mapper.render_features(
             features.ROADS.MAJOR,
             Style(stroke="#000"),
-            areas=[area],
+            include_areas=[area],
         )
         mapper.render_layer(
             FeatureLayer(
                 features.ROADS.MAJOR,
                 Style(stroke="#000"),
-                areas=[area],
+                include_areas=[area],
             )
         )
 

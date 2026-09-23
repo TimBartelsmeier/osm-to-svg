@@ -1,4 +1,4 @@
-"""Example 6: Limit individual feature layers with a sub-bounding box.
+"""Example 6: Limit individual feature layers with included and excluded areas.
 
 Note: This example renders ALL building and road types in the bounding box,
 which can result in very large SVG files (potentially 10+ MB) depending on
@@ -14,7 +14,6 @@ from osm_to_svg import (
     create_map,
     features,
     geocode_coordinates,
-    geocode_osm_object,
     get_bbox_around_coordinates,
 )
 
@@ -44,9 +43,6 @@ herrenhäuser_gärten_bbox = get_bbox_around_coordinates(
     width_km=0.5,
     height_km=0.5,
 )
-
-großer_garten_id = geocode_osm_object("Großer Garten, Hannover")
-berggarten_id = geocode_osm_object("Berggarten, Hannover")
 
 print("Rendering major roads and all parks for the full bbox ...")
 create_map(
@@ -83,16 +79,16 @@ create_map(
         FeatureLayer(
             features=feature_parks,
             style=Style(fill="#0A9C0A"),
-            areas=[herrenhäuser_gärten_bbox],
+            include_areas=[herrenhäuser_gärten_bbox],
         ),
     ],
-    output_path=str(script_dir / "sub bbox.svg"),
+    output_path=str(script_dir / "include_areas.svg"),
     show_progress=True,
 )
 
 print()
 print(
-    "Rendering major roads for the full bbox, and render Großer Garten and Berggarten by their OSM object IDs ..."
+    "Rendering parks included in Großer Garten while excluding the Berggarten area..."
 )
 create_map(
     pbf_path=str(hannover_pbf),
@@ -100,15 +96,15 @@ create_map(
     background_color="#FFFFFF",
     feature_layers=[
         FeatureLayer(
-            features=features.ROADS.MAJOR,
+            features.ROADS.MAJOR,
             style=Style(stroke="#000000", stroke_width=2.0),
         ),
         FeatureLayer(
             features=feature_parks,
             style=Style(fill="#0A9C0A"),
-            object_ids={großer_garten_id, berggarten_id},
+            exclude_areas=[herrenhäuser_gärten_bbox],
         ),
     ],
-    output_path=str(script_dir / "object ids.svg"),
+    output_path=str(script_dir / "exclude_areas.svg"),
     show_progress=True,
 )
