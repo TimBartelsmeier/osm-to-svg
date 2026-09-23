@@ -14,7 +14,7 @@ from osm_to_svg.models import (
     Polygon,
     Style,
 )
-from osm_to_svg.parsing import PBFParser
+from osm_to_svg.parsing import FeatureQuery, PBFParser
 from osm_to_svg.projection import CoordinateTransformer
 from osm_to_svg.rendering.combiner import combine_elements
 from osm_to_svg.rendering.renderer import SVGRenderer
@@ -190,6 +190,46 @@ class SvgMapper:
             areas=layer.areas,
             object_ids=layer.object_ids,
         )
+
+    def render_layers(
+        self, layers: Sequence[FeatureLayer], _progress_bar=None
+    ) -> None:
+        """Render multiple feature layers using shared PBF traversals."""
+        if self.parser is None or self.renderer is None:
+            raise RuntimeError("SvgMapper must be used as a context manager")
+
+        queries = [
+            FeatureQuery(
+                spec=layer.features,
+                areas=layer.areas,
+                object_ids=(
+                    frozenset(layer.object_ids)
+                    if layer.object_ids is not None
+                    else None
+                ),
+            )
+            for layer in layers
+        ]
+        extracted_layers = self.parser.extract_features_for_queries(queries)
+
+        for layer, osm_features in zip(layers, extracted_layers, strict=True):
+            if _progress_bar is not None:
+                _progress_bar.set_description("Rendering features")
+                _progress_bar.n = 0
+                _progress_bar.total = len(osm_features)
+                _progress_bar.refresh()
+
+            layer_id = layer.layer_id
+            if layer_id is None:
+                layer_id = "_".join(sorted(layer.features.tag_filters.keys()))
+            layer_id = f"{len(self._layers)} {layer_id}"
+            element = self.renderer.render_features(
+                osm_features,
+                layer.style,
+                layer_id,
+                _progress_bar=_progress_bar,
+            )
+            self._layers.append(element)
 
     def place_poi_markers(
         self,

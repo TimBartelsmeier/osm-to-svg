@@ -87,6 +87,9 @@ class CoordinateTransformer:
         # Calculate scaling factors
         self.scale_x = self.svg_width / self.proj_width
         self.scale_y = self.svg_height / self.proj_height
+        self._geometry_cache: dict[
+            tuple[tuple[float, float], ...], tuple[tuple[float, float], ...]
+        ] = {}
 
         self.svg_polygon = tuple(
             (
@@ -117,6 +120,17 @@ class CoordinateTransformer:
         y_svg = (max_y - y_proj) * self.scale_y  # Flip y-axis
 
         return (x_svg, y_svg)
+
+    def geometry_to_svg(
+        self, geometry: list[tuple[float, float]] | tuple[tuple[float, float], ...]
+    ) -> tuple[tuple[float, float], ...]:
+        """Project and cache one geographic geometry for this transformer."""
+        key = tuple(geometry)
+        cached = self._geometry_cache.get(key)
+        if cached is None:
+            cached = tuple(self.latlon_to_svg(lat, lon) for lat, lon in key)
+            self._geometry_cache[key] = cached
+        return cached
 
     def get_viewbox(self) -> str:
         """Get SVG viewBox attribute value.

@@ -1,6 +1,6 @@
 """PBF parser facade."""
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from itertools import pairwise
 
@@ -15,6 +15,15 @@ class _PreparedArea:
     polygon: Polygon
     envelope: BoundingBox
     edges: tuple[tuple[Coordinate, Coordinate], ...]
+
+
+@dataclass(frozen=True)
+class FeatureQuery:
+    """Normalized extraction request used by shared parser traversals."""
+
+    spec: FeatureSpec
+    areas: Sequence[Polygon] | None = None
+    object_ids: frozenset[OsmObjectId] | set[OsmObjectId] | None = None
 
 
 class PBFParser:
@@ -53,39 +62,77 @@ class PBFParser:
         Returns:
             List of unique :class:`~osm_to_svg.models.Feature` objects.
         """
-        validated_areas = (
-            tuple(validate_bbox(area) for area in areas) if areas is not None else None
-        )
-        prepared_areas = (
-            tuple(_prepare_area(area) for area in validated_areas)
-            if validated_areas is not None
+        return self.extract_features_for_queries(
+            [FeatureQuery(spec=spec, areas=areas, object_ids=object_ids)]
+        )[0]
+
+    def extract_features_for_queries(
+        self, queries: Iterable[FeatureQuery]
+    ) -> list[list[Feature]]:
+        """Extract multiple layer queries during shared PBF traversals."""
+        normalized_queries = tuple(queries)
+        if not normalized_queries:
+            return []
+
+        combined_spec = normalized_queries[0].spec
+        for query in normalized_queries[1:]:
+            combined_spec = combined_spec | query.spec
+
+        prepared_areas = tuple(
+            tuple(_prepare_area(validate_bbox(area)) for area in query.areas)
+            if query.areas is not None
             else None
+            for query in normalized_queries
         )
-
-        handler = FeatureHandler(spec)
+        handler = FeatureHandler(combined_spec)
         handler.apply_file(self.pbf_path, locations=True)
+        feature_batches: list[tuple[Iterable[Feature], set[int] | None]] = [
+            (handler.features, None)
+        ]
 
-        if spec.needs_areas:
-            handler.apply_file(self.pbf_path, locations=True, idx="flex_mem")
+        area_query_indexes = {
+            index
+            for index, query in enumerate(normalized_queries)
+            if query.spec.needs_areas
+        }
+        if area_query_indexes:
+            area_spec = normalized_queries[next(iter(area_query_indexes))].spec
+            for index in sorted(area_query_indexes)[1:]:
+                area_spec = area_spec | normalized_queries[index].spec
+            area_handler = FeatureHandler(area_spec)
+            area_handler.apply_file(self.pbf_path, locations=True, idx="flex_mem")
+            feature_batches.append((area_handler.features, area_query_indexes))
 
-        unique_features: list[Feature] = []
-        seen: set[
-            tuple[tuple[tuple[float, float], ...], tuple[tuple[str, str], ...], bool]
-        ] = set()
+        results: list[list[Feature]] = [[] for _ in normalized_queries]
+        seen: list[
+            set[tuple[tuple[tuple[float, float], ...], tuple[tuple[str, str], ...], bool]]
+        ] = [set() for _ in normalized_queries]
+        for batch, allowed_indexes in feature_batches:
+            for feature in batch:
+                key = (
+                    tuple(feature.geometry),
+                    tuple(sorted(feature.tags.items())),
+                    feature.is_closed,
+                )
+                indexes = (
+                    range(len(normalized_queries))
+                    if allowed_indexes is None
+                    else allowed_indexes
+                )
+                for index in indexes:
+                    query = normalized_queries[index]
+                    if key in seen[index] or not _matches_spec(
+                        query.spec, feature.tags
+                    ):
+                        continue
+                    if not self._matches_limit(
+                        feature, prepared_areas[index], query.object_ids
+                    ):
+                        continue
+                    seen[index].add(key)
+                    results[index].append(feature)
 
-        for feature in handler.features:
-            key = (
-                tuple(feature.geometry),
-                tuple(sorted(feature.tags.items())),
-                feature.is_closed,
-            )
-            if key not in seen and self._matches_limit(
-                feature, prepared_areas, object_ids
-            ):
-                seen.add(key)
-                unique_features.append(feature)
-
-        return unique_features
+        return results
 
     @staticmethod
     def _matches_limit(
@@ -95,11 +142,27 @@ class PBFParser:
     ) -> bool:
         if areas is None and object_ids is None:
             return True
+        feature_envelope = _geometry_envelope(feature.geometry)
+        feature_edges = _geometry_edges(feature.geometry)
         matches_area = areas is not None and any(
-            _geometry_intersects_bbox(feature.geometry, area) for area in areas
+            _geometry_intersects_area(
+                feature.geometry,
+                area if isinstance(area, _PreparedArea) else _prepare_area(area),
+                feature_envelope=feature_envelope,
+                feature_edges=feature_edges,
+            )
+            for area in areas
         )
         matches_object_id = object_ids is not None and feature.object_id in object_ids
         return matches_area or matches_object_id
+
+
+def _matches_spec(spec: FeatureSpec, tags: dict[str, str]) -> bool:
+    """Return whether tags satisfy at least one feature-spec clause."""
+    return any(
+        all(tags.get(tag_key) in valid_values for tag_key, valid_values in clause.items())
+        for clause in spec.match_clauses
+    )
 
 
 def _geometry_intersects_bbox(
@@ -110,6 +173,30 @@ def _geometry_intersects_bbox(
         bbox if isinstance(bbox, _PreparedArea) else _prepare_area(validate_bbox(bbox))
     )
     return _geometry_intersects_area(geometry, area)
+
+
+def _geometry_envelope(geometry: list[tuple[float, float]]) -> BoundingBox:
+    """Return a feature envelope for reuse across area checks."""
+    latitudes = [point[0] for point in geometry]
+    longitudes = [point[1] for point in geometry]
+    return (
+        min(latitudes),
+        min(longitudes),
+        max(latitudes),
+        max(longitudes),
+    )
+
+
+def _geometry_edges(
+    geometry: list[tuple[float, float]],
+) -> tuple[tuple[Coordinate, Coordinate], ...]:
+    """Return the edges used by exact intersection checks."""
+    if len(geometry) < 2:
+        return ()
+    edges = list(pairwise(geometry))
+    if len(geometry) > 2 and geometry[0] != geometry[-1]:
+        edges.append((geometry[-1], geometry[0]))
+    return tuple(edges)
 
 
 def _prepare_area(polygon: Polygon) -> _PreparedArea:
@@ -130,14 +217,16 @@ def _prepare_area(polygon: Polygon) -> _PreparedArea:
 def _geometry_intersects_area(
     geometry: list[tuple[float, float]],
     area: _PreparedArea,
+    *,
+    feature_envelope: BoundingBox | None = None,
+    feature_edges: Sequence[tuple[Coordinate, Coordinate]] | None = None,
 ) -> bool:
     if not geometry:
         return False
 
-    min_lat = min(point[0] for point in geometry)
-    max_lat = max(point[0] for point in geometry)
-    min_lon = min(point[1] for point in geometry)
-    max_lon = max(point[1] for point in geometry)
+    if feature_envelope is None:
+        feature_envelope = _geometry_envelope(geometry)
+    min_lat, min_lon, max_lat, max_lon = feature_envelope
     south, west, north, east = area.envelope
     if max_lat < south or min_lat > north or max_lon < west or min_lon > east:
         return False
@@ -147,9 +236,8 @@ def _geometry_intersects_area(
     if any(_point_in_polygon(point, polygon) for point in geometry):
         return True
 
-    feature_edges = list(pairwise(geometry))
-    if len(geometry) > 2 and geometry[0] != geometry[-1]:
-        feature_edges.append((geometry[-1], geometry[0]))
+    if feature_edges is None:
+        feature_edges = _geometry_edges(geometry)
     if any(
         _segments_intersect(start, end, polygon_start, polygon_end)
         for start, end in feature_edges

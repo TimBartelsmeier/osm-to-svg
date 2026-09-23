@@ -62,14 +62,21 @@ def create_map(
             bounds=bounds,
             background_color=background_color,
         ) as mapper:
-            for i, layer in enumerate(feature_layers or []):
-                if progress_bar is not None:
-                    progress_bar.set_description(f"Layer {i + 1}/{total_layers}")
-                if not isinstance(layer, FeatureLayer):
-                    raise TypeError("feature_layers must contain FeatureLayer objects")
-                mapper.render_layer(layer, _progress_bar=None)
-                if progress_bar is not None:
-                    progress_bar.update(1)
+            normalized_feature_layers = list(feature_layers or [])
+            if any(
+                not isinstance(layer, FeatureLayer)
+                for layer in normalized_feature_layers
+            ):
+                raise TypeError("feature_layers must contain FeatureLayer objects")
+            if hasattr(mapper, "render_layers"):
+                mapper.render_layers(normalized_feature_layers, _progress_bar=None)
+            else:
+                for i, layer in enumerate(normalized_feature_layers):
+                    if progress_bar is not None:
+                        progress_bar.set_description(f"Layer {i + 1}/{total_layers}")
+                    mapper.render_layer(layer, _progress_bar=None)
+            if progress_bar is not None:
+                progress_bar.update(n_feature_layers)
 
             for j, (coords, poi_style) in enumerate(poi_layers or []):
                 if progress_bar is not None:

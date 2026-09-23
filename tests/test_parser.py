@@ -3,8 +3,9 @@ from pathlib import Path
 import pytest
 
 from osm_to_svg import features
+from osm_to_svg.features import FeatureSpec
 from osm_to_svg.models import Feature, OsmObjectId
-from osm_to_svg.parsing import BoundsHandler, FeatureHandler, PBFParser
+from osm_to_svg.parsing import BoundsHandler, FeatureHandler, FeatureQuery, PBFParser
 from osm_to_svg.parsing.parser import _geometry_intersects_bbox, _segments_intersect
 
 
@@ -162,6 +163,23 @@ def test_parser_extracts_waterway_features(tiny_pbf_fixture_path: Path) -> None:
 
     assert len(waterways) == 1
     assert waterways[0].tags["waterway"] == "river"
+
+
+def test_parser_shared_queries_match_individual_extractions(
+    tiny_pbf_fixture_path: Path,
+) -> None:
+    parser = PBFParser(str(tiny_pbf_fixture_path))
+    queries = [
+        FeatureQuery(features.ROADS.PRIMARY),
+        FeatureQuery(features.WATERWAYS.RIVER),
+        FeatureQuery(FeatureSpec(tag_filters={"building": ["yes"]})),
+        FeatureQuery(features.BUILDINGS.YES),
+    ]
+
+    shared = parser.extract_features_for_queries(queries)
+    individual = [parser.extract_features(query.spec) for query in queries]
+
+    assert shared == individual
 
 
 def test_feature_handler_matches_generic_water_polygon_via_natural_tag() -> None:

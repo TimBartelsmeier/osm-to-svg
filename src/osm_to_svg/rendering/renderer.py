@@ -12,6 +12,8 @@ from osm_to_svg.rendering.svg_utils import copy_svg_element, parse_svg_dimension
 
 __all__ = ["SVGRenderer"]
 
+SVG_NS = "http://www.w3.org/2000/svg"
+
 
 class SVGRenderer:
     """Renders OSM features and POI markers as SVG files."""
@@ -51,18 +53,31 @@ class SVGRenderer:
         width, height = self.transformer.get_dimensions()
         viewbox = self.transformer.get_viewbox()
 
-        dwg = svgwrite.Drawing(
-            ":memory:",
-            size=(f"{width}px", f"{height}px"),
-            viewBox=viewbox,
+        ET.register_namespace("", SVG_NS)
+        root = ET.Element(
+            f"{{{SVG_NS}}}svg",
+            {
+                "width": f"{width}px",
+                "height": f"{height}px",
+                "viewBox": viewbox,
+            },
         )
-
         safe_layer_id = self._sanitize_svg_id(layer_id, prefix="layer")
         clip_id = f"clip-{safe_layer_id}"
-        clip_path = dwg.defs.add(dwg.clipPath(id=clip_id))
-        clip_path.add(dwg.polygon(points=self.transformer.svg_polygon))
-
-        group = dwg.g(id=safe_layer_id, clip_path=f"url(#{clip_id})")
+        defs = ET.SubElement(root, f"{{{SVG_NS}}}defs")
+        clip_path = ET.SubElement(
+            defs, f"{{{SVG_NS}}}clipPath", {"id": clip_id}
+        )
+        ET.SubElement(
+            clip_path,
+            f"{{{SVG_NS}}}polygon",
+            {"points": self._points_attribute(self.transformer.svg_polygon)},
+        )
+        group = ET.SubElement(
+            root,
+            f"{{{SVG_NS}}}g",
+            {"id": safe_layer_id, "clip-path": f"url(#{clip_id})"},
+        )
         style_attrs = style.to_svg_attrs()
 
         for feature in features:
@@ -71,21 +86,34 @@ class SVGRenderer:
                     _progress_bar.update(1)
                 continue
 
-            svg_coords = [
-                self.transformer.latlon_to_svg(lat, lon)
-                for lat, lon in feature.geometry
-            ]
+            project_geometry = getattr(self.transformer, "geometry_to_svg", None)
+            if project_geometry is None:
+                svg_coords = tuple(
+                    self.transformer.latlon_to_svg(lat, lon)
+                    for lat, lon in feature.geometry
+                )
+            else:
+                svg_coords = project_geometry(feature.geometry)
 
             if feature.is_closed and len(svg_coords) >= 3:
-                group.add(dwg.polygon(points=svg_coords, **style_attrs))
+                tag = "polygon"
             else:
-                group.add(dwg.polyline(points=svg_coords, **style_attrs))
+                tag = "polyline"
+            ET.SubElement(
+                group,
+                f"{{{SVG_NS}}}{tag}",
+                {"points": self._points_attribute(svg_coords), **style_attrs},
+            )
 
             if _progress_bar is not None:
                 _progress_bar.update(1)
 
-        dwg.add(group)
-        return self._drawing_to_element(dwg)
+        return root
+
+    @staticmethod
+    def _points_attribute(points: Any) -> str:
+        """Format coordinate pairs using SVG's points attribute syntax."""
+        return " ".join(f"{x},{y}" for x, y in points)
 
     def place_poi_markers(
         self,
