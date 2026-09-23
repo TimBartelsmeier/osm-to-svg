@@ -43,7 +43,7 @@ def create_map(
             ``[(coords, poi_style), ...]`` where coords are ``[(lat, lon), ...]``.
         output_path: Destination path for the final combined SVG.
         show_progress: If ``True``, display a tqdm progress bar showing which
-            layer is currently being processed (e.g., "Layer x/y").
+            parsing pass and rendering work are currently being processed.
             Defaults to ``False``.
     """
     n_feature_layers = len(feature_layers or [])
@@ -69,25 +69,40 @@ def create_map(
             ):
                 raise TypeError("feature_layers must contain FeatureLayer objects")
             if hasattr(mapper, "render_layers"):
-                mapper.render_layers(normalized_feature_layers, _progress_bar=None)
+                if progress_bar is not None:
+                    progress_bar.n = 0
+                    progress_bar.total = 0
+                    progress_bar.set_description("Preparing map")
+                    progress_bar.refresh()
+                mapper.render_layers(
+                    normalized_feature_layers, _progress_bar=progress_bar
+                )
+                if progress_bar is not None:
+                    progress_bar.total = (progress_bar.total or 0) + sum(
+                        len(coords) for coords, _ in (poi_layers or [])
+                    )
+                    progress_bar.refresh()
             else:
                 for i, layer in enumerate(normalized_feature_layers):
                     if progress_bar is not None:
                         progress_bar.set_description(f"Layer {i + 1}/{total_layers}")
                     mapper.render_layer(layer, _progress_bar=None)
-            if progress_bar is not None:
+            if progress_bar is not None and not hasattr(mapper, "render_layers"):
                 progress_bar.update(n_feature_layers)
 
             for j, (coords, poi_style) in enumerate(poi_layers or []):
                 if progress_bar is not None:
-                    progress_bar.set_description(
-                        f"Layer {n_feature_layers + j + 1}/{total_layers}"
-                    )
+                    if hasattr(mapper, "render_layers"):
+                        progress_bar.set_description("Placing POI markers")
+                    else:
+                        progress_bar.set_description(
+                            f"Layer {n_feature_layers + j + 1}/{total_layers}"
+                        )
                 mapper.place_poi_markers(
                     coords=coords, poi_style=poi_style, _progress_bar=None
                 )
                 if progress_bar is not None:
-                    progress_bar.update(1)
+                    progress_bar.update(len(coords) if hasattr(mapper, "render_layers") else 1)
 
             mapper.save(output_path)
     finally:

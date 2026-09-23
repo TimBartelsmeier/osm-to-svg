@@ -65,9 +65,7 @@ class SVGRenderer:
         safe_layer_id = self._sanitize_svg_id(layer_id, prefix="layer")
         clip_id = f"clip-{safe_layer_id}"
         defs = ET.SubElement(root, f"{{{SVG_NS}}}defs")
-        clip_path = ET.SubElement(
-            defs, f"{{{SVG_NS}}}clipPath", {"id": clip_id}
-        )
+        clip_path = ET.SubElement(defs, f"{{{SVG_NS}}}clipPath", {"id": clip_id})
         ET.SubElement(
             clip_path,
             f"{{{SVG_NS}}}polygon",

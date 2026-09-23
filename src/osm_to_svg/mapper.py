@@ -191,12 +191,27 @@ class SvgMapper:
             object_ids=layer.object_ids,
         )
 
-    def render_layers(
-        self, layers: Sequence[FeatureLayer], _progress_bar=None
-    ) -> None:
+    def render_layers(self, layers: Sequence[FeatureLayer], _progress_bar=None) -> None:
         """Render multiple feature layers using shared PBF traversals."""
         if self.parser is None or self.renderer is None:
             raise RuntimeError("SvgMapper must be used as a context manager")
+
+        if not layers:
+            return
+
+        parse_passes = 1 + any(layer.features.needs_areas for layer in layers)
+        if _progress_bar is not None:
+            _progress_bar.n = 0
+            _progress_bar.total = parse_passes
+            _progress_bar.set_description("Parsing PBF")
+            _progress_bar.refresh()
+
+        def on_parse_pass(completed: int, total: int) -> None:
+            if _progress_bar is not None:
+                _progress_bar.n = completed
+                _progress_bar.total = total
+                _progress_bar.set_description(f"Parsing PBF ({completed}/{total})")
+                _progress_bar.refresh()
 
         queries = [
             FeatureQuery(
@@ -210,15 +225,18 @@ class SvgMapper:
             )
             for layer in layers
         ]
-        extracted_layers = self.parser.extract_features_for_queries(queries)
+        extracted_layers = self.parser.extract_features_for_queries(
+            queries, _progress_callback=on_parse_pass
+        )
+
+        if _progress_bar is not None:
+            _progress_bar.total = parse_passes + sum(
+                len(layer_features) for layer_features in extracted_layers
+            )
+            _progress_bar.set_description("Rendering features")
+            _progress_bar.refresh()
 
         for layer, osm_features in zip(layers, extracted_layers, strict=True):
-            if _progress_bar is not None:
-                _progress_bar.set_description("Rendering features")
-                _progress_bar.n = 0
-                _progress_bar.total = len(osm_features)
-                _progress_bar.refresh()
-
             layer_id = layer.layer_id
             if layer_id is None:
                 layer_id = "_".join(sorted(layer.features.tag_filters.keys()))

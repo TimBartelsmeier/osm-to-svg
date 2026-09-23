@@ -1,6 +1,6 @@
 """PBF parser facade."""
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from itertools import pairwise
 
@@ -67,7 +67,9 @@ class PBFParser:
         )[0]
 
     def extract_features_for_queries(
-        self, queries: Iterable[FeatureQuery]
+        self,
+        queries: Iterable[FeatureQuery],
+        _progress_callback: Callable[[int, int], None] | None = None,
     ) -> list[list[Feature]]:
         """Extract multiple layer queries during shared PBF traversals."""
         normalized_queries = tuple(queries)
@@ -86,6 +88,8 @@ class PBFParser:
         )
         handler = FeatureHandler(combined_spec)
         handler.apply_file(self.pbf_path, locations=True)
+        if _progress_callback is not None:
+            _progress_callback(1, 2 if any(query.spec.needs_areas for query in normalized_queries) else 1)
         feature_batches: list[tuple[Iterable[Feature], set[int] | None]] = [
             (handler.features, None)
         ]
@@ -101,11 +105,17 @@ class PBFParser:
                 area_spec = area_spec | normalized_queries[index].spec
             area_handler = FeatureHandler(area_spec)
             area_handler.apply_file(self.pbf_path, locations=True, idx="flex_mem")
+            if _progress_callback is not None:
+                _progress_callback(2, 2)
             feature_batches.append((area_handler.features, area_query_indexes))
 
         results: list[list[Feature]] = [[] for _ in normalized_queries]
         seen: list[
-            set[tuple[tuple[tuple[float, float], ...], tuple[tuple[str, str], ...], bool]]
+            set[
+                tuple[
+                    tuple[tuple[float, float], ...], tuple[tuple[str, str], ...], bool
+                ]
+            ]
         ] = [set() for _ in normalized_queries]
         for batch, allowed_indexes in feature_batches:
             for feature in batch:
@@ -160,7 +170,10 @@ class PBFParser:
 def _matches_spec(spec: FeatureSpec, tags: dict[str, str]) -> bool:
     """Return whether tags satisfy at least one feature-spec clause."""
     return any(
-        all(tags.get(tag_key) in valid_values for tag_key, valid_values in clause.items())
+        all(
+            tags.get(tag_key) in valid_values
+            for tag_key, valid_values in clause.items()
+        )
         for clause in spec.match_clauses
     )
 
