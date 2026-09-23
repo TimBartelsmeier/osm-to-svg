@@ -4,10 +4,7 @@ Quality Control
 - Document/change behaviour for download methods and image saving methods for cases like missing parent dir, file already exists, etc.
 - Behaviour near poles / antimeridian
 
-Fixes
------
-- "Cleanup" ai pass
-
 Feature Ideas
 -------------
+- exclude and include areas for FeatureLayers
 - Other map orientations and projections
