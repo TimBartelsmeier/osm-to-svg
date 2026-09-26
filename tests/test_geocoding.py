@@ -10,7 +10,7 @@ from osm_to_svg.models import OsmObjectId
 
 
 class DummyResponse:
-    def __init__(self, payload, raise_error: Exception | None = None):  # noqa: ANN001
+    def __init__(self, payload, raise_error: Exception | None = None):
         self._payload = payload
         self._raise_error = raise_error
 
@@ -18,12 +18,12 @@ class DummyResponse:
         if self._raise_error:
             raise self._raise_error
 
-    def json(self):  # noqa: ANN201
+    def json(self):
         return self._payload
 
 
 def test_geocode_place_returns_lat_lon(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fake_get(url, params, headers, timeout):  # noqa: ANN001, ANN202
+    def fake_get(url, params, headers, timeout):
         assert "nominatim" in url
         assert params["q"] == "Hannover, Germany"
         assert timeout == 30
@@ -82,7 +82,7 @@ def test_geocode_osm_object_rejects_non_numeric_identity(
 def test_geocode_place_forwards_custom_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     captured = {}
 
-    def fake_get(url, params, headers, timeout):  # noqa: ANN001, ANN202
+    def fake_get(url, params, headers, timeout):
         captured["timeout"] = timeout
         return DummyResponse([{"lat": "52.0", "lon": "9.0"}])
 
@@ -94,7 +94,7 @@ def test_geocode_place_forwards_custom_timeout(monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_geocode_place_wraps_http_errors(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fake_get(url, params, headers, timeout):  # noqa: ANN001, ANN202
+    def fake_get(url, params, headers, timeout):
         raise httpx.ConnectError("network down")
 
     monkeypatch.setattr(httpx, "get", fake_get)
@@ -146,7 +146,7 @@ def test_get_polygon_from_osm_id_converts_geojson_coordinates(
 ) -> None:
     captured: dict[str, object] = {}
 
-    def fake_get(url, params, headers, timeout):  # noqa: ANN001, ANN202
+    def fake_get(url, params, headers, timeout):
         captured.update(params)
         return DummyResponse(
             {
@@ -250,7 +250,7 @@ def test_get_polygon_from_osm_id_rejects_invalid_ring_data(
 def test_get_polygon_from_osm_id_wraps_http_errors(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def fail_get(*args, **kwargs):  # noqa: ANN002, ANN003
+    def fail_get(*args, **kwargs):
         raise httpx.ConnectError("network down")
 
     monkeypatch.setattr(httpx, "get", fail_get)

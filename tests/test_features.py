@@ -1,5 +1,4 @@
 from osm_to_svg import features
-from osm_to_svg.features import FeatureSpec
 
 # ---------------------------------------------------------------------------
 # FeatureSpec construction

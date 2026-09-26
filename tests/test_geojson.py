@@ -84,7 +84,7 @@ def test_polygon_from_geojson_converts_multiple_features() -> None:
         },
     ],
 )
-def test_polygon_from_geojson_rejects_unrepresentable_shapes(geojson) -> None:  # noqa: ANN001
+def test_polygon_from_geojson_rejects_unrepresentable_shapes(geojson) -> None:
     with pytest.raises(ValueError):
         polygon_from_geojson(geojson)
 

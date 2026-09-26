@@ -24,7 +24,7 @@ def test_extract_from_pbf_invokes_osmium_with_expected_args(
 
     called: dict[str, object] = {}
 
-    def fake_run(cmd, check, capture_output, text):  # noqa: ANN001, ANN202
+    def fake_run(cmd, check, capture_output, text):
         called["cmd"] = cmd
         called["check"] = check
         called["capture_output"] = capture_output
@@ -54,7 +54,7 @@ def test_extract_from_pbf_wraps_called_process_error(
     source = tmp_path / "source.osm.pbf"
     source.write_bytes(b"dummy")
 
-    def fake_run(cmd, check, capture_output, text):  # noqa: ANN001, ANN202
+    def fake_run(cmd, check, capture_output, text):
         raise subprocess.CalledProcessError(returncode=1, cmd=cmd, stderr="boom")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -74,7 +74,7 @@ def test_extract_from_pbf_wraps_missing_osmium_binary(
     source = tmp_path / "source.osm.pbf"
     source.write_bytes(b"dummy")
 
-    def fake_run(cmd, check, capture_output, text):  # noqa: ANN001, ANN202
+    def fake_run(cmd, check, capture_output, text):
         raise FileNotFoundError("osmium not found")
 
     monkeypatch.setattr(subprocess, "run", fake_run)

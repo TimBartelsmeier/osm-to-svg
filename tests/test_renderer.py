@@ -197,7 +197,7 @@ def test_sanitize_svg_id_uses_prefix_for_empty_or_invalid_values(
         ("top-left", (100.0, 50.0)),
     ],
 )
-def test_calculate_anchor_offset_variants(dummy_transformer, anchor, expected) -> None:  # noqa: ANN001
+def test_calculate_anchor_offset_variants(dummy_transformer, anchor, expected) -> None:
     renderer = SVGRenderer(dummy_transformer)
     assert (
         renderer._calculate_anchor_offset(100.0, 50.0, 10.0, 20.0, 1.0, anchor)

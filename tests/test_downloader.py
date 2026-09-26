@@ -21,16 +21,15 @@ class DummyStreamResponse:
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc, tb):  # noqa: ANN001, ANN201
+    def __exit__(self, exc_type, exc, tb):
         return False
 
     def raise_for_status(self) -> None:
         if self._raise_error:
             raise self._raise_error
 
-    def iter_bytes(self, chunk_size: int = 8192):  # noqa: ARG002
-        for chunk in self._chunks:
-            yield chunk
+    def iter_bytes(self, chunk_size: int = 8192):
+        yield from self._chunks
 
     def read(self) -> bytes:
         return b"".join(self._chunks)
@@ -42,7 +41,7 @@ def test_download_from_url_writes_streamed_content(
 ) -> None:
     output = tmp_path / "nested" / "region.osm.pbf"
 
-    def fake_stream(method, url, timeout, follow_redirects):  # noqa: ANN001, ANN202
+    def fake_stream(method, url, timeout, follow_redirects):
         assert method == "GET"
         assert follow_redirects is True
         return DummyStreamResponse(
@@ -64,7 +63,7 @@ def test_download_from_overpass_writes_streamed_content(
 ) -> None:
     output = tmp_path / "nested" / "bbox.osm.pbf"
 
-    def fake_stream(method, url, timeout, follow_redirects):  # noqa: ANN001, ANN202
+    def fake_stream(method, url, timeout, follow_redirects):
         assert "overpass-api.de" in url
         return DummyStreamResponse(
             chunks=[b"\x00\x11\x22", b"\x33\x44"],
@@ -87,7 +86,7 @@ def test_download_from_overpass_rejects_html_response(
 ) -> None:
     output = tmp_path / "bbox.osm.pbf"
 
-    def fake_stream(method, url, timeout, follow_redirects):  # noqa: ANN001, ANN202
+    def fake_stream(method, url, timeout, follow_redirects):
         return DummyStreamResponse(
             chunks=[b"<html>error</html>"],
             headers={"content-type": "text/html", "content-length": "18"},
@@ -109,7 +108,7 @@ def test_download_from_overpass_wraps_timeout(
 ) -> None:
     output = tmp_path / "bbox.osm.pbf"
 
-    def fake_stream(method, url, timeout, follow_redirects):  # noqa: ANN001, ANN202
+    def fake_stream(method, url, timeout, follow_redirects):
         raise httpx.TimeoutException("timed out")
 
     monkeypatch.setattr(httpx, "stream", fake_stream)
@@ -126,7 +125,7 @@ def test_download_from_overpass_rejects_html_in_first_chunk(
 ) -> None:
     output = tmp_path / "bbox.osm.pbf"
 
-    def fake_stream(method, url, timeout, follow_redirects):  # noqa: ANN001, ANN202
+    def fake_stream(method, url, timeout, follow_redirects):
         return DummyStreamResponse(
             chunks=[b"<?xml version='1.0'?>oops"],
             headers={"content-length": "24"},
@@ -148,7 +147,7 @@ def test_download_from_overpass_wraps_http_error(
 ) -> None:
     output = tmp_path / "bbox.osm.pbf"
 
-    def fake_stream(method, url, timeout, follow_redirects):  # noqa: ANN001, ANN202
+    def fake_stream(method, url, timeout, follow_redirects):
         return DummyStreamResponse(
             chunks=[],
             headers={"content-length": "0"},
@@ -173,7 +172,7 @@ def test_download_from_url_wraps_timeout(
 ) -> None:
     output = tmp_path / "region.osm.pbf"
 
-    def fake_stream(method, url, timeout, follow_redirects):  # noqa: ANN001, ANN202
+    def fake_stream(method, url, timeout, follow_redirects):
         raise httpx.TimeoutException("timed out")
 
     monkeypatch.setattr(httpx, "stream", fake_stream)
@@ -188,7 +187,7 @@ def test_download_from_url_wraps_http_error(
 ) -> None:
     output = tmp_path / "region.osm.pbf"
 
-    def fake_stream(method, url, timeout, follow_redirects):  # noqa: ANN001, ANN202
+    def fake_stream(method, url, timeout, follow_redirects):
         return DummyStreamResponse(
             chunks=[],
             headers={"content-length": "0"},
@@ -211,13 +210,13 @@ def test_download_from_overpass_reraises_generic_exception(
 ) -> None:
     output = tmp_path / "bbox.osm.pbf"
 
-    def fake_stream(method, url, timeout, follow_redirects):  # noqa: ANN001, ANN202
+    def fake_stream(method, url, timeout, follow_redirects):
         return DummyStreamResponse(
             chunks=[b"binary"],
             headers={"content-length": "6"},
         )
 
-    def broken_open(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+    def broken_open(*args, **kwargs):
         raise RuntimeError("disk write failed")
 
     monkeypatch.setattr(httpx, "stream", fake_stream)
@@ -235,13 +234,13 @@ def test_download_from_url_reraises_generic_exception(
 ) -> None:
     output = tmp_path / "region.osm.pbf"
 
-    def fake_stream(method, url, timeout, follow_redirects):  # noqa: ANN001, ANN202
+    def fake_stream(method, url, timeout, follow_redirects):
         return DummyStreamResponse(
             chunks=[b"abc"],
             headers={"content-length": "3"},
         )
 
-    def broken_open(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+    def broken_open(*args, **kwargs):
         raise RuntimeError("disk write failed")
 
     monkeypatch.setattr(httpx, "stream", fake_stream)

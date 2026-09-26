@@ -27,12 +27,12 @@ class DummyParser:
         include_areas=None,
         exclude_areas=None,
         area_match_mode="intersects",
-    ):  # noqa: ANN001
+    ):
         return []
 
 
 class DummyCoordinateTransformer:
-    def __init__(self, bounds, scale: int = 100000, dpi: int = 300):  # noqa: ANN001
+    def __init__(self, bounds, scale: int = 100000, dpi: int = 300):
         latitudes = [point[0] for point in bounds]
         longitudes = [point[1] for point in bounds]
         self.geo_bounds = (
@@ -49,18 +49,18 @@ class DummyCoordinateTransformer:
 
 
 class DummyRenderer:
-    def __init__(self, transformer, background_color=None):  # noqa: ANN001
+    def __init__(self, transformer, background_color=None):
         self.transformer = transformer
         self.background_color = background_color
 
-    def render_features(self, features, style, layer_id, _progress_bar=None):  # noqa: ANN001
+    def render_features(self, features, style, layer_id, _progress_bar=None):
         return ET.Element("svg")
 
     def place_poi_markers(
         self,
-        coords,  # noqa: ANN001
-        poi_style,  # noqa: ANN001
-        layer_id="pois",  # noqa: ANN001
+        coords,
+        poi_style,
+        layer_id="pois",
         _progress_bar=None,
     ):
         return ET.Element("svg")
@@ -182,11 +182,13 @@ def test_save_raises_when_no_layers(
     pbf_path: Path,
     patched_svgmapper_dependencies,
 ) -> None:
-    with SvgMapper(
-        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
-    ) as mapper:
-        with pytest.raises(ValueError, match="No layers to combine"):
-            mapper.save("combined.svg")
+    with (
+        SvgMapper(
+            str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+        ) as mapper,
+        pytest.raises(ValueError, match="No layers to combine"),
+    ):
+        mapper.save("combined.svg")
 
 
 def test_svgmapper_raises_for_missing_pbf_file(tmp_path: Path) -> None:
@@ -228,16 +230,18 @@ def test_svgmapper_place_poi_raises_for_missing_marker(
     patched_svgmapper_dependencies,
     tmp_path: Path,
 ) -> None:
-    with SvgMapper(
-        str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
-    ) as mapper:
-        with pytest.raises(FileNotFoundError, match="Marker SVG file not found"):
-            mapper.place_poi_markers(
-                coords=[(52.0, 8.0)],
-                poi_style=PoiStyle(
-                    marker_svg_path=str(tmp_path / "missing.svg"), scale=1.0
-                ),
-            )
+    with (
+        SvgMapper(
+            str(pbf_path), bounds=((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+        ) as mapper,
+        pytest.raises(FileNotFoundError, match="Marker SVG file not found"),
+    ):
+        mapper.place_poi_markers(
+            coords=[(52.0, 8.0)],
+            poi_style=PoiStyle(
+                marker_svg_path=str(tmp_path / "missing.svg"), scale=1.0
+            ),
+        )
 
 
 def test_svgmapper_getters_require_context(
@@ -264,7 +268,7 @@ def _capture_render_layer_ids(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     original_render = DummyRenderer.render_features
     original_poi = DummyRenderer.place_poi_markers
 
-    def spy_render(self, features, style, layer_id, _progress_bar=None):  # noqa: ANN001
+    def spy_render(self, features, style, layer_id, _progress_bar=None):
         captured.append(layer_id)
         return original_render(self, features, style, layer_id)
 
@@ -428,7 +432,7 @@ def test_create_map_uses_svgmapper_workflow(
             calls.append(("enter", None))
             return self
 
-        def __exit__(self, exc_type, exc_val, exc_tb):  # noqa: ANN001
+        def __exit__(self, exc_type, exc_val, exc_tb):
             calls.append(("exit", None))
 
         def render_features(
@@ -439,7 +443,7 @@ def test_create_map_uses_svgmapper_workflow(
         def render_layer(self, layer: FeatureLayer, _progress_bar=None) -> None:
             calls.append(("render_features", layer))
 
-        def render_layers(self, layers, _progress_bar=None):  # noqa: ANN001
+        def render_layers(self, layers, _progress_bar=None):
             calls.append(("render_layers", layers))
 
         def place_poi_markers(
@@ -521,7 +525,7 @@ def test_create_map_defaults_to_empty_layers(
         def __enter__(self):
             return self
 
-        def __exit__(self, exc_type, exc_val, exc_tb):  # noqa: ANN001
+        def __exit__(self, exc_type, exc_val, exc_tb):
             return None
 
         def render_features(
@@ -530,7 +534,7 @@ def test_create_map_defaults_to_empty_layers(
             del feature_spec, style
             calls.append("render_features")
 
-        def render_layers(self, layers, _progress_bar=None):  # noqa: ANN001
+        def render_layers(self, layers, _progress_bar=None):
             del layers, _progress_bar
             calls.append("render_layers")
 
@@ -563,13 +567,13 @@ def test_create_map_rejects_non_feature_layers(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class SpyMapper:
-        def __init__(self, **kwargs):  # noqa: ANN003
+        def __init__(self, **kwargs):
             pass
 
         def __enter__(self):
             return self
 
-        def __exit__(self, exc_type, exc_val, exc_tb):  # noqa: ANN001
+        def __exit__(self, exc_type, exc_val, exc_tb):
             return None
 
     monkeypatch.setattr(create_map_module, "SvgMapper", SpyMapper)
@@ -592,7 +596,7 @@ def test_create_map_show_progress_updates_and_closes_bar(
     created_bars: list[ProgressSpy] = []
 
     class FakeTqdm(ProgressSpy):
-        def __init__(self, *args, **kwargs):  # noqa: ANN002, ANN003
+        def __init__(self, *args, **kwargs):
             super().__init__()
             self.args = args
             self.kwargs = kwargs
@@ -607,16 +611,15 @@ def test_create_map_show_progress_updates_and_closes_bar(
             self.closed = True
 
     class SpyMapper:
-        def __init__(self, **kwargs):  # noqa: ANN003
+        def __init__(self, **kwargs):
             calls.append(("init", kwargs))
 
         def __enter__(self):
             calls.append(("enter", None))
             return self
 
-        def __exit__(self, exc_type, exc_val, exc_tb):  # noqa: ANN001
+        def __exit__(self, exc_type, exc_val, exc_tb):
             calls.append(("exit", None))
-            return None
 
         def render_features(
             self, feature_spec: FeatureSpec, style: Style, _progress_bar=None
@@ -628,7 +631,7 @@ def test_create_map_show_progress_updates_and_closes_bar(
                 ("render_features", (layer.features, layer.style, _progress_bar))
             )
 
-        def render_layers(self, layers, _progress_bar=None):  # noqa: ANN001
+        def render_layers(self, layers, _progress_bar=None):
             calls.append(("render_layers", (layers, _progress_bar)))
 
         def place_poi_markers(
@@ -678,7 +681,7 @@ def test_svgmapper_render_features_updates_progress_bar(
 ) -> None:
     captured: dict[str, object] = {}
 
-    def spy_render_features(self, features, style, layer_id, _progress_bar=None):  # noqa: ANN001
+    def spy_render_features(self, features, style, layer_id, _progress_bar=None):
         captured["features"] = features
         captured["style"] = style
         captured["layer_id"] = layer_id
@@ -719,7 +722,7 @@ def test_svgmapper_place_poi_updates_progress_bar(
         poi_style,
         layer_id="pois",
         _progress_bar=None,
-    ):  # noqa: ANN001
+    ):
         captured["coords"] = coords
         captured["poi_style"] = poi_style
         captured["layer_id"] = layer_id
