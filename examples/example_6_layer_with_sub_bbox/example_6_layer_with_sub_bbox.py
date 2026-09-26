@@ -9,6 +9,7 @@ Consider using a smaller bounding box or specific subtypes for production use.
 from pathlib import Path
 
 from osm_to_svg import (
+    FeatureFilter,
     FeatureLayer,
     Polygon,
     Style,
@@ -87,7 +88,7 @@ create_map(
         FeatureLayer(
             features=feature_parks,
             style=Style(fill="#0A9C0A"),
-            include_areas=[herrenhäuser_gärten_bbox],
+            filter=FeatureFilter(areas=[herrenhäuser_gärten_bbox]),
         ),
     ],
     output_path=str(script_dir / "include_areas.svg"),
@@ -110,7 +111,7 @@ create_map(
         FeatureLayer(
             features=feature_parks,
             style=Style(fill="#0A9C0A"),
-            exclude_areas=[herrenhäuser_gärten_bbox],
+            filter=FeatureFilter(exclude_areas=[herrenhäuser_gärten_bbox]),
         ),
     ],
     output_path=str(script_dir / "exclude_areas.svg"),

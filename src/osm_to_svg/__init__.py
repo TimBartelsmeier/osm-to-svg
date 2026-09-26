@@ -16,6 +16,7 @@ from osm_to_svg.geojson import polygons_from_geojson
 from osm_to_svg.mapper import SvgMapper
 from osm_to_svg.models import (
     BoundingBox,
+    FeatureFilter,
     FeatureLayer,
     OsmObjectId,
     PoiStyle,
@@ -27,6 +28,7 @@ __version__ = "0.1.0"
 
 __all__ = [
     "BoundingBox",
+    "FeatureFilter",
     "FeatureLayer",
     "FeatureSpec",
     "OsmObjectId",

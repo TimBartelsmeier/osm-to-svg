@@ -99,17 +99,17 @@ cannot be represented by the project's `Polygon` type. Multiple separate
 `Polygon` Features in one `FeatureCollection` are supported and returned as a
 list of polygons.
 
-To use polygons drawn in [geojson.io](https://geojson.io/), pass the exported JSON directly to `polygons_from_geojson`. It returns a list of polygons, which can be passed to `FeatureLayer(include_areas=...)`:
+To use polygons drawn in [geojson.io](https://geojson.io/), pass the exported JSON directly to `polygons_from_geojson`. It returns a list of polygons, which can be passed to `FeatureFilter(areas=...)`:
 
 ```python
-from osm_to_svg import FeatureLayer, Style, polygons_from_geojson
+from osm_to_svg import FeatureFilter, FeatureLayer, Style, polygons_from_geojson
 
 polygons = polygons_from_geojson(geojson_text)
 
 layer = FeatureLayer(
     features=...,
     style=Style(fill="#D9EAD3"),
-    include_areas=polygons,
+    filter=FeatureFilter(areas=polygons),
 )
 ```
 
@@ -151,10 +151,10 @@ Options:
 Output functions create missing parent directories. Existing download targets are replaced atomically after a successful download; failed downloads remove their temporary files and leave the destination unchanged.
 
 #### Specifying features (roads, forests, ...)
-`feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer` with `include_areas` and/or `exclude_areas` to limit a layer to regions (see [Example 6](./examples/example_6_layer_with_sub_bbox/example_6_layer_with_sub_bbox.py)). The available features (and how to combine them) are described [below](#available-features).
+`feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer(filter=FeatureFilter(...))` to limit a layer spatially or by feature size (see [Example 6](./examples/example_6_layer_with_sub_bbox/example_6_layer_with_sub_bbox.py)). The available features (and how to combine them) are described [below](#available-features).
 
 ```python
-from osm_to_svg import FeatureLayer, Style, create_map, features
+from osm_to_svg import FeatureFilter, FeatureLayer, Style, create_map, features
 
 road_style = Style(stroke="#000000", stroke_width=2.0)
 park_style = Style(fill="#5eab2b")
@@ -169,7 +169,9 @@ all_roads = FeatureLayer(
 parks_in_area = FeatureLayer(
     features.GREEN_SPACES.PARK,
     park_style,
-    include_areas=[[(52.37, 9.70), (52.37, 9.76), (52.40, 9.76), (52.40, 9.70)]],
+    filter=FeatureFilter(
+        areas=[[(52.37, 9.70), (52.37, 9.76), (52.40, 9.76), (52.40, 9.70)]]
+    ),
 )
 
 create_map(
@@ -180,7 +182,7 @@ create_map(
 )
 ```
 
-When neither `include_areas` nor `exclude_areas` is specified, the feature(s) defined in the `FeatureLayer` will be plotted in the defined style for the entire map. `include_areas` and `exclude_areas` are lists of polygons; polygons within each list use OR semantics. A feature must match at least one include polygon when includes are supplied, and matching any exclude polygon removes it. Exclusions always win. By default, `area_match_mode="intersects"` treats boundary contact and crossings as matches. Set `area_match_mode="contains"` to require the complete feature geometry to remain inside the polygon; boundary points and segments are allowed. Features and markers are clipped to the overall map polygon. Acquisition functions use the polygon's rectangular envelope because Overpass `/api/map` and `osmium extract -b` are rectangular interfaces.
+`FeatureFilter.areas` and `FeatureFilter.exclude_areas` are lists of polygons; polygons within each list use OR semantics. When `areas` is `None`, the plotted map bounds are used. A feature must match at least one included polygon, and matching any excluded polygon removes it. Exclusions always win. By default, `area_match_mode="intersects"` treats boundary contact and crossings as matches. Set `area_match_mode="contains"` to require the complete feature geometry to remain inside the polygon; boundary points and segments are allowed. `minimum_area` and `maximum_area` are inclusive square-meter limits for closed features. `minimum_length` and `maximum_length` are inclusive meter limits for open features. Measurements use geodesic WGS84 calculations and are applied independently to each feature. Features and markers are clipped to the overall map polygon. Acquisition functions use the polygon's rectangular envelope because Overpass `/api/map` and `osmium extract -b` are rectangular interfaces.
 
 For maps with multiple feature layers, `create_map` uses one shared PBF traversal through `SvgMapper.render_layers`, which is more efficient than extracting each layer independently.
 
@@ -253,7 +255,7 @@ create_map(
     To resolve a named OSM object for inspection or other application logic, use `geocode_osm_object`. It returns a typed `OsmObjectId` containing the OSM element type (`node`, `way`, or `relation`) and numeric ID.
 ```
 
-    `feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer` with `include_areas` and/or `exclude_areas` to limit a layer to regions (see [Example 6](./examples/example_6_layer_with_sub_bbox/example_6_layer_with_sub_bbox.py)). The available features (and how to combine them) are described [below](#available-features).
+    `feature_layers` is a list of `FeatureLayer` objects. Each entry results in one layer in the SVG file, with one or more OSM features output in the same style. Use `FeatureLayer(filter=FeatureFilter(...))` to limit a layer to regions or feature sizes (see [Example 6](./examples/example_6_layer_with_sub_bbox/example_6_layer_with_sub_bbox.py)). The available features (and how to combine them) are described [below](#available-features).
 
 ### ROADS
 

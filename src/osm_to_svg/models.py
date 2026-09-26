@@ -1,7 +1,7 @@
 """Data models for styling and feature representation."""
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal, TypeAlias
 
 from pydantic import BaseModel, Field, model_validator
@@ -149,20 +149,21 @@ class Feature:
 
 
 @dataclass
-class FeatureLayer:
-    """A styled feature specification with an optional selection limit."""
+class FeatureFilter:
+    """Selection limits for features in a layer."""
 
-    features: "FeatureSpec"
-    style: Style
-    layer_id: str | None = None
-    include_areas: Sequence[Polygon] | None = None
+    areas: Sequence[Polygon] | None = None
     exclude_areas: Sequence[Polygon] | None = None
     area_match_mode: AreaMatchMode = "intersects"
+    minimum_area: float | None = None
+    maximum_area: float | None = None
+    minimum_length: float | None = None
+    maximum_length: float | None = None
 
     def __post_init__(self) -> None:
         from osm_to_svg.validation import validate_bbox
 
-        for field_name in ("include_areas", "exclude_areas"):
+        for field_name in ("areas", "exclude_areas"):
             areas = getattr(self, field_name)
             if areas is not None:
                 if not areas:
@@ -172,3 +173,34 @@ class FeatureLayer:
             raise ValueError(
                 "area_match_mode must be either 'intersects' or 'contains'"
             )
+        for field_name in (
+            "minimum_area",
+            "maximum_area",
+            "minimum_length",
+            "maximum_length",
+        ):
+            value = getattr(self, field_name)
+            if value is not None and value < 0:
+                raise ValueError(f"{field_name} must be non-negative")
+        if (
+            self.minimum_area is not None
+            and self.maximum_area is not None
+            and self.minimum_area > self.maximum_area
+        ):
+            raise ValueError("minimum_area must not exceed maximum_area")
+        if (
+            self.minimum_length is not None
+            and self.maximum_length is not None
+            and self.minimum_length > self.maximum_length
+        ):
+            raise ValueError("minimum_length must not exceed maximum_length")
+
+
+@dataclass
+class FeatureLayer:
+    """A styled feature specification with an optional filter."""
+
+    features: "FeatureSpec"
+    style: Style
+    layer_id: str | None = None
+    filter: FeatureFilter = field(default_factory=FeatureFilter)

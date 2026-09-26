@@ -2,13 +2,14 @@
 
 import xml.etree.ElementTree as ET
 from collections.abc import Sequence
+from dataclasses import replace
 from pathlib import Path
 from typing import Self
 
 from osm_to_svg.features import FeatureSpec
 from osm_to_svg.models import (
-    AreaMatchMode,
     BoundingBox,
+    FeatureFilter,
     FeatureLayer,
     PoiStyle,
     Polygon,
@@ -126,9 +127,7 @@ class SvgMapper:
         style: Style,
         layer_id: str | None = None,
         _progress_bar=None,
-        include_areas: Sequence[Polygon] | None = None,
-        exclude_areas: Sequence[Polygon] | None = None,
-        area_match_mode: AreaMatchMode = "intersects",
+        filter: FeatureFilter | None = None,
     ) -> None:
         """Render cartographic features and accumulate the layer in memory.
 
@@ -157,14 +156,13 @@ class SvgMapper:
             _progress_bar.n = 0
             _progress_bar.total = None
             _progress_bar.refresh()
-        if include_areas is None and exclude_areas is None:
+        resolved_filter = self._resolve_filter(filter)
+        if resolved_filter is None:
             osm_features = self.parser.extract_features(features)
         else:
             osm_features = self.parser.extract_features(
                 features,
-                include_areas=include_areas,
-                exclude_areas=exclude_areas,
-                area_match_mode=area_match_mode,
+                filter=resolved_filter,
             )
         if _progress_bar is not None:
             _progress_bar.set_description("Rendering features")
@@ -190,9 +188,7 @@ class SvgMapper:
             layer.style,
             layer_id=layer.layer_id,
             _progress_bar=_progress_bar,
-            include_areas=layer.include_areas,
-            exclude_areas=layer.exclude_areas,
-            area_match_mode=layer.area_match_mode,
+            filter=layer.filter,
         )
 
     def render_layers(self, layers: Sequence[FeatureLayer], _progress_bar=None) -> None:
@@ -217,9 +213,7 @@ class SvgMapper:
         queries = [
             FeatureQuery(
                 spec=layer.features,
-                include_areas=layer.include_areas,
-                exclude_areas=layer.exclude_areas,
-                area_match_mode=layer.area_match_mode,
+                filter=self._resolve_filter(layer.filter),
             )
             for layer in layers
         ]
@@ -247,6 +241,14 @@ class SvgMapper:
                 _progress_bar=_progress_bar,
             )
             self._layers.append(element)
+
+    def _resolve_filter(
+        self, feature_filter: FeatureFilter | None
+    ) -> FeatureFilter | None:
+        """Resolve an omitted filter area to the plotted map bounds."""
+        if feature_filter is None or feature_filter.areas is not None:
+            return feature_filter
+        return replace(feature_filter, areas=(self.custom_bounds,))
 
     def place_poi_markers(
         self,

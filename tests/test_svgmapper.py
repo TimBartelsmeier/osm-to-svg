@@ -10,12 +10,13 @@ from osm_to_svg import features
 from osm_to_svg.create_map import create_map
 from osm_to_svg.features import FeatureSpec
 from osm_to_svg.mapper import SvgMapper
-from osm_to_svg.models import BoundingBox, FeatureLayer, PoiStyle, Style
+from osm_to_svg.models import BoundingBox, FeatureFilter, FeatureLayer, PoiStyle, Style
 
 
 class DummyParser:
     def __init__(self, pbf_path: str):
         self.pbf_path = pbf_path
+        self.last_filter = None
 
     def get_bounds(self) -> BoundingBox:
         return (52.0, 8.0, 52.2, 8.2)
@@ -24,10 +25,9 @@ class DummyParser:
         self,
         spec: FeatureSpec,
         *,
-        include_areas=None,
-        exclude_areas=None,
-        area_match_mode="intersects",
+        filter=None,
     ):
+        self.last_filter = filter
         return []
 
 
@@ -131,15 +131,29 @@ def test_svgmapper_forwards_limited_layers(
         mapper.render_features(
             features.ROADS.MAJOR,
             Style(stroke="#000"),
-            include_areas=[area],
+            filter=FeatureFilter(areas=[area]),
         )
         mapper.render_layer(
             FeatureLayer(
                 features.ROADS.MAJOR,
                 Style(stroke="#000"),
-                include_areas=[area],
+                filter=FeatureFilter(areas=[area]),
             )
         )
+
+
+def test_svgmapper_resolves_filter_areas_to_custom_bounds(
+    pbf_path: Path,
+    patched_svgmapper_dependencies,
+) -> None:
+    bounds = ((52.0, 8.0), (52.0, 8.2), (52.2, 8.2), (52.2, 8.0))
+
+    with SvgMapper(str(pbf_path), bounds=bounds) as mapper:
+        mapper.render_layer(
+            FeatureLayer(features.ROADS.MAJOR, Style(), filter=FeatureFilter())
+        )
+
+        assert mapper.parser.last_filter.areas == ((*bounds, bounds[0]),)
 
 
 def test_save_uses_accumulated_in_memory_layers(

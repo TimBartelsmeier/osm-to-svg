@@ -1,5 +1,5 @@
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import FeatureLayer, OsmObjectId, Style
+from osm_to_svg.models import FeatureFilter, FeatureLayer, OsmObjectId, Style
 
 
 def test_osm_object_id_is_typed_and_stringifiable() -> None:
@@ -15,63 +15,76 @@ def test_osm_object_id_rejects_non_positive_values() -> None:
         OsmObjectId("way", 0)
 
 
-def test_feature_layer_accepts_include_areas() -> None:
+def test_feature_filter_normalizes_areas_and_limits() -> None:
     bbox = ((52.0, 9.0), (52.0, 9.1), (52.1, 9.1), (52.1, 9.0))
-    layer = FeatureLayer(
-        FeatureSpec(tag_filters={"leisure": ["park"]}),
-        Style(fill="green"),
-        include_areas=[bbox],
+    feature_filter = FeatureFilter(
+        areas=[bbox],
+        minimum_area=0,
+        maximum_area=1000,
+        minimum_length=0,
+        maximum_length=1000,
     )
 
-    assert layer.include_areas == ((*bbox, bbox[0]),)
+    assert feature_filter.areas == ((*bbox, bbox[0]),)
 
 
-def test_feature_layer_rejects_empty_limits() -> None:
+def test_feature_filter_rejects_empty_areas() -> None:
     import pytest
 
-    spec = FeatureSpec(tag_filters={"leisure": ["park"]})
-    with pytest.raises(ValueError, match="include_areas must not be empty"):
-        FeatureLayer(spec, Style(), include_areas=[])
+    with pytest.raises(ValueError, match="areas must not be empty"):
+        FeatureFilter(areas=[])
     with pytest.raises(ValueError, match="exclude_areas must not be empty"):
-        FeatureLayer(spec, Style(), exclude_areas=[])
+        FeatureFilter(exclude_areas=[])
 
 
-def test_feature_layer_accepts_multiple_areas() -> None:
+def test_feature_filter_accepts_multiple_areas() -> None:
     first = ((52.0, 9.0), (52.0, 9.1), (52.1, 9.1), (52.1, 9.0))
     second = ((53.0, 10.0), (53.0, 10.1), (53.1, 10.1), (53.1, 10.0))
-    layer = FeatureLayer(
-        FeatureSpec(tag_filters={"leisure": ["park"]}),
-        Style(fill="green"),
-        include_areas=[first, second],
-    )
+    feature_filter = FeatureFilter(areas=[first, second])
 
-    assert layer.include_areas == ((*first, first[0]), (*second, second[0]))
+    assert feature_filter.areas == ((*first, first[0]), (*second, second[0]))
 
 
-def test_feature_layer_accepts_include_and_exclude_areas() -> None:
+def test_feature_filter_accepts_include_and_exclude_areas() -> None:
     bbox = ((52.0, 9.0), (52.0, 9.1), (52.1, 9.1), (52.1, 9.0))
-    layer = FeatureLayer(
-        FeatureSpec(tag_filters={"leisure": ["park"]}),
-        Style(fill="green"),
-        include_areas=[bbox],
+    feature_filter = FeatureFilter(
+        areas=[bbox],
         exclude_areas=[bbox],
         area_match_mode="contains",
     )
 
-    assert layer.include_areas == ((*bbox, bbox[0]),)
-    assert layer.exclude_areas == ((*bbox, bbox[0]),)
-    assert layer.area_match_mode == "contains"
+    assert feature_filter.areas == ((*bbox, bbox[0]),)
+    assert feature_filter.exclude_areas == ((*bbox, bbox[0]),)
+    assert feature_filter.area_match_mode == "contains"
 
 
-def test_feature_layer_rejects_unknown_area_match_mode() -> None:
+def test_feature_filter_rejects_unknown_area_match_mode() -> None:
     import pytest
 
     with pytest.raises(ValueError, match="area_match_mode"):
-        FeatureLayer(
-            FeatureSpec(tag_filters={"leisure": ["park"]}),
-            Style(),
+        FeatureFilter(
             area_match_mode="unknown",
         )
+
+
+def test_feature_filter_rejects_invalid_metric_ranges() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="minimum_area"):
+        FeatureFilter(minimum_area=-1)
+    with pytest.raises(ValueError, match="minimum_length"):
+        FeatureFilter(minimum_length=-1)
+    with pytest.raises(ValueError, match="must not exceed"):
+        FeatureFilter(minimum_area=2, maximum_area=1)
+    with pytest.raises(ValueError, match="must not exceed"):
+        FeatureFilter(minimum_length=2, maximum_length=1)
+
+
+def test_feature_layer_defaults_to_an_empty_feature_filter() -> None:
+    layer = FeatureLayer(FeatureSpec(tag_filters={"highway": ["path"]}), Style())
+
+    assert isinstance(layer.filter, FeatureFilter)
+    assert layer.filter.areas is None
 
 
 def test_style_to_svg_attrs_defaults() -> None:

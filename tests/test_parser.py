@@ -4,7 +4,7 @@ import pytest
 
 from osm_to_svg import features
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import Feature
+from osm_to_svg.models import Feature, FeatureFilter
 from osm_to_svg.parsing import BoundsHandler, FeatureHandler, FeatureQuery, PBFParser
 from osm_to_svg.parsing.parser import _geometry_intersects_bbox, _segments_intersect
 
@@ -78,6 +78,59 @@ def test_parser_limit_applies_include_and_exclude_areas() -> None:
 
     assert PBFParser._matches_limit(feature, [area])
     assert not PBFParser._matches_limit(feature, [area], [area])
+
+
+def test_parser_measurement_limits_are_inclusive() -> None:
+    closed = Feature(
+        geometry=[(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0)],
+        tags={},
+        is_closed=True,
+    )
+    open_feature = Feature(
+        geometry=[(0.0, 0.0), (0.0, 1.0)],
+        tags={},
+    )
+
+    from osm_to_svg.parsing.parser import _GEOD
+
+    area, _ = _GEOD.polygon_area_perimeter(
+        [longitude for _, longitude in closed.geometry],
+        [latitude for latitude, _ in closed.geometry],
+    )
+    length = _GEOD.line_length(
+        [longitude for _, longitude in open_feature.geometry],
+        [latitude for latitude, _ in open_feature.geometry],
+    )
+
+    assert PBFParser._matches_measurement_filter(
+        closed,
+        FeatureFilter(minimum_area=abs(area), maximum_area=abs(area)),
+    )
+    assert PBFParser._matches_measurement_filter(
+        open_feature,
+        FeatureFilter(minimum_length=length, maximum_length=length),
+    )
+
+
+def test_parser_measurement_limits_apply_only_to_matching_geometry_type() -> None:
+    closed = Feature(
+        geometry=[(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0)],
+        tags={},
+        is_closed=True,
+    )
+    open_feature = Feature(
+        geometry=[(0.0, 0.0), (0.0, 1.0)],
+        tags={},
+    )
+
+    assert PBFParser._matches_measurement_filter(
+        closed,
+        FeatureFilter(minimum_length=10**12),
+    )
+    assert PBFParser._matches_measurement_filter(
+        open_feature,
+        FeatureFilter(minimum_area=10**12),
+    )
 
 
 def test_parser_limit_matches_any_of_multiple_areas() -> None:

@@ -4,10 +4,21 @@ from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from itertools import pairwise
 
+from pyproj import Geod
+
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import AreaMatchMode, BoundingBox, Coordinate, Feature, Polygon
+from osm_to_svg.models import (
+    AreaMatchMode,
+    BoundingBox,
+    Coordinate,
+    Feature,
+    FeatureFilter,
+    Polygon,
+)
 from osm_to_svg.parsing.handlers import BoundsHandler, FeatureHandler
 from osm_to_svg.validation import validate_bbox
+
+_GEOD = Geod(ellps="WGS84")
 
 
 @dataclass(frozen=True)
@@ -22,9 +33,7 @@ class FeatureQuery:
     """Normalized extraction request used by shared parser traversals."""
 
     spec: FeatureSpec
-    include_areas: Sequence[Polygon] | None = None
-    exclude_areas: Sequence[Polygon] | None = None
-    area_match_mode: AreaMatchMode = "intersects"
+    filter: FeatureFilter | None = None
 
 
 @dataclass(frozen=True)
@@ -54,9 +63,7 @@ class PBFParser:
         self,
         spec: FeatureSpec,
         *,
-        include_areas: Sequence[Polygon] | None = None,
-        exclude_areas: Sequence[Polygon] | None = None,
-        area_match_mode: AreaMatchMode = "intersects",
+        filter: FeatureFilter | None = None,
     ) -> list[Feature]:
         """Extract OSM features matching the given spec from the PBF file.
 
@@ -74,9 +81,7 @@ class PBFParser:
             [
                 FeatureQuery(
                     spec=spec,
-                    include_areas=include_areas,
-                    exclude_areas=exclude_areas,
-                    area_match_mode=area_match_mode,
+                    filter=filter,
                 )
             ]
         )[0]
@@ -96,14 +101,17 @@ class PBFParser:
             combined_spec = combined_spec | query.spec
 
         prepared_include_areas = tuple(
-            tuple(_prepare_area(validate_bbox(area)) for area in query.include_areas)
-            if query.include_areas is not None
+            tuple(_prepare_area(validate_bbox(area)) for area in query.filter.areas)
+            if query.filter is not None and query.filter.areas is not None
             else None
             for query in normalized_queries
         )
         prepared_exclude_areas = tuple(
-            tuple(_prepare_area(validate_bbox(area)) for area in query.exclude_areas)
-            if query.exclude_areas is not None
+            tuple(
+                _prepare_area(validate_bbox(area))
+                for area in query.filter.exclude_areas
+            )
+            if query.filter is not None and query.filter.exclude_areas is not None
             else None
             for query in normalized_queries
         )
@@ -167,13 +175,56 @@ class PBFParser:
                         feature,
                         prepared_include_areas[index],
                         prepared_exclude_areas[index],
-                        query.area_match_mode,
+                        query.filter.area_match_mode
+                        if query.filter is not None
+                        else "intersects",
                     ):
+                        continue
+                    if not self._matches_measurement_filter(feature, query.filter):
                         continue
                     seen[index].add(key)
                     results[index].append(feature)
 
         return results
+
+    @staticmethod
+    def _matches_measurement_filter(
+        feature: Feature,
+        feature_filter: FeatureFilter | None,
+    ) -> bool:
+        """Return whether a feature satisfies its applicable metric limits."""
+        if feature_filter is None:
+            return True
+
+        if feature.is_closed:
+            if (
+                feature_filter.minimum_area is None
+                and feature_filter.maximum_area is None
+            ):
+                return True
+            longitudes = [point[1] for point in feature.geometry]
+            latitudes = [point[0] for point in feature.geometry]
+            area, _ = _GEOD.polygon_area_perimeter(longitudes, latitudes)
+            area = abs(area)
+            return _within_limits(
+                area,
+                feature_filter.minimum_area,
+                feature_filter.maximum_area,
+            )
+
+        if (
+            feature_filter.minimum_length is None
+            and feature_filter.maximum_length is None
+        ):
+            return True
+        longitudes = [point[1] for point in feature.geometry]
+        latitudes = [point[0] for point in feature.geometry]
+        length = _GEOD.line_length(longitudes, latitudes)
+        return _within_limits(
+            length,
+            feature_filter.minimum_length,
+            feature_filter.maximum_length,
+        )
 
     @staticmethod
     def _matches_limit(
@@ -212,6 +263,16 @@ class PBFParser:
 def _matches_spec(spec: FeatureSpec, tags: dict[str, str]) -> bool:
     """Return whether tags satisfy at least one feature-spec clause."""
     return _matches_compiled_query(_compile_query(spec), tags)
+
+
+def _within_limits(
+    value: float,
+    minimum: float | None,
+    maximum: float | None,
+) -> bool:
+    return (minimum is None or value >= minimum) and (
+        maximum is None or value <= maximum
+    )
 
 
 def _compile_query(spec: FeatureSpec) -> _CompiledQuery:
