@@ -103,6 +103,7 @@ def test_place_poi_markers_returns_in_memory_element(
 
     assert element is not None
     assert element.tag.endswith("svg")
+    assert element.get("viewBox") == dummy_transformer.get_viewbox()
     pois_group = element.find(f"{{{SVG_NS}}}g[@id='pois']")
     assert pois_group is not None
 

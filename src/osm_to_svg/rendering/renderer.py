@@ -140,17 +140,19 @@ class SVGRenderer:
         anchor = poi_style.anchor
 
         width, height = self.transformer.get_dimensions()
-        viewbox = self.transformer.get_viewbox()
+        map_viewbox = self.transformer.get_viewbox()
 
         marker_tree = ET.parse(poi_style.marker_svg_path)
         marker_root = marker_tree.getroot()
 
-        viewbox = self._parse_viewbox(marker_root.get("viewBox"))
+        marker_viewbox = self._parse_viewbox(marker_root.get("viewBox"))
         marker_width = self._parse_svg_dimension(
-            marker_root.get("width", "24"), fallback=viewbox[2] if viewbox else 24.0
+            marker_root.get("width", "24"),
+            fallback=marker_viewbox[2] if marker_viewbox else 24.0,
         )
         marker_height = self._parse_svg_dimension(
-            marker_root.get("height", "24"), fallback=viewbox[3] if viewbox else 24.0
+            marker_root.get("height", "24"),
+            fallback=marker_viewbox[3] if marker_viewbox else 24.0,
         )
 
         if width_meters is not None:
@@ -163,7 +165,7 @@ class SVGRenderer:
         dwg = svgwrite.Drawing(
             ":memory:",
             size=(f"{width}px", f"{height}px"),
-            viewBox=viewbox,
+            viewBox=map_viewbox,
             debug=False,
         )
 
