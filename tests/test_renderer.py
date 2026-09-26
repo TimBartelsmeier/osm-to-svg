@@ -56,6 +56,32 @@ def test_render_features_names_elements_with_osm_ids(dummy_transformer) -> None:
     assert [feature.attrib["id"] for feature in group] == ["way-42", "relation-99"]
 
 
+def test_render_features_uses_even_odd_path_for_holes(dummy_transformer) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+    element = renderer.render_features(
+        [
+            Feature(
+                geometry=[(52.0, 8.0), (52.1, 8.0), (52.1, 8.1), (52.0, 8.0)],
+                tags={},
+                is_closed=True,
+                object_id=OsmObjectId("relation", 2907930),
+                inner_geometries=[
+                    [(52.02, 8.02), (52.08, 8.02), (52.08, 8.08), (52.02, 8.02)]
+                ],
+            )
+        ],
+        Style(fill="#00f"),
+    )
+
+    group = element.find(f"{{{SVG_NS}}}g[@id='features']")
+    assert group is not None
+    path = group[0]
+    assert path.tag.endswith("path")
+    assert path.attrib["id"] == "relation-2907930"
+    assert path.attrib["fill-rule"] == "evenodd"
+    assert path.attrib["d"].count("M ") == 2
+
+
 def test_parse_viewbox_returns_valid_dimensions(dummy_transformer) -> None:
     renderer = SVGRenderer(dummy_transformer)
 

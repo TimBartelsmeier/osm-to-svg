@@ -373,6 +373,50 @@ def test_feature_handler_preserves_all_outer_rings() -> None:
     assert len(handler.features) == 2
 
 
+def test_feature_handler_preserves_relation_holes_and_identity() -> None:
+    class DummyNode:
+        def __init__(self, lon: float, lat: float):
+            self.lon = lon
+            self.lat = lat
+
+    class DummyArea:
+        tags = [type("Tag", (), {"k": "natural", "v": "water"})]
+
+        def from_way(self):
+            return False
+
+        def orig_id(self):
+            return 2907930
+
+        def outer_rings(self):
+            return [
+                [
+                    DummyNode(8.0, 52.0),
+                    DummyNode(8.1, 52.0),
+                    DummyNode(8.1, 52.1),
+                    DummyNode(8.0, 52.0),
+                ]
+            ]
+
+        def inner_rings(self, outer_ring):
+            return [
+                [
+                    DummyNode(8.02, 52.02),
+                    DummyNode(8.08, 52.02),
+                    DummyNode(8.08, 52.08),
+                    DummyNode(8.02, 52.02),
+                ]
+            ]
+
+    handler = FeatureHandler(features.WATER_POLYGONS.WATER_AREA)
+    handler.area(DummyArea())
+
+    assert len(handler.features) == 1
+    feature = handler.features[0]
+    assert feature.object_id == OsmObjectId("relation", 2907930)
+    assert len(feature.inner_geometries) == 1
+
+
 def test_bounds_handler_rejects_files_without_valid_nodes() -> None:
     with pytest.raises(ValueError, match="no valid node locations"):
         BoundsHandler().get_bounds()

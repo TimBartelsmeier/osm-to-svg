@@ -146,6 +146,7 @@ class Feature:
     tags: dict[str, str]
     is_closed: bool = False
     object_id: OsmObjectId | None = None
+    inner_geometries: list[list[tuple[float, float]]] = field(default_factory=list)
 
 
 @dataclass

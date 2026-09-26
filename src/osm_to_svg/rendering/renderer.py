@@ -93,14 +93,37 @@ class SVGRenderer:
             else:
                 svg_coords = project_geometry(feature.geometry)
 
-            if feature.is_closed and len(svg_coords) >= 3:
+            if feature.inner_geometries:
+                projected_rings = [svg_coords]
+                if project_geometry is None:
+                    projected_rings.extend(
+                        tuple(
+                            self.transformer.latlon_to_svg(lat, lon)
+                            for lat, lon in inner_geometry
+                        )
+                        for inner_geometry in feature.inner_geometries
+                    )
+                else:
+                    projected_rings.extend(
+                        project_geometry(inner_geometry)
+                        for inner_geometry in feature.inner_geometries
+                    )
+                tag = "path"
+            elif feature.is_closed and len(svg_coords) >= 3:
                 tag = "polygon"
             else:
                 tag = "polyline"
-            feature_attrs = {
-                "points": self._points_attribute(svg_coords),
-                **style_attrs,
-            }
+            if feature.inner_geometries:
+                feature_attrs = {
+                    "d": self._path_attribute(projected_rings),
+                    "fill-rule": "evenodd",
+                    **style_attrs,
+                }
+            else:
+                feature_attrs = {
+                    "points": self._points_attribute(svg_coords),
+                    **style_attrs,
+                }
             if feature.object_id is not None:
                 feature_attrs["id"] = self._sanitize_svg_id(
                     str(feature.object_id), prefix="feature"
@@ -120,6 +143,13 @@ class SVGRenderer:
     def _points_attribute(points: Any) -> str:
         """Format coordinate pairs using SVG's points attribute syntax."""
         return " ".join(f"{x},{y}" for x, y in points)
+
+    @staticmethod
+    def _path_attribute(rings: Any) -> str:
+        """Format closed coordinate rings as an SVG path with subpaths."""
+        return " ".join(
+            "M " + " L ".join(f"{x},{y}" for x, y in ring) + " Z" for ring in rings
+        )
 
     def place_poi_markers(
         self,

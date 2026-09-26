@@ -77,19 +77,26 @@ class FeatureHandler(osmium.SimpleHandler):
         )
 
     def area(self, area):
-        """Extract the outer ring of an area as a closed Feature if its tags match the spec."""
+        """Extract area rings as closed features if their tags match the spec."""
         tags = {tag.k: tag.v for tag in area.tags}
         if not self._matches_filter(tags):
             return
 
         try:
-            is_relation = getattr(area, "is_relation", lambda: False)()
-            object_type = "relation" if is_relation else "way"
+            from_way = getattr(area, "from_way", lambda: True)
+            object_type = "way" if from_way() else "relation"
             original_id = getattr(area, "orig_id", lambda: 0)()
             for outer_ring in area.outer_rings():
                 geometry = [(node.lat, node.lon) for node in outer_ring]
                 if len(geometry) < 4:
                     continue
+                inner_geometries = [
+                    [(node.lat, node.lon) for node in inner_ring]
+                    for inner_ring in getattr(area, "inner_rings", lambda _: ())(
+                        outer_ring
+                    )
+                    if len(inner_ring) >= 4
+                ]
                 self.features.append(
                     Feature(
                         geometry=geometry,
@@ -98,6 +105,7 @@ class FeatureHandler(osmium.SimpleHandler):
                         object_id=OsmObjectId(object_type, original_id)
                         if original_id > 0
                         else None,
+                        inner_geometries=inner_geometries,
                     )
                 )
         except RuntimeError:
