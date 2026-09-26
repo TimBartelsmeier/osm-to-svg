@@ -8,3 +8,8 @@ Feature Ideas
 -------------
 - exclude and include areas for FeatureLayers
 - Other map orientations and projections
+
+Documentation
+-------------
+- filtering
+  - Tip: layer without filters in one color, overlay layer with "inverted" filters in other color to see what will be filtered out
