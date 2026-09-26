@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from osm_to_svg import download_from_url, extract_from_pbf
+from osm_to_svg import Polygon, download_from_url, extract_from_pbf
 
 # Set up directories relative to this script
 script_dir = Path(__file__).parent
@@ -14,12 +14,14 @@ niedersachsen_pbf = osmdata_dir / "niedersachsen.osm.pbf"
 hannover_pbf = osmdata_dir / "hannover.osm.pbf"
 
 # Bounding box for Hannover obtained from example_1_geocode_bbox.py
-hannover_bbox = (
-    (52.34069411621622, 9.683215127762876),
-    (52.34069411621622, 9.793891272237124),
-    (52.408261683783785, 9.793891272237124),
-    (52.408261683783785, 9.683215127762876),
-    (52.34069411621622, 9.683215127762876),
+hannover_bbox = Polygon(
+    [
+        (52.34069411621622, 9.683215127762876),
+        (52.34069411621622, 9.793891272237124),
+        (52.408261683783785, 9.793891272237124),
+        (52.408261683783785, 9.683215127762876),
+        (52.34069411621622, 9.683215127762876),
+    ]
 )
 
 # Download Niedersachsen from Geofabrik
@@ -35,7 +37,7 @@ else:
     print(f"Already exists: {niedersachsen_pbf}")
 
 # Extract Hannover region
-print("Extracting Hannover region...")
+print("Extracting Hannover region ...")
 extract_from_pbf(
     source_pbf_path=str(niedersachsen_pbf),
     bbox=hannover_bbox,

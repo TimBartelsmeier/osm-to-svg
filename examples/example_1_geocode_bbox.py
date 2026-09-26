@@ -18,4 +18,3 @@ hannover_bbox = get_bbox_around_coordinates(
 
 print("\nResult:")
 print(f"  Bounding box: {hannover_bbox}")
-print("  (closed polygon of latitude/longitude vertices)")

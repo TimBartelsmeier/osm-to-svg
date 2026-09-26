@@ -5,6 +5,7 @@ from pathlib import Path
 from osm_to_svg import (
     FeatureLayer,
     PoiStyle,
+    Polygon,
     Style,
     create_map,
     features,
@@ -28,7 +29,14 @@ if not hannover_pbf.is_file():
     raise SystemExit(1)
 
 # Bounding box for Hannover obtained from example_1_geocode_bbox.py
-hannover_bbox = [(52.34, 9.68), (52.34, 9.79), (52.41, 9.79), (52.41, 9.68)]
+hannover_bbox = Polygon(
+    [
+        (52.34, 9.68),
+        (52.34, 9.79),
+        (52.41, 9.79),
+        (52.41, 9.68),
+    ]
+)
 
 # POI names geocoded to (latitude, longitude)
 poi_places = [

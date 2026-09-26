@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from osm_to_svg import FeatureLayer, Style, create_map, features
+from osm_to_svg import FeatureLayer, Polygon, Style, create_map, features
 
 # Set up directories relative to this script
 script_dir = Path(__file__).parent
@@ -20,7 +20,14 @@ if not hannover_pbf.is_file():
     raise SystemExit(1)
 
 # Bounding box for Hannover obtained from example_1_geocode_bbox.py
-hannover_bbox = [(52.34, 9.68), (52.34, 9.79), (52.41, 9.79), (52.41, 9.68)]
+hannover_bbox = Polygon(
+    [
+        (52.34, 9.68),
+        (52.34, 9.79),
+        (52.41, 9.79),
+        (52.41, 9.68),
+    ]
+)
 
 # Render the road network
 print("Rendering major roads...")
