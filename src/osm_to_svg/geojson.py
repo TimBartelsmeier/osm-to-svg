@@ -8,7 +8,7 @@ from osm_to_svg.models import Polygon
 from osm_to_svg.validation import validate_bbox
 
 
-def polygons_from_json(
+def polygons_from_geojson(
     geojson: Mapping[str, Any] | str | bytes,
 ) -> list[Polygon]:
     """Convert GeoJSON polygons into the library's ``Polygon`` type.
