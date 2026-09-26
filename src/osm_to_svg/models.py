@@ -151,7 +151,12 @@ class Feature:
 
 @dataclass
 class FeatureFilter:
-    """Selection limits for features in a layer."""
+    """Selection limits for features in a layer.
+
+    Area limits and include/exclude area matching use only the feature's outer
+    geometry. Inner geometries (holes) are not subtracted from area limits or
+    considered during spatial matching.
+    """
 
     areas: Sequence[Polygon] | None = None
     exclude_areas: Sequence[Polygon] | None = None
