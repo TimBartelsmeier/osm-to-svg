@@ -17,13 +17,15 @@ def _create_root_with_boundary_clip(
     svg_ns = "http://www.w3.org/2000/svg"
     ET.register_namespace("", svg_ns)
 
+    attrib = {"viewBox": viewbox}
+    if width is not None:
+        attrib["width"] = width
+    if height is not None:
+        attrib["height"] = height
+
     combined_root = ET.Element(
         f"{{{svg_ns}}}svg",
-        attrib={
-            "width": width,
-            "height": height,
-            "viewBox": viewbox,
-        },
+        attrib=attrib,
     )
 
     vb_parts = viewbox.split()
@@ -108,6 +110,8 @@ def combine_elements(
     width = first_root.get("width")
     height = first_root.get("height")
     viewbox = first_root.get("viewBox")
+    if viewbox is None:
+        raise ValueError("viewBox is required for combining SVG layers")
 
     combined_root = _create_root_with_boundary_clip(width, height, viewbox)
     source_clip = _find_source_polygon_clip(first_root)

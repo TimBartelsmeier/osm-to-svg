@@ -134,7 +134,7 @@ class SVGRenderer:
         Returns:
             Root ``<svg>`` element containing a clipped group of placed markers.
         """
-        scale = poi_style.scale
+        scale = poi_style.scale if poi_style.scale is not None else 1.0
         width_meters = poi_style.width_meters
         height_meters = poi_style.height_meters
         anchor = poi_style.anchor

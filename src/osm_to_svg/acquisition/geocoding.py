@@ -1,5 +1,7 @@
 """Geocoding utilities for converting place names to coordinates."""
 
+from typing import Literal, cast
+
 import httpx
 
 from osm_to_svg.geojson import polygon_from_geojson
@@ -48,7 +50,13 @@ def geocode_coordinates(
         httpx.HTTPError: If the Nominatim request fails.
     """
     result = _geocode_result(place_name, timeout)
-    return float(result["lat"]), float(result["lon"])
+    latitude = result["lat"]
+    longitude = result["lon"]
+    if not isinstance(latitude, (str, int, float)) or not isinstance(
+        longitude, (str, int, float)
+    ):
+        raise TypeError(f"Nominatim result for '{place_name}' has invalid coordinates")
+    return float(latitude), float(longitude)
 
 
 def geocode_osm_object(
@@ -67,7 +75,9 @@ def geocode_osm_object(
             f"Nominatim result for '{place_name}' has no valid OSM object identity"
         )
     try:
-        return OsmObjectId(object_type, int(object_id))
+        return OsmObjectId(
+            cast(Literal["node", "way", "relation"], object_type), int(object_id)
+        )
     except (TypeError, ValueError) as e:
         raise ValueError(
             f"Nominatim result for '{place_name}' has no valid OSM object identity"
@@ -115,6 +125,6 @@ def get_polygon_from_osm_id(
         ) from error
 
     try:
-        return polygon_from_geojson(result.get("geometry"))
+        return cast(Polygon, polygon_from_geojson(result.get("geometry")))
     except (TypeError, ValueError) as error:
         raise type(error)(f"OSM object '{osm_id}' has {error}") from error

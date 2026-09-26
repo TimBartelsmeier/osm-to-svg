@@ -79,13 +79,13 @@ class SvgMapper:
         self.pbf_path = Path(pbf_path)
         self.scale = scale
         self.dpi = dpi
-        self.custom_bounds = bounds
         self.background_color = background_color
 
         if not self.pbf_path.exists():
             raise FileNotFoundError(f"PBF file not found: {pbf_path}")
         if bounds is None:
             raise TypeError("bounds is required")
+        self.custom_bounds = bounds
         self.parser: PBFParser | None = None
         self.transformer: CoordinateTransformer | None = None
         self.renderer: SVGRenderer | None = None
