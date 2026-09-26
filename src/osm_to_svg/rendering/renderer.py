@@ -97,10 +97,18 @@ class SVGRenderer:
                 tag = "polygon"
             else:
                 tag = "polyline"
+            feature_attrs = {
+                "points": self._points_attribute(svg_coords),
+                **style_attrs,
+            }
+            if feature.object_id is not None:
+                feature_attrs["id"] = self._sanitize_svg_id(
+                    str(feature.object_id), prefix="feature"
+                )
             ET.SubElement(
                 group,
                 f"{{{SVG_NS}}}{tag}",
-                {"points": self._points_attribute(svg_coords), **style_attrs},
+                feature_attrs,
             )
 
             if _progress_bar is not None:

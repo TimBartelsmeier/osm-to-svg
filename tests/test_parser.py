@@ -4,7 +4,7 @@ import pytest
 
 from osm_to_svg import features
 from osm_to_svg.features import FeatureSpec
-from osm_to_svg.models import Feature, FeatureFilter
+from osm_to_svg.models import Feature, FeatureFilter, OsmObjectId
 from osm_to_svg.parsing import BoundsHandler, FeatureHandler, FeatureQuery, PBFParser
 from osm_to_svg.parsing.parser import _geometry_intersects_bbox, _segments_intersect
 
@@ -241,6 +241,39 @@ def test_parser_shared_queries_match_individual_extractions(
     individual = [parser.extract_features(query.spec) for query in queries]
 
     assert shared == individual
+
+
+def test_parser_deduplicates_way_and_area_pass_for_same_object(monkeypatch) -> None:
+    parser = PBFParser("unused.osm.pbf")
+    way_feature = Feature(
+        geometry=[(52.0, 8.0), (52.0, 8.01), (52.01, 8.01), (52.0, 8.0)],
+        tags={"waterway": "riverbank"},
+        is_closed=True,
+        object_id=OsmObjectId("way", 42),
+    )
+    area_feature = Feature(
+        geometry=[(52.0, 8.0), (52.0, 8.01), (52.01, 8.01), (52.0, 8.0)],
+        tags=way_feature.tags,
+        is_closed=True,
+        object_id=way_feature.object_id,
+    )
+
+    class FakeHandler:
+        instances = 0
+
+        def __init__(self, spec):
+            self.features = []
+            self.spec = spec
+
+        def apply_file(self, *args, **kwargs):
+            FakeHandler.instances += 1
+            self.features = [
+                way_feature if FakeHandler.instances == 1 else area_feature
+            ]
+
+    monkeypatch.setattr("osm_to_svg.parsing.parser.FeatureHandler", FakeHandler)
+
+    assert parser.extract_features(features.WATER_POLYGONS.RIVER) == [way_feature]
 
 
 def test_feature_handler_matches_generic_water_polygon_via_natural_tag() -> None:

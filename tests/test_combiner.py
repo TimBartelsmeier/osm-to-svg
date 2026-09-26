@@ -53,12 +53,12 @@ def test_combine_elements_merges_layers_and_background(tmp_path: Path) -> None:
     assert background is not None
     assert background.attrib["fill"] == "#fff"
 
-    groups = [
-        elem
-        for elem in root.findall(f"{{{SVG_NS}}}g")
-        if elem.attrib.get("id", "").startswith("layer-")
-    ]
-    assert len(groups) == 2
+    groups = root.findall(f"{{{SVG_NS}}}g")
+    assert [group.attrib.get("id") for group in groups] == ["roads", "buildings"]
+    assert all(len(group) == 1 for group in groups)
+    assert all(
+        child.tag.endswith(("polyline", "rect")) for group in groups for child in group
+    )
     assert root.find(f".//{{{SVG_NS}}}clipPath[@id='x']") is not None
 
 

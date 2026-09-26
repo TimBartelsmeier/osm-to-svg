@@ -56,7 +56,7 @@ def _append_layer_from_source(
     layer_id: str,
     source_name: str,
 ) -> None:
-    """Append the visible children of source_root as a named layer group to combined_root."""
+    """Append a source layer group without introducing an extra nesting level."""
     if source_root.get("viewBox") != viewbox:
         raise ValueError(
             f"{source_name} has inconsistent viewBox. "
@@ -72,6 +72,7 @@ def _append_layer_from_source(
         },
     )
 
+    visible_children: list[ET.Element] = []
     for child in source_root:
         tag_name = child.tag.split("}")[-1]
         if tag_name == "defs":
@@ -81,6 +82,13 @@ def _append_layer_from_source(
             continue
         if tag_name in ["title", "desc", "metadata"]:
             continue
+        visible_children.append(child)
+
+    if len(visible_children) == 1 and visible_children[0].tag.split("}")[-1] == "g":
+        combined_root.append(visible_children[0])
+        return
+
+    for child in visible_children:
         layer_group.append(child)
 
     combined_root.append(layer_group)

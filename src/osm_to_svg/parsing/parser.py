@@ -146,20 +146,20 @@ class PBFParser:
             _compile_query(query.spec) for query in normalized_queries
         )
         candidate_index, wildcard_indexes = _build_candidate_index(compiled_queries)
-        seen: list[
-            set[
-                tuple[
-                    tuple[tuple[float, float], ...], tuple[tuple[str, str], ...], bool
-                ]
-            ]
-        ] = [set() for _ in normalized_queries]
+        seen: list[set[object]] = [set() for _ in normalized_queries]
         for batch, allowed_indexes in feature_batches:
             for feature in batch:
-                key = (
-                    tuple(feature.geometry),
-                    tuple(sorted(feature.tags.items())),
-                    feature.is_closed,
-                )
+                if (
+                    feature.object_id is not None
+                    and feature.object_id.object_type == "way"
+                ):
+                    key: object = feature.object_id
+                else:
+                    key = (
+                        tuple(feature.geometry),
+                        tuple(sorted(feature.tags.items())),
+                        feature.is_closed,
+                    )
                 indexes = _candidate_query_indexes(
                     feature.tags, candidate_index, wildcard_indexes
                 )

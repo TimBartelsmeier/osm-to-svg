@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from osm_to_svg.models import Feature, PoiStyle, Style
+from osm_to_svg.models import Feature, OsmObjectId, PoiStyle, Style
 from osm_to_svg.rendering.renderer import SVGRenderer
 
 SVG_NS = "http://www.w3.org/2000/svg"
@@ -30,6 +30,30 @@ def test_render_features_returns_in_memory_element(dummy_transformer) -> None:
     assert element.tag.endswith("svg")
     groups = element.findall(f"{{{SVG_NS}}}g")
     assert any(group.attrib.get("id") == "roads" for group in groups)
+
+
+def test_render_features_names_elements_with_osm_ids(dummy_transformer) -> None:
+    renderer = SVGRenderer(dummy_transformer)
+    element = renderer.render_features(
+        [
+            Feature(
+                geometry=[(52.0, 8.0), (52.1, 8.1)],
+                tags={},
+                object_id=OsmObjectId("way", 42),
+            ),
+            Feature(
+                geometry=[(52.0, 8.0), (52.0, 8.1), (52.1, 8.1), (52.0, 8.0)],
+                tags={},
+                is_closed=True,
+                object_id=OsmObjectId("relation", 99),
+            ),
+        ],
+        Style(stroke="#000", fill="none"),
+    )
+
+    group = element.find(f"{{{SVG_NS}}}g[@id='features']")
+    assert group is not None
+    assert [feature.attrib["id"] for feature in group] == ["way-42", "relation-99"]
 
 
 def test_parse_viewbox_returns_valid_dimensions(dummy_transformer) -> None:
