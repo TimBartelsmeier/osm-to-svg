@@ -97,14 +97,14 @@ The utility supports GeoJSON `Polygon` geometries without holes. Points, lines,
 `MultiPolygon` geometries, and polygons with holes are rejected because they
 cannot be represented by the project's `Polygon` type. Multiple separate
 `Polygon` Features in one `FeatureCollection` are supported and returned as a
-tuple of polygons.
+list of polygons.
 
-To use polygons drawn in [geojson.io](https://geojson.io/), pass the exported JSON directly to `polygon_from_geojson`. A single Polygon or Feature returns one polygon; a FeatureCollection returns one polygon or a tuple of polygons, which can be passed to `FeatureLayer(include_areas=...)`:
+To use polygons drawn in [geojson.io](https://geojson.io/), pass the exported JSON directly to `polygons_from_json`. It returns a list of polygons, which can be passed to `FeatureLayer(include_areas=...)`:
 
 ```python
-from osm_to_svg import FeatureLayer, Style, polygon_from_geojson
+from osm_to_svg import FeatureLayer, Style, polygons_from_json
 
-polygons = polygon_from_geojson(geojson_text)
+polygons = polygons_from_json(geojson_text)
 
 layer = FeatureLayer(
     features=...,

@@ -4,7 +4,7 @@ from typing import Literal, cast
 
 import httpx
 
-from osm_to_svg.geojson import polygon_from_geojson
+from osm_to_svg.geojson import polygons_from_json
 from osm_to_svg.models import OsmObjectId, Polygon
 
 
@@ -125,6 +125,6 @@ def get_polygon_from_osm_id(
         ) from error
 
     try:
-        return cast(Polygon, polygon_from_geojson(result.get("geometry")))
+        return polygons_from_json(result.get("geometry"))[0]
     except (TypeError, ValueError) as error:
         raise type(error)(f"OSM object '{osm_id}' has {error}") from error

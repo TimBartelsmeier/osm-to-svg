@@ -2,10 +2,10 @@ import json
 
 import pytest
 
-from osm_to_svg import polygon_from_geojson
+from osm_to_svg import polygons_from_json
 
 
-def test_polygon_from_geojson_converts_geojson_io_feature_collection() -> None:
+def test_polygons_from_json_converts_geojson_io_feature_collection() -> None:
     geojson = {
         "type": "FeatureCollection",
         "features": [
@@ -22,29 +22,23 @@ def test_polygon_from_geojson_converts_geojson_io_feature_collection() -> None:
         ],
     }
 
-    assert polygon_from_geojson(geojson) == (
-        (52.0, 8.0),
-        (52.0, 8.1),
-        (52.1, 8.1),
-        (52.0, 8.0),
-    )
+    assert polygons_from_json(geojson) == [
+        ((52.0, 8.0), (52.0, 8.1), (52.1, 8.1), (52.0, 8.0))
+    ]
 
 
-def test_polygon_from_geojson_accepts_json_string_and_direct_polygon() -> None:
+def test_polygons_from_json_accepts_json_string_and_direct_polygon() -> None:
     geojson = {
         "type": "Polygon",
         "coordinates": [[[8.0, 52.0], [8.1, 52.0], [8.0, 52.1]]],
     }
 
-    assert polygon_from_geojson(json.dumps(geojson)) == (
-        (52.0, 8.0),
-        (52.0, 8.1),
-        (52.1, 8.0),
-        (52.0, 8.0),
-    )
+    assert polygons_from_json(json.dumps(geojson)) == [
+        ((52.0, 8.0), (52.0, 8.1), (52.1, 8.0), (52.0, 8.0))
+    ]
 
 
-def test_polygon_from_geojson_converts_multiple_features() -> None:
+def test_polygons_from_json_converts_multiple_features() -> None:
     geojson = {
         "type": "FeatureCollection",
         "features": [
@@ -65,10 +59,10 @@ def test_polygon_from_geojson_converts_multiple_features() -> None:
         ],
     }
 
-    assert polygon_from_geojson(geojson) == (
+    assert polygons_from_json(geojson) == [
         ((52.0, 8.0), (52.0, 8.1), (52.1, 8.0), (52.0, 8.0)),
         ((53.0, 9.0), (53.0, 9.1), (53.1, 9.0), (53.0, 9.0)),
-    )
+    ]
 
 
 @pytest.mark.parametrize(
@@ -84,13 +78,13 @@ def test_polygon_from_geojson_converts_multiple_features() -> None:
         },
     ],
 )
-def test_polygon_from_geojson_rejects_unrepresentable_shapes(geojson) -> None:
+def test_polygons_from_json_rejects_unrepresentable_shapes(geojson) -> None:
     with pytest.raises(ValueError):
-        polygon_from_geojson(geojson)
+        polygons_from_json(geojson)
 
 
-def test_polygon_from_geojson_rejects_feature_without_geometry() -> None:
+def test_polygons_from_json_rejects_feature_without_geometry() -> None:
     with pytest.raises(TypeError):
-        polygon_from_geojson(
+        polygons_from_json(
             {"type": "FeatureCollection", "features": [{"type": "Feature"}]}
         )

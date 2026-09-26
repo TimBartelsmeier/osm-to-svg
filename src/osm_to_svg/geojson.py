@@ -8,15 +8,14 @@ from osm_to_svg.models import Polygon
 from osm_to_svg.validation import validate_bbox
 
 
-def polygon_from_geojson(
+def polygons_from_json(
     geojson: Mapping[str, Any] | str | bytes,
-) -> Polygon | tuple[Polygon, ...]:
+) -> list[Polygon]:
     """Convert GeoJSON polygons into the library's ``Polygon`` type.
 
     The input may be a GeoJSON ``Polygon``, ``Feature`` containing a Polygon,
-    or a ``FeatureCollection`` containing one or more such Features. A single
-    Polygon or Feature returns one ``Polygon``; a FeatureCollection with more
-    than one Feature returns a tuple of Polygons. GeoJSON coordinates are
+    or a ``FeatureCollection`` containing one or more such Features. The
+    result always contains one or more Polygons. GeoJSON coordinates are
     converted from ``(longitude, latitude)`` to the library's ``(latitude,
     longitude)`` order.
 
@@ -24,8 +23,7 @@ def polygon_from_geojson(
         geojson: Parsed GeoJSON data or a JSON string/bytes value.
 
     Returns:
-        A validated, closed Polygon, or a tuple of Polygons for a multi-feature
-        FeatureCollection.
+        A list of validated, closed Polygons.
 
     Raises:
         TypeError: If the input or polygon coordinates have an invalid type.
@@ -34,8 +32,7 @@ def polygon_from_geojson(
     """
     document = _parse_geojson(geojson)
     geometries = _get_geometries(document)
-    polygons = tuple(_polygon_from_geometry(geometry) for geometry in geometries)
-    return polygons[0] if len(polygons) == 1 else polygons
+    return [_polygon_from_geometry(geometry) for geometry in geometries]
 
 
 def _polygon_from_geometry(geometry: Mapping[str, Any]) -> Polygon:
