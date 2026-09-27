@@ -45,7 +45,9 @@ class FeatureSpec:
     is required for features that appear as closed areas (buildings, water bodies,
     green spaces) rather than plain ways.
 
-    Specs can be combined with | to create a union that matches either.
+    Specs can be combined with | to create a union that matches either. They
+    can be subtracted with - to remove matching complete clauses from the
+    left-hand spec.
 
     Example:
         >>> from osm_to_svg import features
@@ -90,4 +92,25 @@ class FeatureSpec:
             tag_filters=merged,
             match_clauses=match_clauses,
             needs_areas=self.needs_areas or other.needs_areas,
+        )
+
+    def __sub__(self, other: FeatureSpec) -> FeatureSpec:
+        """Remove complete matching clauses from this feature specification.
+
+        Subtraction is intentionally clause-based rather than a general
+        logical complement. This keeps the result representable by the
+        positive tag matching used by the parser.
+        """
+        clauses_to_remove = {
+            _normalize_clause(clause) for clause in other.match_clauses
+        }
+        remaining_clauses = [
+            clause
+            for clause in self.match_clauses
+            if _normalize_clause(clause) not in clauses_to_remove
+        ]
+
+        return FeatureSpec(
+            match_clauses=remaining_clauses,
+            needs_areas=self.needs_areas if remaining_clauses else False,
         )

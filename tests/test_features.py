@@ -164,6 +164,49 @@ def test_or_preserves_distinct_match_clauses() -> None:
 
 
 # ---------------------------------------------------------------------------
+# FeatureSpec | subtraction operator
+# ---------------------------------------------------------------------------
+
+
+def test_subtract_removes_matching_clause() -> None:
+    remaining = features.ROADS.MAJOR - features.ROADS.PRIMARY
+
+    assert "primary" not in remaining.tag_filters["highway"]
+    assert "motorway" in remaining.tag_filters["highway"]
+
+
+def test_subtract_preserves_disjoint_clause() -> None:
+    remaining = features.ROADS.MAJOR - features.ROADS.SERVICE
+
+    assert remaining.match_clauses == features.ROADS.MAJOR.match_clauses
+    assert remaining.needs_areas is False
+
+
+def test_subtract_handles_multi_key_clauses() -> None:
+    combined = features.WATER_POLYGONS.LAKE | features.WATER_POLYGONS.RIVER
+    remaining = combined - features.WATER_POLYGONS.LAKE
+
+    assert remaining.match_clauses == features.WATER_POLYGONS.RIVER.match_clauses
+    assert "riverbank" in remaining.tag_filters["waterway"]
+
+
+def test_subtract_identical_area_spec_is_empty() -> None:
+    remaining = features.BUILDINGS.HOUSE - features.BUILDINGS.HOUSE
+
+    assert remaining.tag_filters == {}
+    assert remaining.match_clauses == []
+    assert remaining.needs_areas is False
+
+
+def test_subtract_preserves_area_processing_when_clauses_remain() -> None:
+    combined = features.BUILDINGS.HOUSE | features.BUILDINGS.BARN
+    remaining = combined - features.BUILDINGS.HOUSE
+
+    assert remaining.match_clauses == features.BUILDINGS.BARN.match_clauses
+    assert remaining.needs_areas is True
+
+
+# ---------------------------------------------------------------------------
 # Name collision resolution (_TAG suffix)
 # ---------------------------------------------------------------------------
 
