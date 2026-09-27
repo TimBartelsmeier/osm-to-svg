@@ -56,6 +56,14 @@ def test_roads_major_shorthand_contains_expected_values() -> None:
     assert features.ROADS.MAJOR.needs_areas is False
 
 
+def test_roads_all_includes_new_renderable_values() -> None:
+    values = features.ROADS.ALL.tag_filters["highway"]
+    assert "busway" in values
+    assert "corridor" in values
+    assert "construction" in values
+    assert features.ROADS.ALL.needs_areas is False
+
+
 def test_railways_active_shorthand_covers_all_active_types() -> None:
     values = features.RAILWAYS.ACTIVE.tag_filters["railway"]
     assert "rail" in values
@@ -63,9 +71,23 @@ def test_railways_active_shorthand_covers_all_active_types() -> None:
     assert "abandoned" not in values
 
 
+def test_railways_all_includes_lifecycle_and_miniature_tracks() -> None:
+    values = features.RAILWAYS.ALL.tag_filters["railway"]
+    assert "miniature" in values
+    assert "construction" in values
+    assert "proposed" in values
+
+
 def test_water_polygons_open_water_shorthand_uses_areas() -> None:
     assert "natural" in features.WATER_POLYGONS.OPEN_WATER.tag_filters
     assert features.WATER_POLYGONS.OPEN_WATER.needs_areas is True
+
+
+def test_water_polygons_all_includes_new_water_subtypes() -> None:
+    values = features.WATER_POLYGONS.ALL.tag_filters["water"]
+    assert "oxbow" in values
+    assert "harbour" in values
+    assert features.WATER_POLYGONS.ALL.needs_areas is True
 
 
 def test_waterways_all_shorthand_does_not_need_areas() -> None:
@@ -121,6 +143,13 @@ def test_landuse_urban_covers_expected_values() -> None:
     assert "commercial" in values
     assert "industrial" in values
     assert "retail" in values
+
+
+def test_landuse_all_covers_nonurban_categories() -> None:
+    values = features.LANDUSE.ALL.tag_filters["landuse"]
+    assert "farmland" in values
+    assert "railway" in values
+    assert "basin" in values
 
 
 # ---------------------------------------------------------------------------

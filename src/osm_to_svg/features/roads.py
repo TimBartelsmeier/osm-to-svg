@@ -68,6 +68,26 @@ class ROADS:
     """highway=track: Unpaved track for agricultural or forestry access."""
     ROAD = _r("road")
     """highway=road: Road of unknown or unspecified classification."""
+    BUS_GUIDEWAY = _r("bus_guideway")
+    """highway=bus_guideway: Guided busway unsuitable for ordinary traffic."""
+    BUSWAY = _r("busway")
+    """highway=busway: Dedicated roadway for bus rapid transit."""
+    RACEWAY = _r("raceway")
+    """highway=raceway: Course or track for motor racing."""
+    ESCAPE = _r("escape")
+    """highway=escape: Runaway truck ramp or emergency escape lane."""
+    CORRIDOR = _r("corridor")
+    """highway=corridor: Indoor hallway mapped as a way."""
+    VIA_FERRATA = _r("via_ferrata")
+    """highway=via_ferrata: Equipped climbing route."""
+    ELEVATOR = _r("elevator")
+    """highway=elevator: Elevator or lift connecting pathway levels."""
+    ESCALATOR = _r("escalator")
+    """highway=escalator: Escalator connecting pathway levels."""
+    CONSTRUCTION = _r("construction")
+    """highway=construction: Highway under construction."""
+    PROPOSED = _r("proposed")
+    """highway=proposed: Planned highway not yet under construction."""
 
     # ---- shorthands ----
     MAJOR = (
@@ -109,4 +129,29 @@ class ROADS:
     """Shorthand for active-mobility paths and non-motorized connectors.
 
     OSM tags: highway=cycleway, footway, path, bridleway, pedestrian, steps.
+    """
+    SPECIAL = BUS_GUIDEWAY | BUSWAY | RACEWAY | ESCAPE
+    """Shorthand for special-purpose highway ways.
+
+    OSM tags: highway=bus_guideway, busway, raceway, escape.
+    """
+    ALL = (
+        MAJOR
+        | LOCAL
+        | ACTIVE_MOBILITY
+        | TRACK
+        | ROAD
+        | SPECIAL
+        | CORRIDOR
+        | VIA_FERRATA
+        | ELEVATOR
+        | ESCALATOR
+        | CONSTRUCTION
+        | PROPOSED
+    )
+    """Shorthand for every renderable ``highway=*`` value in this catalog.
+
+    Node-only highway features such as bus stops, crossings, and traffic
+    signals are intentionally excluded because the parser extracts ways and
+    areas, not standalone nodes.
     """

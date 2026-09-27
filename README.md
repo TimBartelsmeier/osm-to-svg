@@ -224,7 +224,9 @@ pixi run example-2
 Those examples check for the file and explain this prerequisite if it is missing. Example 2 keeps both downloaded PBF files in `examples/osmdata`.
 
 ## Available features
-All features are accessed through the `features` subpackage. Individual types match one or more OSM tag constraints, for example, `osm_to_svg.features.ROADS.MOTORWAY`, `osm_to_svg.features.WATERWAYS.CANAL`, or `osm_to_svg.features.WATER_POLYGONS.LAKE`. Multiple features can be combined with the `|` operator: `features.ROADS.MOTORWAY | features.WATERWAYS.CANAL` will create a new `FeatureSpec` object that, when passed to `create_map`, will result in motorways _and_ canal centerlines being plotted. Complete feature definitions can be removed with the `-` operator: `features.ROADS.MAJOR - features.ROADS.PRIMARY` removes the primary-road clauses from the road specification. Subtraction is clause-based: it removes exact encoded definitions and does not express a general negative tag query such as "all water except lakes." There are also a lot of pre-defined unions ("shorthands") for typical use cases, for example, `features.ROADS.MAJOR` encompasses all major link roads, but no residential roads.
+All features are accessed through the `features` subpackage. Individual types match one or more OSM tag constraints, for example, `osm_to_svg.features.ROADS.MOTORWAY`, `osm_to_svg.features.WATERWAYS.CANAL`, or `osm_to_svg.features.WATER_POLYGONS.LAKE`. Multiple features can be combined with the `|` operator: `features.ROADS.MOTORWAY | features.WATERWAYS.CANAL` will create a new `FeatureSpec` object that, when passed to `create_map`, will result in motorways _and_ canal centerlines being plotted. Complete feature definitions can be removed with the `-` operator: `features.ROADS.MAJOR - features.ROADS.PRIMARY` removes the primary-road clauses from the road specification. Subtraction is clause-based: it removes exact encoded definitions and does not express a general negative tag query such as "all water except lakes." There are also pre-defined unions ("shorthands") for typical use cases, for example, `features.ROADS.MAJOR` encompasses all major link roads, but no residential roads.
+
+The catalog is a curated set of common, renderable OSM values, not an exhaustive copy of every value in the OSM wiki. The parser extracts ways and area geometries; node-only values such as bus stops, railway signals, and traffic lights are therefore intentionally not represented. OSM also permits user-defined values and lifecycle prefixes, which cannot be anticipated by a static catalog. Use a custom `FeatureSpec({"tag": ["value"]})` for those cases. Members named `ALL` mean all renderable values currently defined in that catalog, not every value that may occur in OSM.
 
 ```python
 from osm_to_svg import FeatureLayer, Style, create_map, features
@@ -285,6 +287,16 @@ OSM tag: `highway`
 | `features.ROADS.STEPS` | `highway=steps` | Stairway connection |
 | `features.ROADS.TRACK` | `highway=track` | Agricultural or forestry track |
 | `features.ROADS.ROAD` | `highway=road` | Road of unknown classification |
+| `features.ROADS.BUS_GUIDEWAY` | `highway=bus_guideway` | Guided busway |
+| `features.ROADS.BUSWAY` | `highway=busway` | Dedicated bus rapid transit roadway |
+| `features.ROADS.RACEWAY` | `highway=raceway` | Motor-racing course |
+| `features.ROADS.ESCAPE` | `highway=escape` | Emergency escape ramp |
+| `features.ROADS.CORRIDOR` | `highway=corridor` | Indoor hallway way |
+| `features.ROADS.VIA_FERRATA` | `highway=via_ferrata` | Equipped climbing route |
+| `features.ROADS.ELEVATOR` | `highway=elevator` | Elevator or lift way |
+| `features.ROADS.ESCALATOR` | `highway=escalator` | Escalator way |
+| `features.ROADS.CONSTRUCTION` | `highway=construction` | Highway under construction |
+| `features.ROADS.PROPOSED` | `highway=proposed` | Planned highway |
 
 Shorthands:
 
@@ -295,6 +307,8 @@ Shorthands:
 | `features.ROADS.LOCAL` | `RESIDENTIAL` \| `UNCLASSIFIED` \| `SERVICE` \| `LIVING_STREET` |
 | `features.ROADS.PEDESTRIAN` | `FOOTWAY` \| `PATH` \| `BRIDLEWAY` \| `PEDESTRIAN_TAG` \| `STEPS` |
 | `features.ROADS.ACTIVE_MOBILITY` | `CYCLEWAY` \| `FOOTWAY` \| `PATH` \| `BRIDLEWAY` \| `PEDESTRIAN_TAG` \| `STEPS` |
+| `features.ROADS.SPECIAL` | `BUS_GUIDEWAY` \| `BUSWAY` \| `RACEWAY` \| `ESCAPE` |
+| `features.ROADS.ALL` | All individual road values in this catalog |
 
 ### RAILWAYS
 
@@ -309,17 +323,22 @@ OSM tag: `railway`
 | `features.RAILWAYS.MONORAIL` | `railway=monorail` | Single-rail guided transit |
 | `features.RAILWAYS.FUNICULAR` | `railway=funicular` | Cable-driven hillside railway |
 | `features.RAILWAYS.NARROW_GAUGE` | `railway=narrow_gauge` | Narrow-gauge railway |
+| `features.RAILWAYS.MINIATURE` | `railway=miniature` | Passenger miniature railway |
 | `features.RAILWAYS.ABANDONED` | `railway=abandoned` | Abandoned line |
 | `features.RAILWAYS.DISUSED` | `railway=disused` | Disused but intact line |
 | `features.RAILWAYS.PRESERVED` | `railway=preserved` | Heritage or museum railway |
+| `features.RAILWAYS.CONSTRUCTION` | `railway=construction` | Railway under construction |
+| `features.RAILWAYS.PROPOSED` | `railway=proposed` | Planned railway |
 
 Shorthands:
 
 | Shorthand | Composition |
 | --- | --- |
-| `features.RAILWAYS.ACTIVE` | `RAIL` \| `LIGHT_RAIL` \| `SUBWAY` \| `TRAM` \| `MONORAIL` \| `FUNICULAR` \| `NARROW_GAUGE` |
+| `features.RAILWAYS.ACTIVE` | `RAIL` \| `LIGHT_RAIL` \| `SUBWAY` \| `TRAM` \| `MONORAIL` \| `FUNICULAR` \| `NARROW_GAUGE` \| `MINIATURE` |
 | `features.RAILWAYS.URBAN_TRANSIT` | `LIGHT_RAIL` \| `SUBWAY` \| `TRAM` \| `MONORAIL` |
 | `features.RAILWAYS.INACTIVE` | `ABANDONED` \| `DISUSED` \| `PRESERVED` |
+| `features.RAILWAYS.PLANNED` | `CONSTRUCTION` \| `PROPOSED` |
+| `features.RAILWAYS.ALL` | All track-oriented railway values in this catalog |
 
 ### WATERWAYS
 
@@ -337,12 +356,19 @@ OSM tag: `waterway`
 | `features.WATERWAYS.WEIR` | `waterway=weir` | Low barrier structure across a stream or river |
 | `features.WATERWAYS.LOCK` | `waterway=lock` | Lock chamber segment on a navigable waterway |
 | `features.WATERWAYS.WATERFALL` | `waterway=waterfall` | Waterfall feature mapped as a linear waterway |
+| `features.WATERWAYS.TIDAL_CHANNEL` | `waterway=tidal_channel` | Tidal coastal channel |
+| `features.WATERWAYS.FLOWLINE` | `waterway=flowline` | Slow flow through a water body |
+| `features.WATERWAYS.PRESSURISED` | `waterway=pressurised` | Enclosed pressurised conduit |
+| `features.WATERWAYS.FISH_PASS` | `waterway=fish_pass` | Fish passage around a barrier |
+| `features.WATERWAYS.CANOE_PASS` | `waterway=canoe_pass` | Canoe passage around a barrier |
+| `features.WATERWAYS.DAM` | `waterway=dam` | Dam way |
+| `features.WATERWAYS.RAPIDS` | `waterway=rapids` | Rapids way |
 
 Shorthands:
 
 | Shorthand | Composition |
 | --- | --- |
-| `features.WATERWAYS.ALL` | `RIVER` \| `STREAM` \| `CANAL` \| `DRAIN` \| `DITCH` \| `WEIR` \| `LOCK` \| `WATERFALL` |
+| `features.WATERWAYS.ALL` | All individual waterway values in this catalog |
 | `features.WATERWAYS.FLOWING` | `RIVER` \| `STREAM` \| `CANAL` |
 | `features.WATERWAYS.NATURAL` | `RIVER` \| `STREAM` \| `WATERFALL` |
 | `features.WATERWAYS.ARTIFICIAL` | `CANAL` \| `DRAIN` \| `DITCH` \| `WEIR` \| `LOCK` |
@@ -366,6 +392,13 @@ OSM tags: `natural`, `water`, `wetland`, `landuse`, `waterway`
 | `features.WATER_POLYGONS.SALT_POND` | `landuse=salt_pond` | Salt pond polygon |
 | `features.WATER_POLYGONS.RIVER` | `waterway=riverbank` or `natural=water` + `water=river` | River area polygon; overlaps with `WATERWAYS.RIVER` |
 | `features.WATER_POLYGONS.CANAL` | `natural=water` + `water=canal` | Canal area polygon; overlaps with `WATERWAYS.CANAL` |
+| `features.WATER_POLYGONS.STREAM` | `natural=water` + `water=stream` | Stream water area |
+| `features.WATER_POLYGONS.OXBOW` | `natural=water` + `water=oxbow` | Oxbow lake |
+| `features.WATER_POLYGONS.MOAT` | `natural=water` + `water=moat` | Moat |
+| `features.WATER_POLYGONS.HARBOUR` | `natural=water` + `water=harbour` | Harbour water area |
+| `features.WATER_POLYGONS.REFLECTING_POOL` | `natural=water` + `water=reflecting_pool` | Reflecting pool |
+| `features.WATER_POLYGONS.WASTEWATER` | `natural=water` + `water=wastewater` | Wastewater basin |
+| `features.WATER_POLYGONS.RAPIDS` | `natural=water` + `water=rapids` | Rapids area |
 | `features.WATER_POLYGONS.WETLAND_TYPE` | `natural=wetland` | Generic wetland polygon; also matches `GREEN_SPACES.WETLAND` (specific OSM tag value; see WETLANDS for a shorthand group that also encompasses other wetland subtypes such as marsh, swamp, reedbed, and saltmarsh) |
 | `features.WATER_POLYGONS.MARSH` | `natural=wetland` + `wetland=marsh` | Marsh polygon |
 | `features.WATER_POLYGONS.SWAMP` | `natural=wetland` + `wetland=swamp` | Swamp polygon |
@@ -377,13 +410,14 @@ Shorthands:
 
 | Shorthand | Composition |
 | --- | --- |
-| `features.WATER_POLYGONS.OPEN_WATER` | `WATER_AREA` \| `LAKE` \| `RESERVOIR` \| `POND` \| `LAGOON` \| `BASIN` \| `SALT_POND` |
+| `features.WATER_POLYGONS.OPEN_WATER` | `WATER_AREA` \| `LAKE` \| `RESERVOIR` \| `POND` \| `LAGOON` \| `BASIN` \| `SALT_POND` \| `OXBOW` \| `MOAT` \| `HARBOUR` \| `REFLECTING_POOL` \| `WASTEWATER` \| `RAPIDS` |
 | `features.WATER_POLYGONS.FLOWING` | `RIVER` \| `CANAL` |
 | `features.WATER_POLYGONS.WETLANDS` | `WETLAND_TYPE` \| `MARSH` \| `SWAMP` \| `REEDBED` \| `SALTMARSH` |
 | `features.WATER_POLYGONS.NATURAL` | `WATER_AREA` \| `LAKE` \| `POND` \| `LAGOON` \| `RIVER` \| `WETLANDS` |
 | `features.WATER_POLYGONS.ARTIFICIAL` | `RESERVOIR` \| `CANAL` \| `BASIN` \| `SALT_POND` |
 | `features.WATER_POLYGONS.INLAND` | `OPEN_WATER` \| `FLOWING` \| `WETLANDS` |
 | `features.WATER_POLYGONS.MAJOR_INLAND` | `LAKE` \| `RESERVOIR` \| `RIVER` \| `CANAL` |
+| `features.WATER_POLYGONS.ALL` | All water polygon values in this catalog |
 
 ### BUILDINGS
 
@@ -498,10 +532,38 @@ OSM tag: `landuse`
 | `features.LANDUSE.COMMERCIAL` | `landuse=commercial` | Predominantly commercial landuse polygon |
 | `features.LANDUSE.INDUSTRIAL` | `landuse=industrial` | Predominantly industrial landuse polygon |
 | `features.LANDUSE.RETAIL` | `landuse=retail` | Retail-focused landuse polygon |
+| `features.LANDUSE.CONSTRUCTION` | `landuse=construction` | Site under active development |
+| `features.LANDUSE.EDUCATION` | `landuse=education` | Education facilities area |
+| `features.LANDUSE.INSTITUTIONAL` | `landuse=institutional` | Institutional land |
+| `features.LANDUSE.FARMLAND` | `landuse=farmland` | Cropland |
+| `features.LANDUSE.FARMYARD` | `landuse=farmyard` | Farm buildings and yard |
+| `features.LANDUSE.GREENHOUSE_HORTICULTURE` | `landuse=greenhouse_horticulture` | Greenhouse growing area |
+| `features.LANDUSE.RAILWAY` | `landuse=railway` | Railway land |
+| `features.LANDUSE.HIGHWAY` | `landuse=highway` | Highway land and auxiliaries |
+| `features.LANDUSE.PORT` | `landuse=port` | Port land |
+| `features.LANDUSE.QUARRY` | `landuse=quarry` | Mineral extraction area |
+| `features.LANDUSE.LANDFILL` | `landuse=landfill` | Waste disposal area |
+| `features.LANDUSE.MILITARY` | `landuse=military` | Military land |
+| `features.LANDUSE.RELIGIOUS` | `landuse=religious` | Religious-use area |
+| `features.LANDUSE.RECREATION_GROUND` | `landuse=recreation_ground` | General recreation green space |
+| `features.LANDUSE.CEMETERY` | `landuse=cemetery` | Burial ground |
+| `features.LANDUSE.GRASS` | `landuse=grass` | Managed grass area |
+| `features.LANDUSE.FOREST` | `landuse=forest` | Managed forest |
+| `features.LANDUSE.MEADOW` | `landuse=meadow` | Hay or grazing meadow |
+| `features.LANDUSE.ORCHARD` | `landuse=orchard` | Fruit or nut planting |
+| `features.LANDUSE.VINEYARD` | `landuse=vineyard` | Grape-growing land |
+| `features.LANDUSE.ALLOTMENTS` | `landuse=allotments` | Community garden plots |
+| `features.LANDUSE.BASIN` | `landuse=basin` | Artificial water-holding area |
+| `features.LANDUSE.SALT_POND` | `landuse=salt_pond` | Salt evaporation pond |
 
 Shorthands:
 
 | Shorthand | Composition |
 | --- | --- |
-| `features.LANDUSE.URBAN` | `RESIDENTIAL` \| `COMMERCIAL` \| `INDUSTRIAL` \| `RETAIL` |
-| `features.LANDUSE.ALL` | `URBAN` |
+| `features.LANDUSE.URBAN` | `RESIDENTIAL` \| `COMMERCIAL` \| `INDUSTRIAL` \| `RETAIL` \| `CONSTRUCTION` \| `EDUCATION` \| `INSTITUTIONAL` |
+| `features.LANDUSE.AGRICULTURAL` | `FARMLAND` \| `FARMYARD` \| `GREENHOUSE_HORTICULTURE` \| `FOREST` \| `MEADOW` \| `ORCHARD` \| `VINEYARD` \| `ALLOTMENTS` |
+| `features.LANDUSE.TRANSPORT` | `RAILWAY` \| `HIGHWAY` \| `PORT` |
+| `features.LANDUSE.AMENITY` | `QUARRY` \| `LANDFILL` \| `MILITARY` \| `RELIGIOUS` \| `RECREATION_GROUND` \| `CEMETERY` |
+| `features.LANDUSE.NATURALIZED` | `GRASS` \| `FOREST` \| `MEADOW` \| `ORCHARD` \| `VINEYARD` \| `ALLOTMENTS` |
+| `features.LANDUSE.WATER` | `BASIN` \| `SALT_POND` |
+| `features.LANDUSE.ALL` | All landuse values in this catalog |

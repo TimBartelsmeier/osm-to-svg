@@ -32,15 +32,30 @@ class RAILWAYS:
     """railway=funicular: Cable-driven steep hillside railway."""
     NARROW_GAUGE = _rw("narrow_gauge")
     """railway=narrow_gauge: Railway with narrower-than-standard track gauge."""
+    MINIATURE = _rw("miniature")
+    """railway=miniature: Passenger miniature railway, often in a park."""
     ABANDONED = _rw("abandoned")
     """railway=abandoned: Line that has been abandoned; track may still be physically present."""
     DISUSED = _rw("disused")
     """railway=disused: Line no longer in service but infrastructure is still intact."""
     PRESERVED = _rw("preserved")
     """railway=preserved: Heritage or museum railway kept for historical purposes."""
+    CONSTRUCTION = _rw("construction")
+    """railway=construction: Railway under construction."""
+    PROPOSED = _rw("proposed")
+    """railway=proposed: Planned railway not yet under construction."""
 
     # ---- shorthands ----
-    ACTIVE = RAIL | LIGHT_RAIL | SUBWAY | TRAM | MONORAIL | FUNICULAR | NARROW_GAUGE
+    ACTIVE = (
+        RAIL
+        | LIGHT_RAIL
+        | SUBWAY
+        | TRAM
+        | MONORAIL
+        | FUNICULAR
+        | NARROW_GAUGE
+        | MINIATURE
+    )
     """Shorthand for currently operating railway and rail-transit infrastructure.
 
     OSM tags: railway=rail, light_rail, subway, tram, monorail, funicular,
@@ -55,4 +70,15 @@ class RAILWAYS:
     """Shorthand for non-operational and heritage railway lines.
 
     OSM tags: railway=abandoned, disused, preserved.
+    """
+    PLANNED = CONSTRUCTION | PROPOSED
+    """Shorthand for railway infrastructure under construction or proposed.
+
+    OSM tags: railway=construction, proposed.
+    """
+    ALL = ACTIVE | INACTIVE | PLANNED
+    """Shorthand for every track-oriented railway value in this catalog.
+
+    Station, platform, crossing, and signal values are intentionally not
+    included because most are node-only infrastructure rather than tracks.
     """

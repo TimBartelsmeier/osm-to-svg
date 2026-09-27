@@ -3,9 +3,9 @@
 from osm_to_svg.features.spec import FeatureSpec
 
 
-def _ww(value: str) -> FeatureSpec:
+def _ww(value: str, *, needs_areas: bool = False) -> FeatureSpec:
     """Shorthand for a single waterway= filter (linear waterways)."""
-    return FeatureSpec({"waterway": [value]}, needs_areas=False)
+    return FeatureSpec({"waterway": [value]}, needs_areas=needs_areas)
 
 
 def _wp(*clauses: dict[str, list[str]]) -> FeatureSpec:
@@ -44,24 +44,56 @@ class WATERWAYS:
     """waterway=lock: Lock chamber segment on a navigable waterway."""
     WATERFALL = _ww("waterfall")
     """waterway=waterfall: Waterfall feature mapped as a linear waterway."""
+    TIDAL_CHANNEL = _ww("tidal_channel")
+    """waterway=tidal_channel: Natural tidal channel in a coastal environment."""
+    FLOWLINE = _ww("flowline")
+    """waterway=flowline: Slow-moving flow through a larger water body."""
+    PRESSURISED = _ww("pressurised")
+    """waterway=pressurised: Enclosed pressurised water conduit."""
+    FISH_PASS = _ww("fish_pass")
+    """waterway=fish_pass: Passage around a barrier for migrating fish."""
+    CANOE_PASS = _ww("canoe_pass")
+    """waterway=canoe_pass: Passage around a barrier for canoeists."""
+    DAM = _ww("dam")
+    """waterway=dam: Barrier across a watercourse, mapped here as a way."""
+    RAPIDS = _ww("rapids")
+    """waterway=rapids: Fast-flowing turbulent section of a watercourse."""
 
-    ALL = RIVER | STREAM | CANAL | DRAIN | DITCH | WEIR | LOCK | WATERFALL
+    ALL = (
+        RIVER
+        | STREAM
+        | CANAL
+        | DRAIN
+        | DITCH
+        | WEIR
+        | LOCK
+        | WATERFALL
+        | TIDAL_CHANNEL
+        | FLOWLINE
+        | PRESSURISED
+        | FISH_PASS
+        | CANOE_PASS
+        | DAM
+        | RAPIDS
+    )
     """Shorthand for all supported line waterways.
 
     OSM tags: waterway=river, stream, canal, drain, ditch, weir, lock,
     waterfall.
     """
-    FLOWING = RIVER | STREAM | CANAL
+    FLOWING = RIVER | STREAM | CANAL | TIDAL_CHANNEL | FLOWLINE
     """Shorthand for flowing waterways with a visible channel.
 
     OSM tags: waterway=river, stream, canal.
     """
-    NATURAL = RIVER | STREAM | WATERFALL
+    NATURAL = RIVER | STREAM | TIDAL_CHANNEL | FLOWLINE | WATERFALL | RAPIDS
     """Shorthand for natural watercourse centerlines.
 
     OSM tags: waterway=river, stream, waterfall.
     """
-    ARTIFICIAL = CANAL | DRAIN | DITCH | WEIR | LOCK
+    ARTIFICIAL = (
+        CANAL | DRAIN | DITCH | WEIR | LOCK | PRESSURISED | FISH_PASS | CANOE_PASS | DAM
+    )
     """Shorthand for human-made linear waterways.
 
     OSM tags: waterway=canal, drain, ditch, weir, lock.
@@ -117,6 +149,20 @@ class WATER_POLYGONS:
     """waterway=riverbank or natural=water + water=river: River area polygon; the same feature is available as a centerline in WATERWAYS.RIVER."""
     CANAL = _wp({"natural": ["water"], "water": ["canal"]})
     """natural=water + water=canal: Canal area polygon; the same feature is available as a centerline in WATERWAYS.CANAL."""
+    STREAM = _wp({"natural": ["water"], "water": ["stream"]})
+    """natural=water + water=stream: Stream water area polygon."""
+    OXBOW = _wp({"natural": ["water"], "water": ["oxbow"]})
+    """natural=water + water=oxbow: Oxbow lake polygon."""
+    MOAT = _wp({"natural": ["water"], "water": ["moat"]})
+    """natural=water + water=moat: Defensive moat polygon."""
+    HARBOUR = _wp({"natural": ["water"], "water": ["harbour"]})
+    """natural=water + water=harbour: Harbour water polygon."""
+    REFLECTING_POOL = _wp({"natural": ["water"], "water": ["reflecting_pool"]})
+    """natural=water + water=reflecting_pool: Reflecting pool polygon."""
+    WASTEWATER = _wp({"natural": ["water"], "water": ["wastewater"]})
+    """natural=water + water=wastewater: Wastewater treatment basin polygon."""
+    RAPIDS = _wp({"natural": ["water"], "water": ["rapids"]})
+    """natural=water + water=rapids: Rapids area polygon."""
     WETLAND_TYPE = _wp({"natural": ["wetland"]})
     """natural=wetland: Generic wetland polygon; also matches GREEN_SPACES.WETLAND (specific OSM tag value; see WETLANDS for a shorthand group that also encompasses other wetland subtypes such as marsh, swamp, reedbed, and saltmarsh)"""
     MARSH = _wp({"natural": ["wetland"], "wetland": ["marsh"]})
@@ -130,9 +176,23 @@ class WATER_POLYGONS:
     COASTLINE = _wp({"natural": ["coastline"]})
     """natural=coastline: Coastline or sea-edge polygon when area geometry is present."""
 
-    OPEN_WATER = WATER_AREA | LAKE | RESERVOIR | POND | LAGOON | BASIN | SALT_POND
+    OPEN_WATER = (
+        WATER_AREA
+        | LAKE
+        | RESERVOIR
+        | POND
+        | LAGOON
+        | BASIN
+        | SALT_POND
+        | OXBOW
+        | MOAT
+        | HARBOUR
+        | REFLECTING_POOL
+        | WASTEWATER
+        | RAPIDS
+    )
     """Shorthand for lakes, reservoirs, ponds, lagoons, and other standing open-water polygons."""
-    FLOWING = RIVER | CANAL
+    FLOWING = RIVER | STREAM | CANAL
     """Shorthand for polygonal rivers and canals.
 
     These overlap with WATERWAYS for centerline rendering.
@@ -143,7 +203,11 @@ class WATER_POLYGONS:
     """Shorthand for inland water polygons, excluding coastline-only geometry."""
     MAJOR_INLAND = LAKE | RESERVOIR | RIVER | CANAL
     """Shorthand for major inland water polygons such as lakes, reservoirs, rivers, and canals."""
-    NATURAL = WATER_AREA | LAKE | POND | LAGOON | RIVER | WETLANDS
+    NATURAL = (
+        WATER_AREA | LAKE | POND | LAGOON | OXBOW | RIVER | STREAM | RAPIDS | WETLANDS
+    )
     """Shorthand for naturally occurring water and wetland polygons."""
     ARTIFICIAL = RESERVOIR | CANAL | BASIN | SALT_POND
     """Shorthand for engineered or strongly human-shaped water polygons."""
+    ALL = OPEN_WATER | FLOWING | WETLANDS | COASTLINE
+    """Shorthand for every water polygon value in this catalog."""
